@@ -1,0 +1,40 @@
+generator client {
+  provider            = "prisma-client"
+  output              = "../src/generated"
+  moduleFormat        = "cjs"
+  importFileExtension = "js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Organization {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name      String
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  clinics   Clinic[]
+
+  @@map("organizations")
+}
+
+model Clinic {
+  id             String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId String       @map("organization_id") @db.Uuid
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  name           String
+  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@unique([organizationId, id])
+  @@map("clinics")
+}
+
+model User {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  identityIssuer  String   @map("identity_issuer")
+  identitySubject String   @map("identity_subject")
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@unique([identityIssuer, identitySubject])
+  @@map("users")
+}

@@ -1,0 +1,22 @@
+#!/bin/sh
+set -eu
+
+: "${POSTGRES_MIGRATION_PASSWORD:?Set POSTGRES_MIGRATION_PASSWORD}"
+: "${POSTGRES_RUNTIME_PASSWORD:?Set POSTGRES_RUNTIME_PASSWORD}"
+
+psql --no-psqlrc --set ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" \
+  --set database="$POSTGRES_DB" \
+  --set migration_password="$POSTGRES_MIGRATION_PASSWORD" \
+  --set runtime_password="$POSTGRES_RUNTIME_PASSWORD" <<'SQL'
+CREATE ROLE vetx_migration LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS
+    PASSWORD :'migration_password';
+CREATE ROLE vetx_runtime LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS
+    PASSWORD :'runtime_password';
+
+ALTER DATABASE :"database" OWNER TO vetx_migration;
+REVOKE ALL ON DATABASE :"database" FROM PUBLIC;
+GRANT CONNECT ON DATABASE :"database" TO vetx_runtime;
+
+REVOKE ALL ON SCHEMA public FROM PUBLIC;
+GRANT USAGE ON SCHEMA public TO vetx_runtime;
+SQL
