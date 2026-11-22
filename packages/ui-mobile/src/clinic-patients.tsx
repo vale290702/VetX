@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { Action, Field } from "./controls";
 import { PatientReadState, usePatientRead } from "./patient-controls";
 import { PatientForm, type ClinicPatientProps } from "./patient-form";
+import { Appointments } from "./appointments";
 import { PatientDetail } from "./patient-detail";
 
 export function ClinicPatients({
@@ -23,6 +24,7 @@ export function ClinicPatients({
   const [filter, setFilter] = useState("");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
+  const [calendar, setCalendar] = useState(false);
   const [selected, setSelected] = useState<{ id: string; create?: boolean }>();
   const scope = useMemo(
     () => ({ subject: account.subject, organizationId, clinicId: clinic.id }),
@@ -35,6 +37,15 @@ export function ClinicPatients({
     setSelected(undefined);
     reload();
   }
+  if (calendar)
+    return (
+      <View style={styles.section}>
+        <Text accessibilityRole="header" style={styles.heading}>
+          {clinic.name}
+        </Text>
+        <Appointments {...props} back={() => setCalendar(false)} />
+      </View>
+    );
   if (selected)
     return (
       <View style={styles.section}>
@@ -55,6 +66,11 @@ export function ClinicPatients({
     <View style={styles.section}>
       <View style={styles.actions}>
         <Action styles={styles} label={t("nativePatients.backClinics")} onPress={back} />
+        <Action
+          styles={styles}
+          label={t("nativeCare.calendar")}
+          onPress={() => setCalendar(true)}
+        />
       </View>
       <Text accessibilityRole="header" style={styles.heading}>
         {t("nativePatients.patientsIn", { clinic: clinic.name })}

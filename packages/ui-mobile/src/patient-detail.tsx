@@ -2,6 +2,8 @@ import { Activity, useCallback, useEffect, useState } from "react";
 import { AppState, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
+import { Appointments } from "./appointments";
+import { PatientEncounters } from "./clinical-notes";
 import { startCodeExpiry } from "./code-expiry";
 import { Action, Field } from "./controls";
 import { PatientForm, type ClinicPatientProps } from "./patient-form";
@@ -29,6 +31,7 @@ export function PatientDetail({
   const load = useCallback(() => client.detail(scope, patientId), [client, scope, patientId]);
   const { result, reload } = usePatientRead(load);
   const action = usePatientAction(account);
+  const [care, setCare] = useState<"notes" | "appointments">();
   const [edit, setEdit] = useState<Editor>();
   const [issued, setIssued] = useState<{
     guardianId: string;
@@ -74,6 +77,47 @@ export function PatientDetail({
     edit?.kind === "invite" || edit?.kind === "remove"
       ? record?.guardians.find((g) => g.id === edit.guardian.id && g.email === edit.guardian.email)
       : undefined;
+  if (care) {
+    const backToPatient = () => {
+      setCare(undefined);
+      reload();
+    };
+    return (
+      <View style={styles.section}>
+        {!record && (
+          <PatientReadState
+            styles={styles}
+            retry={reload}
+            error={result && "error" in result ? result.error : undefined}
+          />
+        )}
+        {result && "error" in result ? (
+          <Action styles={styles} label={t("nativeCare.backPatient")} onPress={backToPatient} />
+        ) : (
+          <Activity mode={record ? "visible" : "hidden"}>
+            <Text accessibilityRole="header" style={styles.heading}>
+              {record?.patient.name}
+            </Text>
+            {care === "notes" ? (
+              <PatientEncounters
+                {...props}
+                patientId={patientId}
+                guardians={record?.guardians ?? []}
+                refreshGuardians={reload}
+                back={backToPatient}
+              />
+            ) : (
+              <Appointments
+                {...props}
+                patient={{ id: patientId, name: record?.patient.name ?? "" }}
+                back={backToPatient}
+              />
+            )}
+          </Activity>
+        )}
+      </View>
+    );
+  }
   return (
     <View style={styles.section}>
       {!edit && (
@@ -132,6 +176,22 @@ export function PatientDetail({
           {!edit ? (
             <>
               <View style={styles.actions}>
+                <Action
+                  styles={styles}
+                  label={t("nativeCare.history")}
+                  onPress={() => {
+                    setIssued(undefined);
+                    setCare("notes");
+                  }}
+                />
+                <Action
+                  styles={styles}
+                  label={t("nativeCare.appointments")}
+                  onPress={() => {
+                    setIssued(undefined);
+                    setCare("appointments");
+                  }}
+                />
                 <Action
                   styles={styles}
                   label={t("nativePatients.editPatient")}

@@ -100,3 +100,35 @@ export function PatientReadState({
     </Text>
   );
 }
+
+export function Pager({
+  page,
+  next,
+  change,
+  styles,
+}: {
+  page: number;
+  next: boolean;
+  change: (n: number) => void;
+  styles: AccessStyles;
+}) {
+  const { t } = useTranslation();
+  if (page === 1 && !next) return null;
+  return (
+    <View style={styles.section}>
+      <Text style={styles.support}>{t("directory.page", { page })}</Text>
+      <View style={styles.actions}>
+        {page > 1 && (
+          <Action
+            styles={styles}
+            label={t("directory.previous")}
+            onPress={() => change(page - 1)}
+          />
+        )}
+        {next && (
+          <Action styles={styles} label={t("directory.next")} onPress={() => change(page + 1)} />
+        )}
+      </View>
+    </View>
+  );
+}

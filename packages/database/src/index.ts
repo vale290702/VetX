@@ -19,6 +19,19 @@ import {
   registryResult,
   type RegistryErrorCode,
 } from "./registry.js";
+import {
+  type Appointment,
+  type AppointmentFilter,
+  type AppointmentInput,
+  type AppointmentPage,
+  CareError,
+  type CareErrorCode,
+  type EncounterInput,
+  type EncounterPage,
+  type EncounterSharing,
+  type OwnerEncounter,
+  type StaffEncounter,
+} from "./care.js";
 import { Prisma, PrismaClient } from "./generated/client.js";
 
 export {
@@ -30,6 +43,7 @@ export {
 } from "./directory.js";
 
 export * from "./registry.js";
+export * from "./care.js";
 
 const probeTimeoutMs = 1_000;
 
@@ -63,7 +77,7 @@ export class PrismaDatabase {
                     public.organization_memberships, public.clinic_grants
       LIMIT 0
     `;
-    await transaction.$queryRaw`SELECT public.registry_lock_tables() AS locked`;
+    await transaction.$queryRaw`SELECT public.registry_lock_tables() AS registry_locked, public.care_lock_tables() AS care_locked`;
     const [result] = await transaction.$queryRaw<{ active: boolean }[]>`
       SELECT current_setting('row_security') = 'on'
         AND NOT EXISTS (
@@ -75,7 +89,8 @@ export class PrismaDatabase {
       FROM unnest(ARRAY['public.users', 'public.organization_memberships', 'public.clinic_grants',
                         'public.organizations', 'public.clinics', 'public.directory_events',
                         'public.patients', 'public.owner_contacts', 'public.guardians',
-                        'public.registry_events', 'public.pet_link_attempts']::regclass[]) AS tables(relation)
+                        'public.registry_events', 'public.pet_link_attempts', 'public.clinical_encounters',
+                        'public.encounter_sharing', 'public.encounter_recipients', 'public.appointments', 'public.care_events']::regclass[]) AS tables(relation)
       JOIN pg_catalog.pg_class ON pg_class.oid = relation
     `;
     if (!result?.active) throw new Error("Database row security is inactive");
@@ -276,6 +291,113 @@ export class PrismaDatabase {
     );
   }
 
+  listEncounters(
+    staff: StaffPrincipal,
+    org: string,
+    clinic: string,
+    patient: string,
+    page: number,
+  ): Promise<EncounterPage<StaffEncounter>> {
+    return this.careQuery(
+      staff,
+      org,
+      clinic,
+      Prisma.sql`SELECT public.care_list_encounters(${patient}::uuid, ${page}::int) AS result`,
+    );
+  }
+
+  saveEncounter(
+    staff: StaffPrincipal,
+    org: string,
+    clinic: string,
+    patient: string,
+    id: string,
+    input: EncounterInput,
+  ): Promise<StaffEncounter> {
+    return this.careQuery(
+      staff,
+      org,
+      clinic,
+      Prisma.sql`SELECT public.care_save_encounter(${patient}::uuid, ${id}::uuid,
+      ${input.occurredAt}, ${input.reason}, ${input.subjective}, ${input.objective}, ${input.assessment}, ${input.plan},
+      ${input.addendumTo ?? null}::uuid) AS result`,
+    );
+  }
+
+  shareEncounter(
+    staff: StaffPrincipal,
+    org: string,
+    clinic: string,
+    patient: string,
+    id: string,
+    input: EncounterSharing,
+  ): Promise<EncounterSharing> {
+    return this.careQuery(
+      staff,
+      org,
+      clinic,
+      Prisma.sql`SELECT public.care_share_encounter(${patient}::uuid, ${id}::uuid,
+      ${input.guardianIds}::uuid[], ${input.revision}::int) AS result`,
+    );
+  }
+
+  listOwnerEncounters(
+    owner: OwnerPrincipal,
+    petId: string,
+    page: number,
+  ): Promise<EncounterPage<OwnerEncounter>> {
+    return this.careQuery(
+      owner,
+      "",
+      "",
+      Prisma.sql`SELECT public.care_owner_encounters(${petId}::uuid, ${page}::int) AS result`,
+    );
+  }
+
+  listAppointments(
+    staff: StaffPrincipal,
+    org: string,
+    clinic: string,
+    filter: AppointmentFilter,
+  ): Promise<AppointmentPage> {
+    return this.careQuery(
+      staff,
+      org,
+      clinic,
+      Prisma.sql`SELECT public.care_list_appointments(
+      ${filter.from}, ${filter.to}, ${filter.page}::int, ${filter.patientId ?? null}::uuid) AS result`,
+    );
+  }
+
+  saveAppointment(
+    staff: StaffPrincipal,
+    org: string,
+    clinic: string,
+    id: string,
+    input: AppointmentInput,
+  ): Promise<Appointment> {
+    return this.careQuery(
+      staff,
+      org,
+      clinic,
+      Prisma.sql`SELECT public.care_save_appointment(${id}::uuid, ${input.patientId}::uuid,
+      ${input.startAt}, ${input.endAt}, ${input.reason}, ${input.status}, ${input.revision}::int) AS result`,
+    );
+  }
+
+  private async careQuery<T>(
+    principal: AccessPrincipal,
+    org: string,
+    clinic: string,
+    query: Prisma.Sql,
+  ): Promise<T> {
+    const [row] = await this.scopedRows<T, CareErrorCode>(principal, org, clinic, query, "");
+    const result = row?.result;
+    if (!result || typeof result !== "object") throw new Error("Database returned no care result");
+    if ("error" in result) throw new CareError(result.error);
+    return result;
+  }
+
   private async registryQuery<T>(
     principal: AccessPrincipal,
     org: string,
@@ -283,13 +405,24 @@ export class PrismaDatabase {
     query: Prisma.Sql,
     verifiedEmail = "",
   ): Promise<T> {
-    const rows = await this.withAccess(principal, org, async (transaction) => {
+    // A rejected redemption still commits its rate-limit counter.
+    return registryResult(
+      await this.scopedRows<T, RegistryErrorCode>(principal, org, clinic, query, verifiedEmail),
+    );
+  }
+
+  private scopedRows<T, E extends string>(
+    principal: AccessPrincipal,
+    org: string,
+    clinic: string,
+    query: Prisma.Sql,
+    verifiedEmail: string,
+  ) {
+    return this.withAccess(principal, org, async (transaction) => {
       await transaction.$queryRaw`SELECT set_config('vetx.clinic_id', ${clinic}, true),
         set_config('vetx.verified_email', ${verifiedEmail}, true)`;
-      return transaction.$queryRaw<{ result: T | { error: RegistryErrorCode } }[]>(query);
+      return transaction.$queryRaw<{ result: T | { error: E } }[]>(query);
     });
-    // A rejected redemption still commits its rate-limit counter.
-    return registryResult(rows);
   }
 
   private directoryQuery<T extends DirectoryRevision>(
