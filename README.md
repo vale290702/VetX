@@ -2,6 +2,8 @@
 
 VetX includes a staff web app, a staff mobile app, a pet-owner mobile app, and one NestJS API. Users can sign in through Keycloak in English or Spanish. The API resolves staff access from organization memberships and clinic grants in PostgreSQL. Clinics can register patients and guardians. Owners can link a clinic record to their account using a single-use code. [Patient and guardian guide](docs/patients-and-guardians.md)
 
+Staff can record clinical encounters, share individual notes with linked guardians, and book or reschedule patient appointments. [Clinical care guide](docs/clinical-care.md)
+
 ## Repository structure
 
 ```text
@@ -82,6 +84,10 @@ pnpm --filter @vetx/mobile-pets android
 ```
 
 Each app supports both the `ios` and `android` commands. Use HTTPS for deployed APIs. For a local HTTP API, the Android debug build must permit local cleartext traffic.
+
+### Medical documents
+
+To attach clinical files, start the private document store and initialize its local bucket after installing dependencies and compiling `@vetx/config`. Staff can share individual files with linked guardians. [Medical document setup and access](docs/medical-documents.md)
 
 ### Optional integrations
 

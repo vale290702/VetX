@@ -52,7 +52,9 @@ jobs:
         run: |
           node scripts/init-local-env.mjs
           pnpm compose config --quiet
-          pnpm compose up -d --wait postgres redis keycloak mailpit
+          pnpm compose up -d --wait postgres redis keycloak mailpit storage
+          pnpm --filter @vetx/api storage:init
+          pnpm --filter @vetx/api test:storage
           pnpm db:migrate
       - name: Run browser tests
         run: |
@@ -62,5 +64,5 @@ jobs:
         if: always()
         run: |
           if test -f .env; then
-            pnpm compose down
+            pnpm compose --profile integrations down
           fi

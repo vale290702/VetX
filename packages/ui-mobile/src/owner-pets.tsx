@@ -1,7 +1,9 @@
-import { useCallback, useState } from "react";
+import { Activity, useCallback, useState } from "react";
 import { Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
+import { OwnerDocuments } from "./medical-documents";
+import { ReleasedEncounters } from "./clinical-notes";
 import { Action, Field, type AccessStyles } from "./controls";
 import type { PatientClient } from "./patients";
 import {
@@ -26,11 +28,37 @@ export function OwnerPets({
   openAccount: () => void;
 }) {
   const { t } = useTranslation();
+  const [selected, setSelected] = useState<{ petId: string; kind: "notes" | "documents" }>();
   const [draft, setDraft] = useState<LinkDraft>();
   const [linked, setLinked] = useState(false);
   const load = useCallback(() => client.pets(account.subject), [client, account]);
   const { result, reload } = usePatientRead(load);
   const action = usePatientAction(account);
+  const pet =
+    result && "value" in result
+      ? result.value.pets.find((p) => p.id === selected?.petId)
+      : undefined;
+  if (selected && (!result || pet)) {
+    const Records = selected.kind === "notes" ? ReleasedEncounters : OwnerDocuments;
+    return (
+      <>
+        {!pet && <PatientReadState styles={styles} retry={reload} />}
+        <Activity mode={pet ? "visible" : "hidden"}>
+          <Records
+            key={selected.petId}
+            account={account}
+            client={client}
+            pet={pet ?? { id: selected.petId, name: "" }}
+            styles={styles}
+            back={() => {
+              setSelected(undefined);
+              reload();
+            }}
+          />
+        </Activity>
+      </>
+    );
+  }
   if (!result || "error" in result)
     return <PatientReadState styles={styles} retry={reload} error={result?.error} />;
   const { pets } = result.value;
@@ -75,6 +103,28 @@ export function OwnerPets({
               {clinic.clinicName} · {clinic.organizationName}
             </Text>
           ))}
+          {!draft && (
+            <View style={styles.actions}>
+              <Action
+                styles={styles}
+                label={t("nativeCare.released")}
+                accessibilityLabel={t("nativeCare.releasedFor", { name: pet.name })}
+                onPress={() => {
+                  setSelected({ petId: pet.id, kind: "notes" });
+                  setLinked(false);
+                }}
+              />
+              <Action
+                styles={styles}
+                label={t("nativeDocuments.released")}
+                accessibilityLabel={t("nativeDocuments.releasedFor", { name: pet.name })}
+                onPress={() => {
+                  setSelected({ petId: pet.id, kind: "documents" });
+                  setLinked(false);
+                }}
+              />
+            </View>
+          )}
         </View>
       ))}
       {draft ? (

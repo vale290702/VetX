@@ -1,3 +1,5 @@
+import { execFileSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 import { randomUUID } from "node:crypto";
 import pg from "pg";
 import { createIdentity, setting } from "./identity.js";
@@ -17,8 +19,38 @@ export async function createDirectoryFixture() {
   await db.connect();
   async function cleanup() {
     try {
+      const documents = await db.query(
+        "SELECT clinic_id,patient_id,id,sha256 FROM medical_documents WHERE organization_id=$1",
+        [organizationId],
+      );
+      if (documents.rowCount) {
+        execFileSync(
+          process.execPath,
+          [
+            fileURLToPath(
+              new URL(
+                "../../../../apps/api/integration/clear-document-fixtures.mjs",
+                import.meta.url,
+              ),
+            ),
+          ],
+          { input: JSON.stringify({ org: organizationId, rows: documents.rows }), timeout: 15000 },
+        );
+      }
       await db.query("BEGIN");
-      for (const table of ["registry_events", "guardians", "owner_contacts", "patients"]) {
+      for (const table of [
+        "document_events",
+        "medical_documents",
+        "care_events",
+        "encounter_recipients",
+        "encounter_sharing",
+        "appointments",
+        "clinical_encounters",
+        "registry_events",
+        "guardians",
+        "owner_contacts",
+        "patients",
+      ]) {
         await db.query(`DELETE FROM ${table} WHERE organization_id=$1`, [organizationId]);
       }
       await db.query("DELETE FROM pet_link_attempts WHERE issuer=$1 AND subject=ANY($2::text[])", [

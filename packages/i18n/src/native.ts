@@ -1,6 +1,10 @@
 import { createInstance } from "i18next";
 import ICU from "i18next-icu";
 
+import enDocuments from "../locales/native-documents.en.json";
+import esDocuments from "../locales/native-documents.es.json";
+import enCare from "../locales/native-care.en.json";
+import esCare from "../locales/native-care.es.json";
 import enAuth from "../locales/native-auth.en.json";
 import esAuth from "../locales/native-auth.es.json";
 import enDirectory from "../locales/native-directory.en.json";
@@ -10,6 +14,11 @@ import esPatients from "../locales/native-patients.es.json";
 
 import { defaultLocale, locales, messages, type Locale, type Messages } from "./index";
 
+const nativeDocuments = { en: enDocuments, es: esDocuments } satisfies Record<
+  Locale,
+  typeof esDocuments
+>;
+const nativeCare = { en: enCare, es: esCare } satisfies Record<Locale, typeof esCare>;
 const nativeAuth = { en: enAuth, es: esAuth } satisfies Record<Locale, typeof esAuth>;
 const nativePatients = { en: enPatients, es: esPatients } satisfies Record<
   Locale,
@@ -21,6 +30,8 @@ declare module "i18next" {
   interface CustomTypeOptions {
     resources: {
       translation: Messages & {
+        nativeDocuments: typeof esDocuments;
+        nativeCare: typeof esCare;
         nativeAuth: typeof esAuth;
         directory: typeof esDirectory;
         nativePatients: typeof esPatients;
@@ -40,6 +51,8 @@ export async function createNativeI18n(locale: Locale) {
         translation: {
           ...messages.es,
           nativeAuth: nativeAuth.es,
+          nativeDocuments: nativeDocuments.es,
+          nativeCare: nativeCare.es,
           directory: directory.es,
           nativePatients: nativePatients.es,
         },
@@ -48,6 +61,8 @@ export async function createNativeI18n(locale: Locale) {
         translation: {
           ...messages.en,
           nativeAuth: nativeAuth.en,
+          nativeDocuments: nativeDocuments.en,
+          nativeCare: nativeCare.en,
           directory: directory.en,
           nativePatients: nativePatients.en,
         },

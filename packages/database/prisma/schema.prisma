@@ -107,6 +107,10 @@ model Patient {
   clinic         Clinic          @relation(fields: [organizationId, clinicId], references: [organizationId, id], onUpdate: NoAction, onDelete: NoAction)
   guardians      Guardian[]
   events         RegistryEvent[]
+  documents MedicalDocument[]
+  encounters     ClinicalEncounter[]
+  appointments   Appointment[]
+  careEvents     CareEvent[]
 
   @@id([organizationId, clinicId, id])
   @@map("patients")
@@ -142,6 +146,7 @@ model Guardian {
   petId           String?      @map("pet_id") @db.Uuid
   claimRequestId  String?      @map("claim_request_id") @db.Uuid
   claimTarget     String?      @map("claim_target") @db.Uuid
+  releases        EncounterRecipient[]
   patient         Patient      @relation(fields: [organizationId, clinicId, patientId], references: [organizationId, clinicId, id], onUpdate: NoAction, onDelete: NoAction)
   contact         OwnerContact @relation(fields: [organizationId, clinicId, contactId], references: [organizationId, clinicId, id], onUpdate: NoAction, onDelete: NoAction)
 
@@ -173,4 +178,136 @@ model PetLinkAttempt {
 
   @@id([issuer, subject])
   @@map("pet_link_attempts")
+}
+
+model ClinicalEncounter {
+  organizationId String @map("organization_id") @db.Uuid
+  clinicId       String @map("clinic_id") @db.Uuid
+  patientId      String @map("patient_id") @db.Uuid
+  id             String @db.Uuid
+  occurredAt     DateTime @map("occurred_at") @db.Timestamptz(3)
+  recordedAt     DateTime @default(dbgenerated("clock_timestamp()")) @map("recorded_at") @db.Timestamptz(3)
+  authorIssuer   String @map("author_issuer")
+  authorSubject  String @map("author_subject")
+  reason         String
+  subjective     String
+  objective      String
+  assessment     String
+  plan           String
+  addendumTo     String? @map("addendum_to") @db.Uuid
+  patient        Patient @relation(fields: [organizationId, clinicId, patientId], references: [organizationId, clinicId, id], onUpdate: NoAction, onDelete: NoAction)
+  original       ClinicalEncounter? @relation("EncounterAddenda", fields: [organizationId, clinicId, patientId, addendumTo], references: [organizationId, clinicId, patientId, id], onUpdate: NoAction, onDelete: NoAction)
+  addenda        ClinicalEncounter[] @relation("EncounterAddenda")
+  sharing        EncounterSharing?
+
+  @@id([organizationId, clinicId, patientId, id])
+  @@index([organizationId, clinicId, patientId, occurredAt(sort: Desc), id], map: "encounters_chronology")
+  @@map("clinical_encounters")
+}
+
+model EncounterSharing {
+  organizationId String @map("organization_id") @db.Uuid
+  clinicId       String @map("clinic_id") @db.Uuid
+  patientId      String @map("patient_id") @db.Uuid
+  encounterId    String @map("encounter_id") @db.Uuid
+  revision       Int
+  actorIssuer    String @map("actor_issuer")
+  actorSubject   String @map("actor_subject")
+  encounter      ClinicalEncounter @relation(fields: [organizationId, clinicId, patientId, encounterId], references: [organizationId, clinicId, patientId, id], onUpdate: NoAction, onDelete: NoAction)
+  recipients     EncounterRecipient[]
+
+  @@id([organizationId, clinicId, patientId, encounterId])
+  @@map("encounter_sharing")
+}
+
+model EncounterRecipient {
+  organizationId String @map("organization_id") @db.Uuid
+  clinicId       String @map("clinic_id") @db.Uuid
+  patientId      String @map("patient_id") @db.Uuid
+  encounterId    String @map("encounter_id") @db.Uuid
+  guardianId     String @map("guardian_id") @db.Uuid
+  sharing        EncounterSharing @relation(map: "recipients_sharing_fk", fields: [organizationId, clinicId, patientId, encounterId], references: [organizationId, clinicId, patientId, encounterId], onUpdate: NoAction, onDelete: NoAction)
+  guardian       Guardian @relation(map: "recipients_guardian_fk", fields: [organizationId, clinicId, patientId, guardianId], references: [organizationId, clinicId, patientId, id], onUpdate: NoAction, onDelete: NoAction)
+
+  @@id([organizationId, clinicId, patientId, encounterId, guardianId])
+  @@index([organizationId, clinicId, patientId, guardianId, encounterId], map: "encounter_recipient_lookup")
+  @@map("encounter_recipients")
+}
+
+model Appointment {
+  organizationId String @map("organization_id") @db.Uuid
+  clinicId       String @map("clinic_id") @db.Uuid
+  id             String @db.Uuid
+  patientId      String @map("patient_id") @db.Uuid
+  startAt        DateTime @map("start_at") @db.Timestamptz(3)
+  endAt          DateTime @map("end_at") @db.Timestamptz(3)
+  reason         String
+  status         String
+  revision       Int @default(1)
+  actorIssuer    String @map("actor_issuer")
+  actorSubject   String @map("actor_subject")
+  patient        Patient @relation(fields: [organizationId, clinicId, patientId], references: [organizationId, clinicId, id], onUpdate: NoAction, onDelete: NoAction)
+
+  @@id([organizationId, clinicId, id])
+  @@index([organizationId, clinicId, startAt, id], map: "appointment_calendar")
+  @@map("appointments")
+}
+
+model CareEvent {
+  id             BigInt @id @default(autoincrement())
+  organizationId String @map("organization_id") @db.Uuid
+  clinicId       String @map("clinic_id") @db.Uuid
+  patientId      String @map("patient_id") @db.Uuid
+  resourceId     String @map("resource_id") @db.Uuid
+  action         String
+  details        Json @db.JsonB
+  actorIssuer    String @map("actor_issuer")
+  actorSubject   String @map("actor_subject")
+  recordedAt     DateTime @default(dbgenerated("clock_timestamp()")) @map("recorded_at") @db.Timestamptz(3)
+  patient        Patient @relation(fields: [organizationId, clinicId, patientId], references: [organizationId, clinicId, id], onUpdate: NoAction, onDelete: NoAction)
+
+  @@map("care_events")
+}
+
+model MedicalDocument {
+  organizationId  String          @map("organization_id") @db.Uuid
+  clinicId        String          @map("clinic_id") @db.Uuid
+  patientId       String          @map("patient_id") @db.Uuid
+  id              String          @db.Uuid
+  assetId         String          @unique @default(dbgenerated("gen_random_uuid()")) @map("asset_id") @db.Uuid
+  title           String
+  mediaType       String          @map("media_type")
+  byteLength      Int             @map("byte_length")
+  sha256          String
+  uploaderIssuer  String          @map("uploader_issuer")
+  uploaderSubject String          @map("uploader_subject")
+  ready           Boolean         @default(false)
+  recordedAt      DateTime        @default(dbgenerated("clock_timestamp()")) @map("recorded_at") @db.Timestamptz(3)
+  recipients      String[]        @default([]) @db.Uuid
+  revision        Int             @default(0)
+  sharingIssuer   String?         @map("sharing_issuer")
+  sharingSubject  String?         @map("sharing_subject")
+  patient         Patient         @relation(fields: [organizationId, clinicId, patientId], references: [organizationId, clinicId, id], onUpdate: NoAction, onDelete: NoAction)
+  events          DocumentEvent[]
+
+  @@id([organizationId, clinicId, patientId, id])
+  @@index([organizationId, clinicId, patientId, recordedAt(sort: Desc), assetId], map: "document_chronology")
+  @@map("medical_documents")
+}
+
+model DocumentEvent {
+  eventId        BigInt          @id @default(autoincrement()) @map("event_id")
+  organizationId String          @map("organization_id") @db.Uuid
+  clinicId       String          @map("clinic_id") @db.Uuid
+  patientId      String          @map("patient_id") @db.Uuid
+  documentId     String          @map("document_id") @db.Uuid
+  action         String
+  actorIssuer    String          @map("actor_issuer")
+  actorSubject   String          @map("actor_subject")
+  recordedAt     DateTime        @default(dbgenerated("clock_timestamp()")) @map("recorded_at") @db.Timestamptz(3)
+  revision       Int
+  guardianIds    String[]        @map("guardian_ids") @db.Uuid
+  document       MedicalDocument @relation(fields: [organizationId, clinicId, patientId, documentId], references: [organizationId, clinicId, patientId, id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@map("document_events")
 }

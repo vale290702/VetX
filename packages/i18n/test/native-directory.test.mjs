@@ -3,10 +3,16 @@ import { test } from "node:test";
 import esDirectory from "../locales/native-directory.es.json" with { type: "json" };
 import enDirectory from "../locales/native-directory.en.json" with { type: "json" };
 
+import enDocuments from "../locales/native-documents.en.json" with { type: "json" };
+import esDocuments from "../locales/native-documents.es.json" with { type: "json" };
+import enCare from "../locales/native-care.en.json" with { type: "json" };
+import esCare from "../locales/native-care.es.json" with { type: "json" };
 import esPatients from "../locales/native-patients.es.json" with { type: "json" };
 import enPatients from "../locales/native-patients.en.json" with { type: "json" };
 
 for (const [catalog, en, es] of [
+  ["documents", enDocuments, esDocuments],
+  ["care", enCare, esCare],
   ["directory", enDirectory, esDirectory],
   ["patients", enPatients, esPatients],
 ]) {
