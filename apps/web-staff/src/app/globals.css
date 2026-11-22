@@ -246,7 +246,164 @@ body {
 
 .organization-list {
   margin-block-start: var(--vetx-space-tight);
-  padding-inline-start: var(--vetx-space-regular);
   color: var(--vetx-color-muted);
-  list-style: disc;
+
+  padding-inline-start: 0;
+  list-style: none;
+}
+.organization-list a,
+.directory-back,
+.directory-message a {
+  display: inline-flex;
+  align-items: center;
+  min-block-size: var(--vetx-size-touch);
+  color: var(--vetx-color-ink);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+.staff-id,
+.directory-form,
+.directory-form label {
+  display: grid;
+  gap: var(--vetx-space-tight);
+  min-inline-size: 0;
+}
+.staff-id label,
+.directory-form label,
+.directory-form legend {
+  font-weight: 600;
+}
+.staff-id input,
+.directory-form input:not([type="hidden"], [type="checkbox"]),
+.directory-form select {
+  width: 100%;
+  min-block-size: var(--vetx-size-touch);
+  padding-inline: var(--vetx-space-inline);
+  color: var(--vetx-color-ink);
+  background: var(--vetx-color-paper);
+  border: var(--vetx-space-hairline) solid var(--vetx-color-muted);
+  border-radius: var(--vetx-radius-control);
+  font: inherit;
+}
+.staff-id input {
+  border-color: var(--vetx-color-line);
+  user-select: all;
+}
+.staff-id p,
+.directory-form small,
+.member-role {
+  font-size: var(--vetx-type-caption);
+}
+.directory-main {
+  display: grid;
+  align-content: start;
+  gap: var(--vetx-space-block);
+  margin-block: var(--vetx-space-inset) var(--vetx-space-section);
+  overflow-wrap: anywhere;
+}
+.directory-header h1 {
+  margin-block-start: var(--vetx-space-inline);
+  font: 400 clamp(2.75rem, 6vw, 4.75rem)/1.04 var(--display-face);
+  letter-spacing: -0.025em;
+}
+.directory-columns {
+  display: grid;
+  gap: var(--vetx-space-inset);
+  align-items: start;
+}
+.directory-section {
+  display: grid;
+  gap: var(--vetx-space-regular);
+  padding: var(--vetx-space-inset);
+  border: var(--vetx-space-hairline) solid var(--vetx-color-line);
+  border-radius: var(--vetx-radius-surface);
+  background: var(--vetx-color-paper);
+  min-inline-size: 0;
+}
+.directory-section h2 {
+  font: 400 2.25rem/1.12 var(--display-face);
+}
+.directory-list > li {
+  border-block-start: var(--vetx-space-hairline) solid var(--vetx-color-line);
+  padding-block: var(--vetx-space-regular);
+}
+.directory-list > li:last-child {
+  padding-block-end: 0;
+}
+.directory-list p,
+.directory-form p,
+.directory-form small,
+.directory-paging {
+  color: var(--vetx-color-muted);
+}
+.member-subject {
+  display: block;
+  margin-block: var(--vetx-space-tight);
+}
+.directory-disclosure summary {
+  display: list-item;
+  width: fit-content;
+  max-width: 100%;
+  min-block-size: var(--vetx-size-touch);
+  padding-block: var(--vetx-space-inline);
+  font-weight: 600;
+  font-size: var(--vetx-type-caption);
+  cursor: pointer;
+}
+.directory-disclosure summary:hover,
+.directory-message a:hover,
+.directory-back:hover,
+.organization-list a:hover {
+  color: var(--vetx-color-focus);
+}
+.directory-form {
+  gap: var(--vetx-space-regular);
+  margin-block-end: var(--vetx-space-regular);
+}
+.directory-form small {
+  font-weight: 400;
+}
+.directory-form button {
+  justify-self: start;
+}
+.directory-form .clinic-check {
+  display: flex;
+  gap: var(--vetx-space-inline);
+  align-items: center;
+  min-block-size: var(--vetx-size-touch);
+  font-weight: 400;
+}
+.clinic-check input {
+  accent-color: var(--vetx-color-focus);
+  inline-size: 1.1rem;
+  block-size: 1.1rem;
+  flex: none;
+}
+.directory-paging {
+  display: flex;
+  gap: var(--vetx-space-inline);
+  flex-wrap: wrap;
+  align-items: center;
+  border-block-start: var(--vetx-space-hairline) solid var(--vetx-color-line);
+  padding-block-start: var(--vetx-space-compact);
+}
+.directory-notice {
+  color: var(--vetx-color-warning);
+}
+.directory-notice[role="status"] {
+  color: var(--vetx-color-positive);
+}
+.directory-main :focus-visible,
+.organization-list a:focus-visible,
+.staff-id input:focus-visible {
+  outline: var(--vetx-space-focus) solid var(--vetx-color-focus);
+  outline-offset: var(--vetx-space-tight);
+}
+@media (min-width: 49rem) {
+  .directory-columns {
+    grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.3fr);
+  }
+  .directory-section {
+    padding: var(--vetx-space-block);
+  }
 }

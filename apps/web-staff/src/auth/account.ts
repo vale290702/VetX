@@ -8,7 +8,7 @@ import { authCookieNames } from "./http.ts";
 import { getWebAuthRuntime } from "./runtime.ts";
 import { providerTimeoutSeconds } from "./security.ts";
 
-export async function loadStaffAccount(locale: string) {
+export async function readStaffSession() {
   try {
     const runtime = getWebAuthRuntime();
     if (!runtime) return { kind: "disabled" } as const;
@@ -17,44 +17,54 @@ export async function loadStaffAccount(locale: string) {
     const access = await readSessionAccess(sessionId, oidc, store);
     if (access.kind === "locked") console.warn("Unable to verify the staff session.");
     if (access.kind !== "active") return access;
-    const { session } = access;
-
-    const accountUrl = new URL(
-      `${config.issuer.pathname.replace(/\/$/, "")}/account/`,
-      config.issuer.origin,
-    );
-    accountUrl.searchParams.set("kc_locale", locale);
-    const { subject, username, csrf } = session;
-    const organizationProfile = await loadOrganizationProfile(
-      config.apiOrigin,
-      session.accessToken,
-      subject,
-    );
-    return {
-      kind: "authenticated",
-      username: username ?? subject,
-      csrf,
-      accountUrl,
-      organizationProfile,
-    } as const;
+    return { kind: "active", config, session: access.session } as const;
   } catch {
     console.warn("Unable to read the staff session.");
     return { kind: "unavailable" } as const;
   }
 }
 
-async function loadOrganizationProfile(
+export async function loadStaffAccount(locale: string) {
+  const access = await readStaffSession();
+  if (access.kind !== "active") return access;
+  const { config, session } = access;
+  const accountUrl = new URL(
+    `${config.issuer.pathname.replace(/\/$/, "")}/account/`,
+    config.issuer.origin,
+  );
+  accountUrl.searchParams.set("kc_locale", locale);
+  const { subject, username, csrf } = session;
+  const organizationProfile = await loadOrganizationProfile(
+    config.apiOrigin,
+    session.accessToken,
+    subject,
+  );
+  return {
+    kind: "authenticated",
+    subject,
+    username: username ?? subject,
+    csrf,
+    accountUrl,
+    organizationProfile,
+  } as const;
+}
+
+export function staffRequestOptions(accessToken: string) {
+  return {
+    headers: { Authorization: `Bearer ${accessToken}` },
+    cache: "no-store",
+    redirect: "error",
+    signal: AbortSignal.timeout(providerTimeoutSeconds * 1_000),
+  } as const;
+}
+
+export async function loadOrganizationProfile(
   apiOrigin: string,
   accessToken: string,
   expectedSubject: string,
 ) {
   try {
-    const { data } = await createVetxClient(apiOrigin).GET("/me", {
-      headers: { Authorization: `Bearer ${accessToken}` },
-      cache: "no-store",
-      redirect: "error",
-      signal: AbortSignal.timeout(providerTimeoutSeconds * 1_000),
-    });
+    const { data } = await createVetxClient(apiOrigin).GET("/me", staffRequestOptions(accessToken));
     if (data?.subject === expectedSubject) return data.organizations;
   } catch {
     console.warn("Unable to load staff organizations from the API.");

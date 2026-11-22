@@ -11,6 +11,7 @@ async function main(): Promise<void> {
   const database = new PrismaDatabase(config.databaseUrl);
   const app = await createApplication(database, logger, {
     database,
+    directory: database,
     tokenVerifier: oidc && new KeycloakTokenVerifier(oidc),
   });
   try {

@@ -65,6 +65,38 @@ export class MobileSession {
     return () => this.listeners.delete(listener);
   };
 
+  async forOrganization<Result>(
+    subject: string,
+    organizationId: string,
+    operation: (token: string, signal: AbortSignal) => Promise<Result>,
+  ): Promise<Result> {
+    const verified = this.state;
+    const access = this.access;
+    if (
+      verified.status !== "signedIn" ||
+      verified.account.subject !== subject ||
+      !verified.account.organizations.some((organization) => organization.id === organizationId) ||
+      !access ||
+      this.dependencies.now() >= verified.checkAt
+    ) {
+      throw new Error("Organization session unavailable");
+    }
+    const controller = new AbortController();
+    const unsubscribe = this.subscribe(() => controller.abort());
+    const deadline = Math.min(10_000, verified.checkAt - this.dependencies.now());
+    const timer = setTimeout(() => controller.abort(), deadline);
+    try {
+      const result = await operation(access.value, controller.signal);
+      if (controller.signal.aborted || this.dependencies.now() >= verified.checkAt) {
+        throw new Error("Organization request expired");
+      }
+      return result;
+    } finally {
+      clearTimeout(timer);
+      unsubscribe();
+    }
+  }
+
   restore(): Promise<void> {
     if (this.pending) return this.pending;
     if (this.state.status !== "checking") return Promise.resolve();

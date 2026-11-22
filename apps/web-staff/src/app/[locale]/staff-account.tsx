@@ -2,6 +2,7 @@ import { type Locale } from "@vetx/i18n";
 import { Button } from "@vetx/ui-web";
 import { getTranslations } from "next-intl/server";
 
+import { Link } from "../../i18n/routing";
 import { loadStaffAccount } from "../../auth/account.ts";
 import type { AuthMessage } from "../../auth/http.ts";
 
@@ -20,7 +21,11 @@ function SignOutForm({ locale, csrf, label }: { locale: Locale; csrf: string; la
 }
 
 export async function StaffAccount({ locale, notice }: Props) {
-  const [account, t] = await Promise.all([loadStaffAccount(locale), getTranslations("webAuth")]);
+  const [account, t, d] = await Promise.all([
+    loadStaffAccount(locale),
+    getTranslations("webAuth"),
+    getTranslations("directory"),
+  ]);
   if (account.kind === "disabled") return null;
   if (account.kind === "unavailable") {
     return (
@@ -70,6 +75,11 @@ export async function StaffAccount({ locale, notice }: Props) {
         <h2 id="staff-account-title">{t("accountTitle")}</h2>
         <p>{account.username}</p>
       </div>
+      <div className="staff-id">
+        <label htmlFor="staff-id">{d("staffId")}</label>
+        <input id="staff-id" readOnly value={account.subject} aria-describedby="staff-id-help" />
+        <p id="staff-id-help">{d("shareId")}</p>
+      </div>
       <div>
         <h3>{t("organizations")}</h3>
         {organizations === null ? (
@@ -79,7 +89,9 @@ export async function StaffAccount({ locale, notice }: Props) {
         ) : organizations.length ? (
           <ul className="organization-list">
             {organizations.map((org) => (
-              <li key={org.id}>{org.name}</li>
+              <li key={org.id}>
+                <Link href={`/organizations/${org.id}`}>{org.name}</Link>
+              </li>
             ))}
           </ul>
         ) : (

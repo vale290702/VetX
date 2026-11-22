@@ -1,107 +1,17 @@
-import { radius, size, space, typography, type Palette } from "@vetx/design-tokens";
+import type { Palette } from "@vetx/design-tokens";
 import type { EntryAudience } from "@vetx/i18n";
 import * as WebBrowser from "expo-web-browser";
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
-import { ActivityIndicator, AppState, Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, AppState, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
 import type { createExpoAuth } from "./expo-session";
-import type { MobileAccount, SessionState } from "./session";
+import type { SessionState } from "./session";
+
+import { Action, createStyles, type AccessStyles } from "./controls";
+import { StaffDirectoryGate } from "./staff-directory";
 
 type Auth = NonNullable<ReturnType<typeof createExpoAuth>>;
-
-const createStyles = (palette: Palette) =>
-  StyleSheet.create({
-    section: { gap: space.inline },
-    actions: { flexDirection: "row", flexWrap: "wrap", gap: space.compact },
-    action: {
-      alignItems: "center",
-      justifyContent: "center",
-      minHeight: size.touch,
-      minWidth: size.touch,
-      maxWidth: "100%",
-      borderRadius: radius.control,
-      paddingHorizontal: space.regular,
-      paddingVertical: space.compact,
-      backgroundColor: palette.control,
-    },
-    actionPrimary: { backgroundColor: palette.folio },
-    actionPressed: { opacity: 0.8 },
-    actionText: { color: palette.ink, fontSize: typography.caption, fontWeight: "600" },
-    actionPrimaryText: { color: palette.folioInk },
-    pending: { flexDirection: "row", alignItems: "center", gap: space.compact },
-    support: { flexShrink: 1, color: palette.muted, fontSize: typography.caption },
-    error: { color: palette.warning, fontSize: typography.caption },
-    heading: { color: palette.ink, fontSize: typography.body, fontWeight: "600" },
-    organizationList: { gap: space.compact },
-  });
-
-type AccessStyles = ReturnType<typeof createStyles>;
-
-function Action({
-  label,
-  onPress,
-  styles,
-  primary = false,
-  busy = false,
-}: {
-  label: string;
-  onPress: () => void;
-  styles: AccessStyles;
-  primary?: boolean;
-  busy?: boolean;
-}) {
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityState={{ busy, disabled: busy }}
-      disabled={busy}
-      onPress={onPress}
-      style={({ pressed }) => [
-        styles.action,
-        primary && styles.actionPrimary,
-        (pressed || busy) && styles.actionPressed,
-      ]}
-    >
-      <Text style={[styles.actionText, primary && styles.actionPrimaryText]}>{label}</Text>
-    </Pressable>
-  );
-}
-
-function AccountSummary({
-  account,
-  audience,
-  styles,
-}: {
-  account: MobileAccount;
-  audience: EntryAudience;
-  styles: AccessStyles;
-}) {
-  const { t } = useTranslation();
-  return (
-    <View style={styles.section}>
-      <Text accessibilityLiveRegion="polite" style={styles.support}>
-        {t("nativeAuth.signedIn")}
-      </Text>
-      {audience === "staff" && (
-        <View style={styles.organizationList}>
-          <Text accessibilityRole="header" style={styles.heading}>
-            {t("nativeAuth.organizations")}
-          </Text>
-          {account.organizations.length ? (
-            account.organizations.map((organization) => (
-              <Text key={organization.id} style={styles.support}>
-                {organization.name}
-              </Text>
-            ))
-          ) : (
-            <Text style={styles.support}>{t("nativeAuth.noOrganizations")}</Text>
-          )}
-        </View>
-      )}
-    </View>
-  );
-}
 
 const progressLabels = {
   checking: "nativeAuth.checkSession",
@@ -174,8 +84,19 @@ function LiveAccess({
     <View style={styles.section}>
       <SessionStatus state={state} styles={styles} palette={palette} />
       {state.status === "signedIn" && (
-        <AccountSummary account={state.account} audience={audience} styles={styles} />
+        <Text accessibilityLiveRegion="polite" style={styles.support}>
+          {t("nativeAuth.signedIn")}
+        </Text>
       )}
+      {audience === "staff" &&
+        auth.directory &&
+        (state.status === "signedIn" || state.status === "checking") && (
+          <StaffDirectoryGate
+            account={state.status === "signedIn" ? state.account : undefined}
+            client={auth.directory}
+            styles={styles}
+          />
+        )}
       {consoleFailed && (
         <Text accessibilityRole="alert" style={styles.error}>
           {t("nativeAuth.errors.accountConsole")}
