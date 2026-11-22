@@ -1,15 +1,16 @@
 import type { Palette } from "@vetx/design-tokens";
 import type { EntryAudience } from "@vetx/i18n";
 import * as WebBrowser from "expo-web-browser";
-import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { Activity, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { ActivityIndicator, AppState, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
 import type { createExpoAuth } from "./expo-session";
-import type { SessionState } from "./session";
+import type { MobileAccount, SessionState } from "./session";
 
 import { Action, createStyles, type AccessStyles } from "./controls";
-import { StaffDirectoryGate } from "./staff-directory";
+import { OwnerPets } from "./owner-pets";
+import { StaffDirectory } from "./staff-directory";
 
 type Auth = NonNullable<ReturnType<typeof createExpoAuth>>;
 
@@ -88,15 +89,15 @@ function LiveAccess({
           {t("nativeAuth.signedIn")}
         </Text>
       )}
-      {audience === "staff" &&
-        auth.directory &&
-        (state.status === "signedIn" || state.status === "checking") && (
-          <StaffDirectoryGate
-            account={state.status === "signedIn" ? state.account : undefined}
-            client={auth.directory}
-            styles={styles}
-          />
-        )}
+      {(state.status === "signedIn" || state.status === "checking") && (
+        <VerifiedWorkspace
+          account={state.status === "signedIn" ? state.account : undefined}
+          auth={auth}
+          audience={audience}
+          styles={styles}
+          openAccount={() => void openAccount()}
+        />
+      )}
       {consoleFailed && (
         <Text accessibilityRole="alert" style={styles.error}>
           {t("nativeAuth.errors.accountConsole")}
@@ -136,6 +137,49 @@ function LiveAccess({
         )}
       </View>
     </View>
+  );
+}
+
+function VerifiedWorkspace({
+  account,
+  auth,
+  audience,
+  styles,
+  openAccount,
+}: {
+  account?: MobileAccount;
+  auth: Auth;
+  audience: EntryAudience;
+  styles: AccessStyles;
+  openAccount: () => void;
+}) {
+  // Keep form drafts during periodic /me verification. Sign-out unmounts this workspace.
+  const [lastVerified, setLastVerified] = useState(account);
+  if (account && account !== lastVerified) setLastVerified(account);
+  const profile = account ?? lastVerified;
+  if (!profile) return null;
+  return (
+    <Activity mode={account ? "visible" : "hidden"}>
+      {audience === "pets" ? (
+        <OwnerPets
+          key={profile.subject}
+          account={profile}
+          client={auth.patients}
+          styles={styles}
+          openAccount={openAccount}
+        />
+      ) : (
+        auth.directory && (
+          <StaffDirectory
+            key={profile.subject}
+            account={profile}
+            client={auth.directory}
+            patients={auth.patients}
+            styles={styles}
+          />
+        )
+      )}
+    </Activity>
   );
 }
 

@@ -71,15 +71,28 @@ export class MobileSession {
     operation: (token: string, signal: AbortSignal) => Promise<Result>,
   ): Promise<Result> {
     const verified = this.state;
+    if (
+      verified.status !== "signedIn" ||
+      !verified.account.organizations.some((organization) => organization.id === organizationId)
+    ) {
+      throw new Error("Organization session unavailable");
+    }
+    return this.forAccount(subject, operation);
+  }
+
+  async forAccount<Result>(
+    subject: string,
+    operation: (token: string, signal: AbortSignal) => Promise<Result>,
+  ): Promise<Result> {
+    const verified = this.state;
     const access = this.access;
     if (
       verified.status !== "signedIn" ||
       verified.account.subject !== subject ||
-      !verified.account.organizations.some((organization) => organization.id === organizationId) ||
       !access ||
       this.dependencies.now() >= verified.checkAt
     ) {
-      throw new Error("Organization session unavailable");
+      throw new Error("Account session unavailable");
     }
     const controller = new AbortController();
     const unsubscribe = this.subscribe(() => controller.abort());
@@ -88,7 +101,7 @@ export class MobileSession {
     try {
       const result = await operation(access.value, controller.signal);
       if (controller.signal.aborted || this.dependencies.now() >= verified.checkAt) {
-        throw new Error("Organization request expired");
+        throw new Error("Account request expired");
       }
       return result;
     } finally {

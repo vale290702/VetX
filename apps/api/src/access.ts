@@ -31,7 +31,7 @@ import {
   directoryProvider,
   type DirectoryStore,
 } from "./administration.js";
-import { BearerAuthGuard, Principal, tokenVerifierProvider } from "./identity-context.js";
+import { BearerAuthGuard, Principal } from "./identity-context.js";
 import { ApiErrorDto, ResourceSummaryDto } from "./http.js";
 
 export interface AccessDependencies {
@@ -119,13 +119,12 @@ class AccessController {
   }
 }
 
-@Module({ controllers: [AccessController, AdministrationController], providers: [BearerAuthGuard] })
+@Module({ controllers: [AccessController, AdministrationController], providers: [] })
 export class AccessModule {
   static register(dependencies: AccessDependencies): DynamicModule {
     return {
       module: AccessModule,
       providers: [
-        { provide: tokenVerifierProvider, useValue: dependencies.tokenVerifier ?? null },
         { provide: directoryProvider, useValue: dependencies.directory ?? null },
         { provide: accessDatabaseProvider, useValue: dependencies.database ?? null },
       ],

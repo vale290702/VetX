@@ -19,6 +19,7 @@ async function admin(path: string, init: RequestInit = {}) {
   const issuer = localRealm();
   const token = await fetch(new URL("/realms/master/protocol/openid-connect/token", issuer), {
     method: "POST",
+    signal: AbortSignal.timeout(10_000),
     body: new URLSearchParams({
       grant_type: "password",
       client_id: "admin-cli",
@@ -31,7 +32,11 @@ async function admin(path: string, init: RequestInit = {}) {
   const url = new URL(`/admin/realms/vetx/${path}`, issuer);
   const res = await fetch(url, {
     ...init,
-    headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+    signal: AbortSignal.timeout(10_000),
   });
   if (!res.ok) throw new Error(`Test identity administration failed (${res.status})`);
   return res;
@@ -59,6 +64,7 @@ export async function createIdentity(requiredActions: string[] = []) {
     id,
     username,
     password,
+    email: `${username}@example.test`,
     remove: () => admin(`users/${id}`, { method: "DELETE" }),
     async sessions() {
       const result = await admin(`users/${id}/sessions`);
@@ -95,7 +101,7 @@ export async function mobileSession(
     client_id: clientId,
     redirect_uri: callback,
     state,
-    scope: "openid",
+    scope: role === "OWNER" ? "openid email" : "openid",
     prompt: "login",
     response_type: "code",
     code_challenge_method: "S256",

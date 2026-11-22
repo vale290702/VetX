@@ -14,6 +14,7 @@ import {
 } from "./auth-protocol";
 import { MobileSession, SessionRejectedError } from "./session";
 import { createDirectory } from "./directory";
+import { createPatients } from "./patients";
 
 export type NativeAuthSettings = {
   issuerUrl: string | undefined;
@@ -153,7 +154,7 @@ export function createExpoAuth(
         usePKCE: true,
         codeChallengeMethod: CodeChallengeMethod.S256,
         prompt: Prompt.Login,
-        scopes: ["openid"],
+        scopes: audience === "pets" ? ["openid", "email"] : ["openid"],
         extraParams: { response_mode: "query", ui_locales: locale },
       });
       const result = await request.promptAsync(document);
@@ -222,6 +223,7 @@ export function createExpoAuth(
       signIn: (locale: string) => session.signIn(locale),
       signOut: () => session.signOut(),
     },
+    patients: createPatients(session, apiOrigin, fetch),
     directory: audience === "staff" ? createDirectory(session, apiOrigin, fetch) : undefined,
     accountUrl: `${issuer}/account/`,
   };

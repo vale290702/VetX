@@ -50,7 +50,7 @@ jobs:
         run: pnpm test:integration
       - name: Start identity services and apply migrations
         run: |
-          cp .env.example .env
+          node scripts/init-local-env.mjs
           pnpm compose config --quiet
           pnpm compose up -d --wait postgres redis keycloak mailpit
           pnpm db:migrate

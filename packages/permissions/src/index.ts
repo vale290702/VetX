@@ -2,6 +2,7 @@ export interface AccessPrincipal {
   readonly issuer: string;
   readonly subject: string;
   readonly kind: "staff" | "owner";
+  readonly verifiedEmail?: string;
 }
 
 export type StaffPrincipal = AccessPrincipal & { readonly kind: "staff" };
@@ -9,3 +10,5 @@ export type StaffPrincipal = AccessPrincipal & { readonly kind: "staff" };
 export function isStaffPrincipal(principal: AccessPrincipal): principal is StaffPrincipal {
   return principal.kind === "staff";
 }
+
+export type OwnerPrincipal = AccessPrincipal & { readonly kind: "owner" };

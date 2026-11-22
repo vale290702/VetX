@@ -24,7 +24,10 @@ function HiddenFields({ csrf, locale, revision, page }: CommonFields) {
 }
 
 export async function AdminPanel({ csrf, locale, organizationId, directory }: Props) {
-  const t = await getTranslations("directory");
+  const [t, patients] = await Promise.all([
+    getTranslations("directory"),
+    getTranslations("patients"),
+  ]);
   const { clinics, members, page, hasNextPage, revision } = directory;
   const action = `/directory/${organizationId}`;
   const path = `/organizations/${organizationId}`;
@@ -93,6 +96,13 @@ export async function AdminPanel({ csrf, locale, organizationId, directory }: Pr
             {clinics.map((clinic) => (
               <li key={clinic.id}>
                 <strong>{clinic.name}</strong>
+                <Link
+                  className="clinic-registry-link"
+                  aria-label={patients("patientsAt", { clinic: clinic.name })}
+                  href={`/organizations/${organizationId}/clinics/${clinic.id}/patients`}
+                >
+                  {patients("registry")}
+                </Link>
                 <details className="directory-disclosure">
                   <summary>{t("rename")}</summary>
                   {clinicForm(clinic)}

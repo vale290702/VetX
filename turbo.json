@@ -36,6 +36,7 @@
         "DATABASE_URL",
         "OIDC_API_CLIENT_ID",
         "OIDC_API_CLIENT_SECRET",
+        "PET_LINK_*",
         "OIDC_WEB_CLIENT_ID",
         "OIDC_STAFF_CLIENT_ID",
         "OIDC_OWNER_CLIENT_ID",

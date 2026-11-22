@@ -1,9 +1,10 @@
-import { DirectoryError } from "@vetx/database";
+import { DirectoryError, RegistryError } from "@vetx/database";
 import { randomUUID } from "node:crypto";
 import {
   type ArgumentsHost,
   Catch,
   type ExceptionFilter,
+  ForbiddenException,
   HttpException,
   HttpStatus,
   Logger,
@@ -19,6 +20,7 @@ const errors = {
   BAD_REQUEST: "Invalid request",
   UNAUTHORIZED: "Authentication required",
   FORBIDDEN: "Access denied",
+  EMAIL_VERIFICATION_REQUIRED: "A verified email address is required",
   NOT_FOUND: "Resource not found",
   CONFLICT: "Request conflict",
   LAST_ORGANIZATION_ADMIN: "The organization must retain an administrator",
@@ -64,7 +66,16 @@ export class ApiErrorDto {
   readonly error!: ErrorDetailDto;
 }
 
+export class EmailVerificationRequired extends ForbiddenException {}
+const registryStatus = {
+  invalid: 400,
+  forbidden: 403,
+  not_found: 404,
+  conflict: 409,
+  rate_limited: 429,
+} as const;
 function statusOf(exception: unknown): number {
+  if (exception instanceof RegistryError) return registryStatus[exception.code];
   if (exception instanceof DirectoryError) {
     if (exception.code === "forbidden") return HttpStatus.FORBIDDEN;
     if (exception.code === "invalid") return HttpStatus.BAD_REQUEST;
@@ -90,9 +101,11 @@ class HttpErrorFilter implements ExceptionFilter {
     const response = host.switchToHttp().getResponse<Response>();
     const status = statusOf(exception);
     const code =
-      exception instanceof DirectoryError && exception.code === "last_admin"
-        ? "LAST_ORGANIZATION_ADMIN"
-        : (codesByStatus[status] ?? (status >= 500 ? "INTERNAL_ERROR" : "HTTP_ERROR"));
+      exception instanceof EmailVerificationRequired
+        ? "EMAIL_VERIFICATION_REQUIRED"
+        : exception instanceof DirectoryError && exception.code === "last_admin"
+          ? "LAST_ORGANIZATION_ADMIN"
+          : (codesByStatus[status] ?? (status >= 500 ? "INTERNAL_ERROR" : "HTTP_ERROR"));
     const currentId = response.getHeader(requestIdHeader);
     const requestId = typeof currentId === "string" ? currentId : randomUUID();
 

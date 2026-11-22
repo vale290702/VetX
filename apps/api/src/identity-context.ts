@@ -1,4 +1,7 @@
 import {
+  Global,
+  Module,
+  type DynamicModule,
   type CanActivate,
   createParamDecorator,
   type ExecutionContext,
@@ -13,7 +16,12 @@ import {
   InvalidAccessTokenError,
   type TokenVerifier,
 } from "@vetx/auth";
-import { type AccessPrincipal, isStaffPrincipal, type StaffPrincipal } from "@vetx/permissions";
+import {
+  type AccessPrincipal,
+  isStaffPrincipal,
+  type StaffPrincipal,
+  type OwnerPrincipal,
+} from "@vetx/permissions";
 import type { Request, Response } from "express";
 
 export const tokenVerifierProvider = Symbol("tokenVerifier");
@@ -72,3 +80,24 @@ export const StaffIdentity = createParamDecorator(
     return principal;
   },
 );
+
+export const OwnerIdentity = createParamDecorator(
+  (_data: unknown, context: ExecutionContext): OwnerPrincipal => {
+    const principal = context.switchToHttp().getRequest<AuthenticatedRequest>().vetxPrincipal;
+    if (!principal) throw new UnauthorizedException();
+    if (principal.kind !== "owner") throw new ForbiddenException();
+    return { ...principal, kind: "owner" };
+  },
+);
+
+@Global()
+@Module({})
+export class IdentityModule {
+  static register(verifier?: TokenVerifier): DynamicModule {
+    return {
+      module: IdentityModule,
+      providers: [{ provide: tokenVerifierProvider, useValue: verifier ?? null }, BearerAuthGuard],
+      exports: [tokenVerifierProvider, BearerAuthGuard],
+    };
+  }
+}

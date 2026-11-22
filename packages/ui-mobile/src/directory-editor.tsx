@@ -1,52 +1,13 @@
-import { useState } from "react";
-import { Text, TextInput, View } from "react-native";
+import { Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
-import { Action, type AccessStyles } from "./controls";
+import { Action, Field, type AccessStyles } from "./controls";
 import type { DirectoryClinic, DirectoryMember } from "./directory";
 
 export type Edit =
   | { kind: "clinic"; revision: number; clinic: DirectoryClinic; creating: boolean }
   | { kind: "member"; revision: number; member: DirectoryMember; creating: boolean }
   | { kind: "revoke"; revision: number; subject: string };
-
-function Field({
-  label,
-  value,
-  onChange,
-  maxLength,
-  disabled,
-  styles,
-  identifier,
-}: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  maxLength: number;
-  disabled: boolean;
-  styles: AccessStyles;
-  identifier?: boolean;
-}) {
-  const [focused, setFocused] = useState(false);
-  return (
-    <View style={styles.section}>
-      <Text style={styles.heading}>{label}</Text>
-      <TextInput
-        accessibilityLabel={label}
-        value={value}
-        onChangeText={onChange}
-        autoCapitalize={identifier ? "none" : "sentences"}
-        autoCorrect={!identifier}
-        editable={!disabled}
-        maxLength={maxLength}
-        returnKeyType="done"
-        onFocus={() => setFocused(true)}
-        onBlur={() => setFocused(false)}
-        style={[styles.field, focused && styles.focus]}
-      />
-    </View>
-  );
-}
 
 export function DirectoryEditor({
   edit,

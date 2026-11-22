@@ -1,7 +1,12 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { parseHttpOrigin } from "../dist/public.js";
-import { loadApiConfig, loadMigrationConfig, loadOidcConfig } from "../dist/server.js";
+import {
+  loadApiConfig,
+  loadMigrationConfig,
+  loadOidcConfig,
+  loadPetLinkConfig,
+} from "../dist/server.js";
 
 const runtimeUrl = "postgresql://service:private-value@localhost:5432/vetx";
 const migrationUrl = "postgresql://owner:another-private-value@localhost:5432/vetx";
@@ -125,5 +130,28 @@ test("OIDC issuer requires a credential-free realm URL and HTTPS away from loopb
     assert.throws(() => loadOidcConfig({ OIDC_ISSUER_URL }), {
       message: "OIDC_ISSUER_URL must be a Keycloak realm URL using HTTPS or loopback HTTP",
     });
+  }
+});
+
+test("link issuance requires deployment-specific key material and positive duration and attempt settings", () => {
+  assert.equal(loadPetLinkConfig({}), undefined);
+  const env = {
+    PET_LINK_HMAC_KEY_HEX: "a9".repeat(32),
+    PET_LINK_LIFETIME_SECONDS: "3600",
+    PET_LINK_ATTEMPT_LIMIT: "6",
+    PET_LINK_WINDOW_SECONDS: "900",
+  };
+  assert.equal(loadPetLinkConfig(env).attemptLimit, 6);
+  for (const change of [
+    { PET_LINK_HMAC_KEY_HEX: "sensitive-invalid" },
+    { PET_LINK_WINDOW_SECONDS: "0" },
+    { PET_LINK_ATTEMPT_LIMIT: "NaN" },
+    { PET_LINK_LIFETIME_SECONDS: "999999999999" },
+  ]) {
+    assert.throws(
+      () => loadPetLinkConfig({ ...env, ...change }),
+      (error) =>
+        !error.message.includes("sensitive-invalid") && error.message.startsWith("PET_LINK_"),
+    );
   }
 });

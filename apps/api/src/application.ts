@@ -4,16 +4,26 @@ import { NestFactory } from "@nestjs/core";
 import type { NestExpressApplication } from "@nestjs/platform-express";
 import { SwaggerModule } from "@nestjs/swagger";
 import { type AccessDependencies, AccessModule } from "./access.js";
+import { IdentityModule } from "./identity-context.js";
+import { RegistryModule, type RegistryStore } from "./registry/module.js";
+import type { PetLinkConfig } from "@vetx/config";
 import { HealthModule, type ReadinessCheck } from "./health.js";
 import { configureHttp } from "./http.js";
 import { createOpenApiDocument } from "./openapi.js";
 
+type Dependencies = AccessDependencies & { registry?: RegistryStore; petLinks?: PetLinkConfig };
+
 @Module({})
 class AppModule {
-  static register(readiness: ReadinessCheck, access: AccessDependencies): DynamicModule {
+  static register(readiness: ReadinessCheck, access: Dependencies): DynamicModule {
     return {
       module: AppModule,
-      imports: [HealthModule.register(readiness), AccessModule.register(access)],
+      imports: [
+        IdentityModule.register(access.tokenVerifier),
+        HealthModule.register(readiness),
+        AccessModule.register(access),
+        RegistryModule.register(access.registry, access.petLinks),
+      ],
     };
   }
 }
@@ -21,7 +31,7 @@ class AppModule {
 export async function createApplication(
   readiness: ReadinessCheck,
   logger: LoggerService | false,
-  access: AccessDependencies = {},
+  access: Dependencies = {},
 ): Promise<NestExpressApplication> {
   const app = await NestFactory.create<NestExpressApplication>(
     AppModule.register(readiness, access),

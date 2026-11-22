@@ -142,3 +142,23 @@ test("rejects conflicting introspection metadata and upstream outages with safe 
     upstream = "active";
   }
 });
+
+test("only verified owner addresses are supplied to recipient-bound operations", async () => {
+  const claims = {
+    sid: "verified-recipient",
+    azp: "owner-client",
+    email: "Keeper@Example.test",
+    email_verified: true,
+  };
+  const verified = await verifier.verify(await issueToken(claims));
+  assert.equal(verified.verifiedEmail, "keeper@example.test");
+  for (const change of [
+    { email_verified: false },
+    { email_verified: "true" },
+    { azp: "staff-client" },
+    { email: "missing-domain" },
+  ]) {
+    const principal = await verifier.verify(await issueToken({ ...claims, ...change }));
+    assert.equal(principal.verifiedEmail, undefined);
+  }
+});

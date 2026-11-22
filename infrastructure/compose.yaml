@@ -38,6 +38,7 @@ services:
 
   keycloak:
     image: quay.io/keycloak/keycloak:26.7.5
+    mem_limit: ${KEYCLOAK_MEMORY_LIMIT:-1g}
     command: ["start-dev", "--import-realm"]
     environment:
       KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN:?Set KEYCLOAK_ADMIN}

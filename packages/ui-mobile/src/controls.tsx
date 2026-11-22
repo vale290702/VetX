@@ -1,6 +1,6 @@
 import { radius, size, space, typography, type Palette } from "@vetx/design-tokens";
 import { useState } from "react";
-import { Pressable, StyleSheet, Text } from "react-native";
+import { Pressable, StyleSheet, Text, TextInput, View, type TextInputProps } from "react-native";
 
 export const createStyles = (palette: Palette) =>
   StyleSheet.create({
@@ -103,5 +103,46 @@ export function Action({
         {label}
       </Text>
     </Pressable>
+  );
+}
+
+export function Field({
+  label,
+  value,
+  onChange,
+  maxLength,
+  disabled,
+  styles,
+  identifier,
+  inputMode,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  maxLength: number;
+  disabled: boolean;
+  styles: AccessStyles;
+  identifier?: boolean;
+  inputMode?: TextInputProps["inputMode"];
+}) {
+  const [focused, setFocused] = useState(false);
+  return (
+    <View style={styles.section}>
+      <Text style={styles.heading}>{label}</Text>
+      <TextInput
+        accessibilityLabel={label}
+        value={value}
+        onChangeText={onChange}
+        inputMode={inputMode}
+        autoCapitalize={identifier ? "none" : "sentences"}
+        autoCorrect={!identifier}
+        editable={!disabled}
+        maxLength={maxLength}
+        returnKeyType="done"
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
+        style={[styles.field, focused && styles.focus]}
+      />
+    </View>
   );
 }

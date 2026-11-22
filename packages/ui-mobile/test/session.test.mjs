@@ -562,3 +562,33 @@ test("a fresh profile invalidates a pending directory read and withdraws removed
   await assert.rejects(pending);
   await assert.rejects(session.forOrganization(account.subject, "clinic", async () => "removed"));
 });
+
+test("owner requests use the current verified account even with no staff memberships", async () => {
+  const owner = { subject: "owner", organizations: [] };
+  const { session, advanceTime } = fixture({ verify: async () => owner });
+  await session.restore();
+  await session.signIn("es");
+  assert.equal(typeof session.forAccount, "function");
+  assert.equal(await session.forAccount(owner.subject, async (token) => token), tokens.accessToken);
+  await assert.rejects(session.forAccount("previous-owner", async () => "wrong owner"));
+  await assert.rejects(session.forOrganization(owner.subject, "clinic", async () => "wrong scope"));
+  advanceTime(60_001);
+  await assert.rejects(session.forAccount(owner.subject, async () => "stale"));
+});
+
+test("sign-out aborts owner reads and discards results produced after cancellation", async () => {
+  const { session } = fixture();
+  await session.restore();
+  await session.signIn("es");
+  const pending = Promise.withResolvers();
+  let signal;
+  assert.equal(typeof session.forAccount, "function");
+  const request = session.forAccount(account.subject, (_token, current) => {
+    signal = current;
+    return pending.promise;
+  });
+  await session.signOut();
+  assert.equal(signal.aborted, true);
+  pending.resolve("previous owner's pets");
+  await assert.rejects(request);
+});

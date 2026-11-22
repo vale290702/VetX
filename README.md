@@ -1,6 +1,6 @@
 # VetX
 
-VetX includes a staff web app, a staff mobile app, a pet-owner mobile app, and one NestJS API. Users can sign in through Keycloak in English or Spanish. The API resolves staff access from organization memberships and clinic grants in PostgreSQL.
+VetX includes a staff web app, a staff mobile app, a pet-owner mobile app, and one NestJS API. Users can sign in through Keycloak in English or Spanish. The API resolves staff access from organization memberships and clinic grants in PostgreSQL. Clinics can register patients and guardians. Owners can link a clinic record to their account using a single-use code. [Patient and guardian guide](docs/patients-and-guardians.md)
 
 ## Repository structure
 
@@ -38,12 +38,12 @@ nvm install
 nvm use
 corepack enable
 pnpm install --frozen-lockfile
-cp .env.example .env
+node scripts/init-local-env.mjs
 pnpm compose up -d --wait
 pnpm db:migrate
 ```
 
-For a checkout upgraded from Phase 1, add the identity and Redis settings from the updated `.env.example` to your existing `.env`. Start the default Compose services again to import the VetX realm.
+Run `node scripts/init-local-env.mjs` on existing checkouts to add the patient-link settings while keeping existing values. For a checkout upgraded from Phase 1, add the identity and Redis settings from the updated `.env.example` to your existing `.env`. Start the default Compose services again to import the VetX realm.
 
 Start the API and web app in one terminal.
 
