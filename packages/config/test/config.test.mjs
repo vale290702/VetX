@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { parseHttpOrigin } from "../dist/public.js";
-import { loadApiConfig, loadMigrationConfig } from "../dist/server.js";
+import { loadApiConfig, loadMigrationConfig, loadOidcConfig } from "../dist/server.js";
 
 const runtimeUrl = "postgresql://service:private-value@localhost:5432/vetx";
 const migrationUrl = "postgresql://owner:another-private-value@localhost:5432/vetx";
@@ -86,5 +86,44 @@ test("accepts only plain HTTP origins for client configuration", () => {
     "https://vetx.example/#",
   ]) {
     assert.equal(parseHttpOrigin(input), undefined);
+  }
+});
+
+test("OIDC configuration is optional but all configured clients must be distinct", () => {
+  assert.equal(loadOidcConfig({}), undefined);
+  const valid = {
+    OIDC_ISSUER_URL: "http://127.0.0.1:58080/realms/vetx",
+    OIDC_API_CLIENT_ID: "api",
+    OIDC_API_CLIENT_SECRET: "api-secret",
+    OIDC_WEB_CLIENT_ID: "web",
+    OIDC_STAFF_CLIENT_ID: "staff",
+    OIDC_OWNER_CLIENT_ID: "owner",
+  };
+  assert.deepEqual(loadOidcConfig(valid), {
+    issuer: "http://127.0.0.1:58080/realms/vetx",
+    apiClientId: "api",
+    apiClientSecret: "api-secret",
+    webClientId: "web",
+    staffClientId: "staff",
+    ownerClientId: "owner",
+  });
+  assert.throws(() => loadOidcConfig({ ...valid, OIDC_OWNER_CLIENT_ID: "staff" }), {
+    message: "OIDC client IDs must be distinct",
+  });
+  assert.throws(() => loadOidcConfig({ OIDC_ISSUER_URL: valid.OIDC_ISSUER_URL }), {
+    message: "OIDC_API_CLIENT_ID must be configured",
+  });
+});
+
+test("OIDC issuer requires a credential-free realm URL and HTTPS away from loopback", () => {
+  for (const OIDC_ISSUER_URL of [
+    "http://id.example/realms/vetx",
+    "https://sensitive@id.example/realms/vetx",
+    "https://id.example",
+    "https://id.example/realms/vetx?q=sensitive",
+  ]) {
+    assert.throws(() => loadOidcConfig({ OIDC_ISSUER_URL }), {
+      message: "OIDC_ISSUER_URL must be a Keycloak realm URL using HTTPS or loopback HTTP",
+    });
   }
 });

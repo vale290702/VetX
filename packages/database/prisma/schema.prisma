@@ -13,7 +13,8 @@ model Organization {
   id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name      String
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
-  clinics   Clinic[]
+  clinics     Clinic[]
+  memberships OrganizationMembership[]
 
   @@map("organizations")
 }
@@ -25,6 +26,8 @@ model Clinic {
   name           String
   createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
 
+  grants         ClinicGrant[]
+
   @@unique([organizationId, id])
   @@map("clinics")
 }
@@ -35,6 +38,40 @@ model User {
   identitySubject String   @map("identity_subject")
   createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
 
+  memberships     OrganizationMembership[]
+
   @@unique([identityIssuer, identitySubject])
   @@map("users")
+}
+
+enum OrganizationRole {
+  ADMIN
+  STAFF
+
+  @@map("organization_role")
+}
+
+model OrganizationMembership {
+  organizationId String           @map("organization_id") @db.Uuid
+  userId         String           @map("user_id") @db.Uuid
+  role           OrganizationRole
+  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  clinicGrants   ClinicGrant[]
+
+  @@id([organizationId, userId])
+  @@index([userId, organizationId])
+  @@map("organization_memberships")
+}
+
+model ClinicGrant {
+  organizationId String                 @map("organization_id") @db.Uuid
+  clinicId       String                 @map("clinic_id") @db.Uuid
+  userId         String                 @map("user_id") @db.Uuid
+  membership     OrganizationMembership @relation(fields: [organizationId, userId], references: [organizationId, userId], onDelete: Cascade)
+  clinic         Clinic                 @relation(fields: [organizationId, clinicId], references: [organizationId, id], onDelete: Cascade)
+
+  @@id([organizationId, clinicId, userId])
+  @@index([organizationId, userId])
+  @@map("clinic_grants")
 }

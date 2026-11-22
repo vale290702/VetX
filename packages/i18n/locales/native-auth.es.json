@@ -1,0 +1,22 @@
+{
+  "signIn": "Iniciar sesión",
+  "signOut": "Cerrar sesión",
+  "checkSession": "Verificando tu sesión…",
+  "signingIn": "Iniciando sesión…",
+  "signingOut": "Cerrando sesión…",
+  "signedIn": "Tu sesión está activa.",
+  "manageAccount": "Administrar cuenta y seguridad",
+  "organizations": "Organizaciones",
+  "noOrganizations": "Tu cuenta no tiene acceso a ninguna organización.",
+  "retrySignOut": "Volver a intentar cerrar sesión",
+  "errors": {
+    "unconfigured": "El inicio de sesión no está disponible en esta versión.",
+    "rejected": "No pudimos verificar tu sesión. Vuelve a iniciar sesión.",
+    "operationFailed": "No pudimos completar el inicio de sesión de forma segura. Revisa tu conexión e inténtalo de nuevo.",
+    "revocationFailed": "Cerraste sesión en la aplicación. Para terminar la sesión en línea, cierra sesión desde Administrar cuenta y seguridad.",
+    "logoutFailed": "La aplicación está bloqueada porque no pudo borrar la sesión guardada.",
+    "accountConsole": "No pudimos abrir la configuración de la cuenta. Inténtalo de nuevo.",
+    "verificationFailed": "No pudimos verificar tu sesión. Revisa tu conexión e inténtalo de nuevo."
+  },
+  "retryVerification": "Volver a intentar"
+}

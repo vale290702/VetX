@@ -25,5 +25,18 @@
     "available": "Service available",
     "unavailable": "Service unavailable",
     "unconfigured": "Service connection not configured"
+  },
+  "webAuth": {
+    "signIn": "Sign in",
+    "signOut": "Sign out",
+    "accountTitle": "Your account",
+    "organizations": "Organizations",
+    "manageAccount": "Manage account",
+    "noOrganizations": "You do not have any organization memberships.",
+    "organizationsUnavailable": "Unable to load your organizations.",
+    "loginFailed": "Sign-in could not be completed. Try again.",
+    "unavailable": "Staff sign-in is temporarily unavailable.",
+    "sessionLocked": "Your session could not be verified. You can still sign out of VetX on this browser.",
+    "providerLogoutFailed": "You signed out of VetX on this browser. Your identity provider session may still be active."
   }
 }

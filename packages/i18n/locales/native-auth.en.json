@@ -1,0 +1,22 @@
+{
+  "signIn": "Sign in",
+  "signOut": "Sign out",
+  "checkSession": "Checking your session…",
+  "signingIn": "Signing in…",
+  "signingOut": "Signing out…",
+  "signedIn": "You’re signed in.",
+  "manageAccount": "Manage account and security",
+  "organizations": "Organizations",
+  "noOrganizations": "Your account has no organization access.",
+  "retrySignOut": "Try signing out again",
+  "errors": {
+    "unconfigured": "Sign-in is unavailable in this build.",
+    "rejected": "Your session couldn’t be verified. Sign in again.",
+    "operationFailed": "We couldn’t complete sign-in securely. Check your connection and try again.",
+    "revocationFailed": "You’re signed out of this app. To end the session online, sign out from Manage account and security.",
+    "logoutFailed": "The app is locked because it couldn’t remove your saved session.",
+    "accountConsole": "We couldn’t open account settings. Try again.",
+    "verificationFailed": "We couldn’t verify your session. Check your connection and try again."
+  },
+  "retryVerification": "Try again"
+}

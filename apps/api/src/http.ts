@@ -93,6 +93,9 @@ class HttpErrorFilter implements ExceptionFilter {
     const body: ApiErrorDto = { error: { code, message: errors[code], requestId } };
     response.setHeader(requestIdHeader, requestId);
     response.setHeader("Cache-Control", "no-store");
+    if (status === HttpStatus.UNAUTHORIZED) {
+      response.setHeader("WWW-Authenticate", "Bearer");
+    }
     response.status(status).json(body);
   }
 }

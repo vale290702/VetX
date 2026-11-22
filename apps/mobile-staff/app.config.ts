@@ -12,6 +12,7 @@ const config: ExpoConfig = {
   version: "0.1.0",
   userInterfaceStyle: "automatic",
   platforms: ["ios", "android"],
+  plugins: [["expo-secure-store", { faceIDPermission: false }]],
   ios: {
     bundleIdentifier: "com.vetx.staff",
     infoPlist: { CFBundleAllowMixedLocalizations: true },

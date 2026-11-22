@@ -1,0 +1,132 @@
+{
+  "realm": "vetx",
+  "enabled": true,
+  "sslRequired": "external",
+  "internationalizationEnabled": true,
+  "supportedLocales": ["es", "en"],
+  "defaultLocale": "es",
+  "registrationAllowed": true,
+  "resetPasswordAllowed": true,
+  "bruteForceProtected": true,
+  "smtpServer": {
+    "host": "mailpit",
+    "port": "1025",
+    "from": "vetx@localhost.test",
+    "auth": "false",
+    "ssl": "false",
+    "starttls": "false"
+  },
+  "clients": [
+    {
+      "clientId": "${OIDC_API_CLIENT_ID}",
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "${OIDC_API_CLIENT_SECRET}",
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false
+    },
+    {
+      "clientId": "${OIDC_WEB_CLIENT_ID}",
+      "protocol": "openid-connect",
+      "enabled": true,
+      "publicClient": false,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "redirectUris": ["${WEB_PUBLIC_ORIGIN}/auth/callback"],
+      "webOrigins": [],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "${WEB_PUBLIC_ORIGIN}/"
+      },
+      "protocolMappers": [
+        {
+          "name": "VetX API audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.client.audience": "${OIDC_API_CLIENT_ID}",
+            "access.token.claim": "true",
+            "introspection.token.claim": "true",
+            "id.token.claim": "false"
+          }
+        },
+        {
+          "name": "Staff web session introspection",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.client.audience": "${OIDC_WEB_CLIENT_ID}",
+            "access.token.claim": "true",
+            "introspection.token.claim": "true",
+            "id.token.claim": "false"
+          }
+        }
+      ],
+      "clientAuthenticatorType": "client-secret",
+      "secret": "${OIDC_WEB_CLIENT_SECRET}"
+    },
+    {
+      "clientId": "${OIDC_STAFF_CLIENT_ID}",
+      "protocol": "openid-connect",
+      "enabled": true,
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "redirectUris": ["vetx-staff://auth/callback"],
+      "webOrigins": [],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "vetx-staff://auth/logout"
+      },
+      "protocolMappers": [
+        {
+          "name": "VetX API audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.client.audience": "${OIDC_API_CLIENT_ID}",
+            "access.token.claim": "true",
+            "introspection.token.claim": "true",
+            "id.token.claim": "false"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "${OIDC_OWNER_CLIENT_ID}",
+      "protocol": "openid-connect",
+      "enabled": true,
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "redirectUris": ["vetx-pets://auth/callback"],
+      "webOrigins": [],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "vetx-pets://auth/logout"
+      },
+      "protocolMappers": [
+        {
+          "name": "VetX API audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.client.audience": "${OIDC_API_CLIENT_ID}",
+            "access.token.claim": "true",
+            "introspection.token.claim": "true",
+            "id.token.claim": "false"
+          }
+        }
+      ]
+    }
+  ]
+}

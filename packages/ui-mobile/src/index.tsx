@@ -19,7 +19,14 @@ import { Pressable, ScrollView, StyleSheet, Text, useColorScheme, View } from "r
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { I18nextProvider, useTranslation } from "react-i18next";
 
-type EntryProps = { audience: EntryAudience; apiUrl: string | undefined };
+import { AccessPanel } from "./access-panel";
+import { createExpoAuth, type NativeAuthSettings } from "./expo-session";
+
+type EntryProps = {
+  audience: EntryAudience;
+  apiUrl: string | undefined;
+  auth: NativeAuthSettings;
+};
 type NativeI18n = Awaited<ReturnType<typeof createNativeI18n>>;
 
 function useServiceStatus(apiUrl: string | undefined): ServiceStatus {
@@ -157,11 +164,18 @@ const createStyles = (palette: Palette) =>
 
 type EntryStyles = ReturnType<typeof createStyles>;
 
-function LocalizedEntry({ audience, apiUrl, styles }: EntryProps & { styles: EntryStyles }) {
+function LocalizedEntry({
+  audience,
+  apiUrl,
+  auth,
+  styles,
+  palette,
+}: EntryProps & { styles: EntryStyles; palette: Palette }) {
   const { i18n, t } = useTranslation();
   const [fontsLoaded] = useFonts({ InstrumentSerif_400Regular });
   const [preferenceError, setPreferenceError] = useState(false);
   const status = useServiceStatus(apiUrl);
+  const access = useMemo(() => createExpoAuth(audience, apiUrl, auth), [audience, apiUrl, auth]);
   const preferenceKey = `vetx.${audience}.locale`;
 
   async function selectLocale(locale: Locale) {
@@ -229,6 +243,7 @@ function LocalizedEntry({ audience, apiUrl, styles }: EntryProps & { styles: Ent
                 {t(`entry.${audience}.title`)}
               </Text>
               <Text style={styles.description}>{t(`entry.${audience}.description`)}</Text>
+              <AccessPanel auth={access} audience={audience} palette={palette} />
               <View style={styles.status}>
                 <View style={[styles.statusDot, serviceStyles[status]]} />
                 <Text accessibilityLiveRegion="polite" style={styles.statusText}>
@@ -265,7 +280,8 @@ async function readLocale(audience: EntryAudience) {
 export function NativeEntry(props: EntryProps) {
   const { audience } = props;
   const mode = useColorScheme() === "dark" ? "dark" : "light";
-  const styles = useMemo(() => createStyles(colors[mode]), [mode]);
+  const palette = colors[mode];
+  const styles = useMemo(() => createStyles(palette), [palette]);
   const [instance, setInstance] = useState<NativeI18n>();
   const [initializationFailed, setInitializationFailed] = useState(false);
 
@@ -290,7 +306,7 @@ export function NativeEntry(props: EntryProps) {
         <StatusBar style={mode === "dark" ? "light" : "dark"} />
         {instance ? (
           <I18nextProvider i18n={instance}>
-            <LocalizedEntry {...props} styles={styles} />
+            <LocalizedEntry {...props} styles={styles} palette={palette} />
           </I18nextProvider>
         ) : (
           <View style={styles.centered}>

@@ -1,6 +1,6 @@
 # VetX
 
-VetX is a veterinary SaaS workspace with a staff web app, a staff mobile app and a pet-owner mobile app. Phase 1 establishes the executable foundation. The three entry screens support English and Spanish, default to Spanish and show readiness from the same API. The database migration creates empty organization, clinic and user identity tables.
+VetX includes a staff web app, a staff mobile app, a pet-owner mobile app, and one NestJS API. Users can sign in through Keycloak in English or Spanish. The API resolves staff access from organization memberships and clinic grants in PostgreSQL.
 
 ## Repository structure
 
@@ -14,13 +14,13 @@ apps/
   ai-service/       AI service boundary
 packages/
   api-client/       Typed fetch client generated from the OpenAPI contract
-  auth/             Shared authentication boundary
+  auth/             Keycloak token verification
   config/           Validated environment and public client configuration
   contracts/        Generated OpenAPI contract
   database/         Prisma schema, migrations and PostgreSQL adapter
   design-tokens/    Shared web and native design tokens
   i18n/             English and Spanish translation catalogs
-  permissions/      Shared authorization policy boundary
+  permissions/      Staff and owner authorization types
   testing/          Playwright and Testcontainers suites
   ui-mobile/        Shared React Native UI
   ui-web/           Shared React UI
@@ -43,6 +43,8 @@ pnpm compose up -d --wait
 pnpm db:migrate
 ```
 
+For a checkout upgraded from Phase 1, add the identity and Redis settings from the updated `.env.example` to your existing `.env`. Start the default Compose services again to import the VetX realm.
+
 Start the API and web app in one terminal.
 
 ```sh
@@ -51,12 +53,14 @@ pnpm dev --filter=@vetx/api --filter=@vetx/web-staff
 
 | Service       | Default local address                |
 | ------------- | ------------------------------------ |
-| Staff web     | `http://localhost:3000`              |
+| Staff web     | `http://127.0.0.1:3000`              |
 | API liveness  | `http://127.0.0.1:4000/health/live`  |
 | API readiness | `http://127.0.0.1:4000/health/ready` |
 | OpenAPI JSON  | `http://127.0.0.1:4000/openapi.json` |
 
 Readiness performs a database query using the runtime account. Liveness stays available while the API can serve requests. Keep `DIRECT_DATABASE_URL` with the migration process and give the API only `DATABASE_URL`.
+
+For sign-in, account recovery, session management and staff access setup, see the [identity guide](docs/identity-and-access.md).
 
 ### Mobile development
 
@@ -67,7 +71,7 @@ pnpm dev --filter=@vetx/mobile-staff
 pnpm dev --filter=@vetx/mobile-pets
 ```
 
-The staff Metro server uses port 8081 and the pet-owner server uses 8082. The default `EXPO_PUBLIC_API_URL=http://127.0.0.1:4000` works for the iOS simulator on macOS. For the standard Android emulator, set `EXPO_PUBLIC_API_URL=http://10.0.2.2:4000` and `API_HOST=0.0.0.0`. For a physical device on the same development network, use the host machine’s LAN URL for `EXPO_PUBLIC_API_URL` and set `API_HOST=0.0.0.0`. Restart the API and Metro after changing these variables.
+The staff Metro server uses port 8081 and the pet-owner server uses 8082. The iOS simulator can use the example loopback addresses. For the Android emulator, run `adb reverse tcp:4000 tcp:4000` and `adb reverse tcp:58080 tcp:58080` so the browser, app, and API use the same issuer. For a physical device, configure an HTTPS issuer and API reachable from the device. Rebuild the development client after adding authentication native modules.
 
 To run a native development build, install Xcode and an iOS simulator or Android Studio and an Android emulator. Run the platform command for the selected app from the repository root. These commands build the native app and start Metro on the app’s configured port.
 
@@ -91,10 +95,11 @@ pnpm compose --profile integrations down
 | PostgreSQL             | 56432             |
 | Redis                  | 56379             |
 | Keycloak               | 58080             |
+| Mailpit inbox          | 58025             |
 | S3-compatible storage  | 59000             |
 | Orthanc HTTP and DICOM | 58042 and 54242   |
 
-The optional profile provisions local development services. Application-level Keycloak, storage and DICOM integrations are scheduled for subsequent phases. Run `pnpm compose down` to stop the default services and retain local data.
+PostgreSQL, Redis, Keycloak and Mailpit start by default. The optional profile adds storage and Orthanc. Run `pnpm compose down` to stop the default services and retain local data.
 
 ## Checks
 

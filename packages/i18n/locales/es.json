@@ -25,5 +25,18 @@
     "available": "Servicio disponible",
     "unavailable": "Servicio no disponible",
     "unconfigured": "Conexión al servicio sin configurar"
+  },
+  "webAuth": {
+    "signIn": "Iniciar sesión",
+    "signOut": "Cerrar sesión",
+    "accountTitle": "Tu cuenta",
+    "organizations": "Organizaciones",
+    "manageAccount": "Gestionar cuenta",
+    "noOrganizations": "No tienes membresías en ninguna organización.",
+    "organizationsUnavailable": "No se pudieron cargar tus organizaciones.",
+    "loginFailed": "No se pudo iniciar sesión. Inténtalo de nuevo.",
+    "unavailable": "El acceso para el personal no está disponible por el momento.",
+    "sessionLocked": "No se pudo verificar tu sesión. Aún puedes cerrar sesión en VetX desde este navegador.",
+    "providerLogoutFailed": "Cerraste sesión en VetX en este navegador. Tu sesión en el proveedor de identidad podría seguir activa."
   }
 }

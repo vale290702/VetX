@@ -5,7 +5,9 @@ import { Button } from "@vetx/ui-web";
 import { getLocale, getTranslations } from "next-intl/server";
 import { Suspense } from "react";
 
+import { authMessages } from "../../auth/http.ts";
 import { Link } from "../../i18n/routing";
+import { StaffAccount } from "./staff-account";
 
 export const dynamic = "force-dynamic";
 
@@ -27,8 +29,13 @@ async function ServiceReadiness() {
   return <ServiceLabel status={status} />;
 }
 
-export default async function StaffEntry() {
-  const [locale, t] = await Promise.all([getLocale(), getTranslations()]);
+export default async function StaffEntry({
+  searchParams,
+}: {
+  searchParams: Promise<{ auth?: string | string[] }>;
+}) {
+  const [locale, t, query] = await Promise.all([getLocale(), getTranslations(), searchParams]);
+  const notice = authMessages.find((message) => message === query.auth);
   return (
     <div className="entry-layout">
       <header className="masthead">
@@ -55,6 +62,7 @@ export default async function StaffEntry() {
             <div className="entry-heading">
               <h1 id="entry-title">{t("entry.staff.title")}</h1>
               <p>{t("entry.staff.description")}</p>
+              <StaffAccount locale={locale} notice={notice} />
             </div>
             <div className="entry-footer">
               <Suspense fallback={<ServiceLabel status="checking" />}>
