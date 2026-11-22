@@ -1,6 +1,20 @@
 import { PrismaPg } from "@prisma/adapter-pg";
 import type { StaffPrincipal } from "@vetx/permissions";
-import { type Prisma, PrismaClient } from "./generated/client.js";
+import {
+  type AdministrationDirectory,
+  directoryResult,
+  type DirectoryRevision,
+  type DirectoryRole,
+} from "./directory.js";
+import { Prisma, PrismaClient } from "./generated/client.js";
+
+export {
+  type AdministrationDirectory,
+  DirectoryError,
+  type DirectoryMember,
+  type DirectoryRevision,
+  type DirectoryRole,
+} from "./directory.js";
 
 const probeTimeoutMs = 1_000;
 
@@ -30,14 +44,21 @@ export class PrismaDatabase {
   private async requireRowSecurity(transaction: Prisma.TransactionClient): Promise<void> {
     // The empty read also acquires relation locks until the transaction ends.
     await transaction.$queryRaw`
-      SELECT 1 FROM public.organizations, public.clinics, public.users,
+      SELECT organizations.directory_revision FROM public.organizations, public.clinics, public.users,
                     public.organization_memberships, public.clinic_grants
       LIMIT 0
     `;
     const [result] = await transaction.$queryRaw<{ active: boolean }[]>`
-      SELECT current_setting('row_security') = 'on' AND bool_and(row_security_active(relation)) AS active
+      SELECT current_setting('row_security') = 'on'
+        AND NOT EXISTS (
+          SELECT 1 FROM pg_catalog.pg_roles
+          WHERE (rolsuper OR rolbypassrls OR rolname = 'vetx_migration')
+            AND pg_has_role(session_user, oid, 'MEMBER')
+        )
+        AND bool_and(row_security_active(relation) AND pg_class.relforcerowsecurity) AS active
       FROM unnest(ARRAY['public.users', 'public.organization_memberships', 'public.clinic_grants',
-                        'public.organizations', 'public.clinics']::regclass[]) AS tables(relation)
+                        'public.organizations', 'public.clinics', 'public.directory_events']::regclass[]) AS tables(relation)
+      JOIN pg_catalog.pg_class ON pg_class.oid = relation
     `;
     if (!result?.active) throw new Error("Database row security is inactive");
   }
@@ -66,6 +87,70 @@ export class PrismaDatabase {
       // The left join distinguishes a visible organization with no accessible clinics.
       return rows.length === 0 ? null : rows.filter((row) => row.id !== null);
     });
+  }
+
+  readAdministration(
+    principal: StaffPrincipal,
+    organizationId: string,
+    page: number,
+  ): Promise<AdministrationDirectory> {
+    return this.directoryQuery(
+      principal,
+      organizationId,
+      Prisma.sql`SELECT public.directory_read(${page}::integer) AS result`,
+    );
+  }
+
+  saveClinic(
+    principal: StaffPrincipal,
+    organizationId: string,
+    clinicId: string,
+    name: string,
+    revision: number,
+  ): Promise<DirectoryRevision> {
+    return this.directoryQuery(
+      principal,
+      organizationId,
+      Prisma.sql`SELECT public.directory_save_clinic(${clinicId}::uuid, ${name}, ${revision}::integer) AS result`,
+    );
+  }
+
+  saveMember(
+    principal: StaffPrincipal,
+    organizationId: string,
+    subject: string,
+    role: DirectoryRole,
+    clinicIds: string[],
+    revision: number,
+  ): Promise<DirectoryRevision> {
+    return this.directoryQuery(
+      principal,
+      organizationId,
+      Prisma.sql`SELECT public.directory_set_member(${subject}, ${role}::public.organization_role, ${clinicIds}::uuid[], ${revision}::integer) AS result`,
+    );
+  }
+
+  removeMember(
+    principal: StaffPrincipal,
+    organizationId: string,
+    subject: string,
+    revision: number,
+  ): Promise<DirectoryRevision> {
+    return this.directoryQuery(
+      principal,
+      organizationId,
+      Prisma.sql`SELECT public.directory_set_member(${subject}, NULL, ARRAY[]::uuid[], ${revision}::integer) AS result`,
+    );
+  }
+
+  private directoryQuery<T extends DirectoryRevision>(
+    principal: StaffPrincipal,
+    organizationId: string,
+    query: Prisma.Sql,
+  ): Promise<T> {
+    return this.withStaffAccess(principal, organizationId, async (transaction) =>
+      directoryResult<T>(await transaction.$queryRaw(query)),
+    );
   }
 
   private withStaffAccess<T>(

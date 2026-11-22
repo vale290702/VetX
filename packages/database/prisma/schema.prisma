@@ -13,8 +13,10 @@ model Organization {
   id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name      String
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  directoryRevision Int @default(0) @map("directory_revision")
   clinics     Clinic[]
   memberships OrganizationMembership[]
+  directoryEvents DirectoryEvent[]
 
   @@map("organizations")
 }
@@ -74,4 +76,19 @@ model ClinicGrant {
   @@id([organizationId, clinicId, userId])
   @@index([organizationId, userId])
   @@map("clinic_grants")
+}
+
+model DirectoryEvent {
+  organizationId String       @map("organization_id") @db.Uuid
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  revision       Int
+  actorIssuer    String       @map("actor_issuer")
+  actorSubject   String       @map("actor_subject")
+  action         String
+  target         String
+  details        Json         @db.JsonB
+  recordedAt     DateTime     @default(dbgenerated("clock_timestamp()")) @map("recorded_at") @db.Timestamptz(3)
+
+  @@id([organizationId, revision])
+  @@map("directory_events")
 }

@@ -1,3 +1,4 @@
+import { DirectoryError } from "@vetx/database";
 import { randomUUID } from "node:crypto";
 import {
   type ArgumentsHost,
@@ -20,6 +21,7 @@ const errors = {
   FORBIDDEN: "Access denied",
   NOT_FOUND: "Resource not found",
   CONFLICT: "Request conflict",
+  LAST_ORGANIZATION_ADMIN: "The organization must retain an administrator",
   TOO_MANY_REQUESTS: "Too many requests",
   SERVICE_UNAVAILABLE: "Service unavailable",
   INTERNAL_ERROR: "Internal server error",
@@ -49,12 +51,25 @@ class ErrorDetailDto {
   readonly requestId!: string;
 }
 
+export class ResourceSummaryDto {
+  @ApiProperty({ format: "uuid" })
+  readonly id!: string;
+
+  @ApiProperty()
+  readonly name!: string;
+}
+
 export class ApiErrorDto {
   @ApiProperty({ type: ErrorDetailDto })
   readonly error!: ErrorDetailDto;
 }
 
 function statusOf(exception: unknown): number {
+  if (exception instanceof DirectoryError) {
+    if (exception.code === "forbidden") return HttpStatus.FORBIDDEN;
+    if (exception.code === "invalid") return HttpStatus.BAD_REQUEST;
+    return HttpStatus.CONFLICT;
+  }
   if (exception instanceof HttpException) {
     return exception.getStatus();
   }
@@ -74,7 +89,10 @@ class HttpErrorFilter implements ExceptionFilter {
   catch(exception: unknown, host: ArgumentsHost): void {
     const response = host.switchToHttp().getResponse<Response>();
     const status = statusOf(exception);
-    const code = codesByStatus[status] ?? (status >= 500 ? "INTERNAL_ERROR" : "HTTP_ERROR");
+    const code =
+      exception instanceof DirectoryError && exception.code === "last_admin"
+        ? "LAST_ORGANIZATION_ADMIN"
+        : (codesByStatus[status] ?? (status >= 500 ? "INTERNAL_ERROR" : "HTTP_ERROR"));
     const currentId = response.getHeader(requestIdHeader);
     const requestId = typeof currentId === "string" ? currentId : randomUUID();
 

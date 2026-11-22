@@ -1,19 +1,14 @@
 import {
-  type CanActivate,
   Controller,
-  createParamDecorator,
   type DynamicModule,
-  type ExecutionContext,
   ForbiddenException,
   Get,
   Header,
   Inject,
-  Injectable,
   Module,
   Param,
   ParseUUIDPipe,
   ServiceUnavailableException,
-  UnauthorizedException,
   UseGuards,
 } from "@nestjs/common";
 import {
@@ -28,18 +23,20 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
 } from "@nestjs/swagger";
-import {
-  IdentityProviderUnavailableError,
-  InvalidAccessTokenError,
-  type TokenVerifier,
-} from "@vetx/auth";
+import type { TokenVerifier } from "@vetx/auth";
 import type { ResourceSummary } from "@vetx/database";
 import { type AccessPrincipal, isStaffPrincipal, type StaffPrincipal } from "@vetx/permissions";
-import type { Request } from "express";
-import { ApiErrorDto } from "./http.js";
+import {
+  AdministrationController,
+  directoryProvider,
+  type DirectoryStore,
+} from "./administration.js";
+import { BearerAuthGuard, Principal, tokenVerifierProvider } from "./identity-context.js";
+import { ApiErrorDto, ResourceSummaryDto } from "./http.js";
 
 export interface AccessDependencies {
   tokenVerifier?: TokenVerifier;
+  directory?: DirectoryStore;
   database?: {
     listOrganizations(principal: StaffPrincipal): Promise<ResourceSummary[]>;
     listClinics(
@@ -49,62 +46,7 @@ export interface AccessDependencies {
   };
 }
 
-const tokenVerifierProvider = Symbol("tokenVerifier");
 const accessDatabaseProvider = Symbol("accessDatabase");
-
-interface AuthenticatedRequest extends Request {
-  vetxPrincipal?: AccessPrincipal;
-}
-
-@Injectable()
-class BearerAuthGuard implements CanActivate {
-  constructor(
-    @Inject(tokenVerifierProvider) private readonly tokenVerifier: TokenVerifier | null,
-  ) {}
-
-  async canActivate(context: ExecutionContext): Promise<boolean> {
-    const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
-    const [header, duplicate] = request.headersDistinct.authorization ?? [];
-    const token = header?.match(/^Bearer +([\w-]+\.[\w-]+\.[\w-]+)$/i)?.[1];
-    if (!token || duplicate !== undefined) {
-      throw new UnauthorizedException();
-    }
-    if (!this.tokenVerifier) {
-      throw new ServiceUnavailableException();
-    }
-
-    try {
-      request.vetxPrincipal = await this.tokenVerifier.verify(token);
-      return true;
-    } catch (error) {
-      if (error instanceof InvalidAccessTokenError) {
-        throw new UnauthorizedException();
-      }
-      if (error instanceof IdentityProviderUnavailableError) {
-        throw new ServiceUnavailableException();
-      }
-      throw error;
-    }
-  }
-}
-
-const Principal = createParamDecorator(
-  (_data: unknown, context: ExecutionContext): AccessPrincipal => {
-    const principal = context.switchToHttp().getRequest<AuthenticatedRequest>().vetxPrincipal;
-    if (!principal) {
-      throw new UnauthorizedException();
-    }
-    return principal;
-  },
-);
-
-class ResourceSummaryDto {
-  @ApiProperty({ format: "uuid" })
-  readonly id!: string;
-
-  @ApiProperty()
-  readonly name!: string;
-}
 
 class MeDto {
   @ApiProperty()
@@ -177,13 +119,14 @@ class AccessController {
   }
 }
 
-@Module({ controllers: [AccessController], providers: [BearerAuthGuard] })
+@Module({ controllers: [AccessController, AdministrationController], providers: [BearerAuthGuard] })
 export class AccessModule {
   static register(dependencies: AccessDependencies): DynamicModule {
     return {
       module: AccessModule,
       providers: [
         { provide: tokenVerifierProvider, useValue: dependencies.tokenVerifier ?? null },
+        { provide: directoryProvider, useValue: dependencies.directory ?? null },
         { provide: accessDatabaseProvider, useValue: dependencies.database ?? null },
       ],
     };

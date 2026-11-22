@@ -1,61 +1,15 @@
 import assert from "node:assert/strict";
-import { spawnSync } from "node:child_process";
-import { randomBytes, randomUUID } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import { test } from "node:test";
-import { fileURLToPath } from "node:url";
-import { PostgreSqlContainer } from "@testcontainers/postgresql";
+import { startTestDatabase } from "./postgres.ts";
 import { PrismaDatabase } from "@vetx/database";
 import pg from "pg";
-
-const repo = fileURLToPath(new URL("../../../", import.meta.url));
-const bootstrap = fileURLToPath(
-  new URL("../../../infrastructure/postgres/10-roles.sh", import.meta.url),
-);
-const password = () => randomBytes(24).toString("hex");
 
 test(
   "the migration is deployable with separate runtime privileges",
   { timeout: 120_000 },
   async (t) => {
-    const migrationPassword = password();
-    const runtimePassword = password();
-
-    const database = await new PostgreSqlContainer("postgres:17.10-alpine")
-      .withDatabase("vetx")
-      .withUsername("vetx_bootstrap")
-      .withPassword(password())
-      .withEnvironment({
-        POSTGRES_MIGRATION_PASSWORD: migrationPassword,
-        POSTGRES_RUNTIME_PASSWORD: runtimePassword,
-      })
-      .withCopyFilesToContainer([
-        { source: bootstrap, target: "/docker-entrypoint-initdb.d/10-roles.sh", mode: 0o755 },
-      ])
-      .start();
-    t.after(async () => {
-      await database.stop();
-    });
-
-    const connection = (username: string, secret: string) => {
-      const uri = new URL(database.getConnectionUri());
-      uri.username = username;
-      uri.password = secret;
-      return uri.href;
-    };
-
-    const runtimeUrl = connection("vetx_runtime", runtimePassword);
-    const result = spawnSync("pnpm", ["db:migrate"], {
-      cwd: repo,
-      env: {
-        ...process.env,
-        DATABASE_URL: runtimeUrl,
-        DIRECT_DATABASE_URL: connection("vetx_migration", migrationPassword),
-      },
-      encoding: "utf8",
-      timeout: 60_000,
-    });
-    if (result.error) throw result.error;
-    assert.equal(result.status, 0, result.stderr || result.stdout);
+    const { database, runtimeUrl } = await startTestDatabase(t);
 
     const issuer = "https://identity.test/realms/phase-two";
     const north = randomUUID();
@@ -76,7 +30,14 @@ test(
       );
       assert.deepEqual(
         protections.rows.map((row) => row.relname),
-        ["clinic_grants", "clinics", "organization_memberships", "organizations", "users"],
+        [
+          "clinic_grants",
+          "clinics",
+          "directory_events",
+          "organization_memberships",
+          "organizations",
+          "users",
+        ],
       );
 
       await bootstrapClient.query(

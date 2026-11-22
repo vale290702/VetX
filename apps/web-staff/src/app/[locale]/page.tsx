@@ -1,12 +1,11 @@
 import { checkVetxReadiness } from "@vetx/api-client";
 import { parseHttpOrigin } from "@vetx/config/public";
-import { locales, type ServiceStatus } from "@vetx/i18n";
-import { Button } from "@vetx/ui-web";
+import { type ServiceStatus } from "@vetx/i18n";
 import { getLocale, getTranslations } from "next-intl/server";
 import { Suspense } from "react";
 
 import { authMessages } from "../../auth/http.ts";
-import { Link } from "../../i18n/routing";
+import { Masthead } from "./masthead";
 import { StaffAccount } from "./staff-account";
 
 export const dynamic = "force-dynamic";
@@ -38,24 +37,7 @@ export default async function StaffEntry({
   const notice = authMessages.find((message) => message === query.auth);
   return (
     <div className="entry-layout">
-      <header className="masthead">
-        <span className="wordmark">{t("brand")}</span>
-        <nav aria-label={t("language.label")} className="language-control">
-          {locales.map((option) => (
-            <Button asChild key={option} variant={locale === option ? "selected" : "ghost"}>
-              <Link
-                aria-current={locale === option ? "page" : undefined}
-                href="/"
-                hrefLang={option}
-                lang={option}
-                locale={option}
-              >
-                {t(`language.${option}`)}
-              </Link>
-            </Button>
-          ))}
-        </nav>
-      </header>
+      <Masthead locale={locale} />
       <main className="entry-main">
         <article className="entry-folio" aria-labelledby="entry-title">
           <div className="entry-copy">

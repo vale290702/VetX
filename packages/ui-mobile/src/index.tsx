@@ -197,7 +197,11 @@ function LocalizedEntry({
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.scrollContent}>
+    <ScrollView
+      automaticallyAdjustKeyboardInsets
+      keyboardShouldPersistTaps="handled"
+      contentContainerStyle={styles.scrollContent}
+    >
       <View style={styles.layout}>
         <View style={styles.masthead}>
           <Text style={styles.wordmark}>{t("brand")}</Text>

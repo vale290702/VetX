@@ -510,3 +510,55 @@ test("an access token that expires during initial verification stays locked for 
   assert.equal(getStored(), "refresh-two");
   assert.equal(session.getSnapshot().status, "signedIn");
 });
+
+test("organization requests require the verified subject and a current membership", async () => {
+  const { session, advanceTime } = fixture();
+  const run = (subject, org) => session.forOrganization(subject, org, async (token) => token);
+  await session.restore();
+  await assert.rejects(run(account.subject, "clinic"));
+  await session.signIn("en");
+  assert.equal(await run(account.subject, "clinic"), tokens.accessToken);
+  await assert.rejects(run("other-user", "clinic"));
+  await assert.rejects(run(account.subject, "other-clinic"));
+  advanceTime(60_001);
+  await assert.rejects(run(account.subject, "clinic"));
+});
+
+test("sign-out cancels an organization request and discards even a late success", async () => {
+  const { session } = fixture();
+  await session.restore();
+  await session.signIn("es");
+  const release = Promise.withResolvers();
+  let signal;
+  const pending = session.forOrganization(
+    account.subject,
+    "clinic",
+    async (_token, currentSignal) => {
+      signal = currentSignal;
+      return release.promise;
+    },
+  );
+  await session.signOut();
+  assert.equal(signal.aborted, true);
+  release.resolve("private directory");
+  await assert.rejects(pending);
+});
+
+test("a fresh profile invalidates a pending directory read and withdraws removed memberships", async () => {
+  let verified = account;
+  const { session } = fixture({ verify: async () => verified });
+  await session.restore();
+  await session.signIn("en");
+  const release = Promise.withResolvers();
+  let signal;
+  const pending = session.forOrganization(account.subject, "clinic", async (_token, current) => {
+    signal = current;
+    return release.promise;
+  });
+  verified = { ...account, organizations: [] };
+  await session.revalidate();
+  assert.equal(signal.aborted, true);
+  release.resolve("previous directory");
+  await assert.rejects(pending);
+  await assert.rejects(session.forOrganization(account.subject, "clinic", async () => "removed"));
+});

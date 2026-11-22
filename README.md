@@ -60,7 +60,7 @@ pnpm dev --filter=@vetx/api --filter=@vetx/web-staff
 
 Readiness performs a database query using the runtime account. Liveness stays available while the API can serve requests. Keep `DIRECT_DATABASE_URL` with the migration process and give the API only `DATABASE_URL`.
 
-For sign-in, account recovery, session management and staff access setup, see the [identity guide](docs/identity-and-access.md).
+For sign-in, account recovery, session management and staff access setup, see the [identity guide](docs/identity-and-access.md). Organization administrators can [manage clinics and staff access](docs/clinic-administration.md) from the staff apps.
 
 ### Mobile development
 

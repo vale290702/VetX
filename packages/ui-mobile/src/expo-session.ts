@@ -13,6 +13,7 @@ import {
   requireAccountResponse,
 } from "./auth-protocol";
 import { MobileSession, SessionRejectedError } from "./session";
+import { createDirectory } from "./directory";
 
 export type NativeAuthSettings = {
   issuerUrl: string | undefined;
@@ -212,5 +213,16 @@ export function createExpoAuth(
       });
     },
   });
-  return { session, accountUrl: `${issuer}/account/` };
+  return {
+    session: {
+      subscribe: session.subscribe,
+      getSnapshot: session.getSnapshot,
+      restore: () => session.restore(),
+      revalidate: () => session.revalidate(),
+      signIn: (locale: string) => session.signIn(locale),
+      signOut: () => session.signOut(),
+    },
+    directory: audience === "staff" ? createDirectory(session, apiOrigin, fetch) : undefined,
+    accountUrl: `${issuer}/account/`,
+  };
 }
