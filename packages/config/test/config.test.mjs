@@ -155,3 +155,24 @@ test("link issuance requires deployment-specific key material and positive durat
     );
   }
 });
+
+test("document storage configuration requires a private endpoint connection and bounds in-memory upload size", async () => {
+  const { loadDocumentConfig } = await import("../dist/server.js");
+  assert.equal(loadDocumentConfig({}), undefined);
+  const settings = {
+    S3_ENDPOINT: "https://storage.example.test",
+    S3_BUCKET: "medical-records",
+    S3_REGION: "us-east-1",
+    DOCUMENT_MAX_BYTES: "10485760",
+  };
+  assert.equal(loadDocumentConfig(settings).maxBytes, 10485760);
+  for (const overrides of [
+    { S3_ENDPOINT: "http://storage.example.test" },
+    { S3_ENDPOINT: "https://user:pass@storage.example.test" },
+    { S3_SECRET_KEY: "only-half" },
+    { S3_BUCKET: "../bucket" },
+    { DOCUMENT_MAX_BYTES: "33554433" },
+  ]) {
+    assert.throws(() => loadDocumentConfig({ ...settings, ...overrides }));
+  }
+});

@@ -47,5 +47,6 @@
   "loading": "Cargando expedientes…",
   "codeHelp": "Ingresa los 32 caracteres del código. Puedes incluir los espacios o guiones.",
   "tooManyAttempts": "Demasiados intentos. Espera antes de volver a usar un código.",
-  "hideCode": "Ocultar código"
+  "hideCode": "Ocultar código",
+  "documentTooLarge": "El archivo supera el límite de carga de la clínica. Elige uno más pequeño."
 }

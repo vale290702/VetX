@@ -1,7 +1,8 @@
-import { useCallback, useState } from "react";
+import { Activity, useCallback, useState } from "react";
 import { Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
+import { OwnerDocuments } from "./medical-documents";
 import { Action, Field, type AccessStyles } from "./controls";
 import type { PatientClient } from "./patients";
 import {
@@ -26,11 +27,34 @@ export function OwnerPets({
   openAccount: () => void;
 }) {
   const { t } = useTranslation();
+  const [documentPet, setDocumentPet] = useState<string>();
   const [draft, setDraft] = useState<LinkDraft>();
   const [linked, setLinked] = useState(false);
   const load = useCallback(() => client.pets(account.subject), [client, account]);
   const { result, reload } = usePatientRead(load);
   const action = usePatientAction(account);
+  const selectedPet =
+    result && "value" in result ? result.value.pets.find((p) => p.id === documentPet) : undefined;
+  if (documentPet && (!result || selectedPet)) {
+    return (
+      <>
+        {!selectedPet && <PatientReadState styles={styles} retry={reload} />}
+        <Activity mode={selectedPet ? "visible" : "hidden"}>
+          <OwnerDocuments
+            key={documentPet}
+            account={account}
+            client={client}
+            pet={selectedPet ?? { id: documentPet, name: "" }}
+            styles={styles}
+            back={() => {
+              setDocumentPet(undefined);
+              reload();
+            }}
+          />
+        </Activity>
+      </>
+    );
+  }
   if (!result || "error" in result)
     return <PatientReadState styles={styles} retry={reload} error={result?.error} />;
   const { pets } = result.value;
@@ -75,6 +99,19 @@ export function OwnerPets({
               {clinic.clinicName} · {clinic.organizationName}
             </Text>
           ))}
+          {!draft && (
+            <View style={styles.actions}>
+              <Action
+                styles={styles}
+                label={t("nativeDocuments.released")}
+                accessibilityLabel={t("nativeDocuments.releasedFor", { name: pet.name })}
+                onPress={() => {
+                  setDocumentPet(pet.id);
+                  setLinked(false);
+                }}
+              />
+            </View>
+          )}
         </View>
       ))}
       {draft ? (

@@ -1,3 +1,4 @@
+import { StorageUnavailable } from "./documents/storage.js";
 import { DirectoryError, RegistryError } from "@vetx/database";
 import { randomUUID } from "node:crypto";
 import {
@@ -17,6 +18,7 @@ import type { Request, Response, NextFunction } from "express";
 export const requestIdHeader = "x-request-id";
 
 const errors = {
+  PAYLOAD_TOO_LARGE: "File is too large",
   BAD_REQUEST: "Invalid request",
   UNAUTHORIZED: "Authentication required",
   FORBIDDEN: "Access denied",
@@ -33,6 +35,7 @@ const errors = {
 type ErrorCode = keyof typeof errors;
 
 const codesByStatus: Partial<Record<number, ErrorCode>> = {
+  [HttpStatus.PAYLOAD_TOO_LARGE]: "PAYLOAD_TOO_LARGE",
   [HttpStatus.BAD_REQUEST]: "BAD_REQUEST",
   [HttpStatus.UNAUTHORIZED]: "UNAUTHORIZED",
   [HttpStatus.FORBIDDEN]: "FORBIDDEN",
@@ -75,6 +78,7 @@ const registryStatus = {
   rate_limited: 429,
 } as const;
 function statusOf(exception: unknown): number {
+  if (exception instanceof StorageUnavailable) return HttpStatus.SERVICE_UNAVAILABLE;
   if (exception instanceof RegistryError) return registryStatus[exception.code];
   if (exception instanceof DirectoryError) {
     if (exception.code === "forbidden") return HttpStatus.FORBIDDEN;

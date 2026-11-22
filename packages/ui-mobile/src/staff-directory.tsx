@@ -221,6 +221,7 @@ function OrganizationDirectory({
         )}
         <Activity mode={currentClinic ? "visible" : "hidden"}>
           <ClinicPatients
+            key={selectedClinic.id}
             account={account}
             client={patients}
             styles={styles}

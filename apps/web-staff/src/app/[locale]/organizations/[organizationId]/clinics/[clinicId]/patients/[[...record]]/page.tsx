@@ -53,6 +53,7 @@ export default async function Patients({ params, searchParams }: Props) {
     getTranslations("patients"),
     getTranslations("directory"),
   ]);
+  const documents = await getTranslations("webDocuments");
   const notice = patientNotices.find((key) => key === query.notice);
   const context = {
     csrf: access.session.csrf,
@@ -179,6 +180,12 @@ export default async function Patients({ params, searchParams }: Props) {
                       </dd>
                     </div>
                   </dl>
+                  <Link
+                    className="directory-back"
+                    href={`${listPath}/${detail.patient.id}/documents`}
+                  >
+                    {documents("title")}
+                  </Link>
                   <PatientForm context={context} patient={detail.patient} />
                 </section>
                 <Guardians context={context} record={detail} />

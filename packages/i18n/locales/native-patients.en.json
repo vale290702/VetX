@@ -47,5 +47,6 @@
   "loading": "Loading records…",
   "codeHelp": "Enter all 32 characters. You can include spaces or hyphens.",
   "tooManyAttempts": "Too many attempts. Wait before using a code again.",
-  "hideCode": "Hide code"
+  "hideCode": "Hide code",
+  "documentTooLarge": "This file exceeds the clinic’s upload limit. Choose a smaller file."
 }

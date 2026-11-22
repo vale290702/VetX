@@ -83,6 +83,10 @@ pnpm --filter @vetx/mobile-pets android
 
 Each app supports both the `ios` and `android` commands. Use HTTPS for deployed APIs. For a local HTTP API, the Android debug build must permit local cleartext traffic.
 
+### Medical documents
+
+To attach clinical files, start the private document store and initialize its local bucket after installing dependencies and compiling `@vetx/config`. Staff can share individual files with linked guardians. [Medical document setup and access](docs/medical-documents.md)
+
 ### Optional integrations
 
 ```sh

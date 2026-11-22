@@ -478,3 +478,26 @@ body {
   resize: vertical;
   user-select: all;
 }
+
+.medical-document h3 {
+  font-weight: 650;
+}
+.medical-document .directory-form {
+  margin-block-end: 0;
+}
+.medical-document .clinic-check small {
+  display: block;
+}
+.medical-document .directory-notice[role="alert"] {
+  color: var(--vetx-color-warning);
+}
+.directory-form input[type="file"] {
+  padding-block: var(--vetx-space-compact);
+}
+.directory-form input[type="file"]::file-selector-button {
+  margin-inline-end: var(--vetx-space-inline);
+  padding-inline: var(--vetx-space-inline);
+  border-radius: var(--vetx-radius-control);
+  background: var(--vetx-color-control);
+  color: var(--vetx-color-ink);
+}

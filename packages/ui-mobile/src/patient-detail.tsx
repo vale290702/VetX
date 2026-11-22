@@ -2,6 +2,7 @@ import { Activity, useCallback, useEffect, useState } from "react";
 import { AppState, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
+import { PatientDocuments } from "./medical-documents";
 import { startCodeExpiry } from "./code-expiry";
 import { Action, Field } from "./controls";
 import { PatientForm, type ClinicPatientProps } from "./patient-form";
@@ -29,6 +30,7 @@ export function PatientDetail({
   const load = useCallback(() => client.detail(scope, patientId), [client, scope, patientId]);
   const { result, reload } = usePatientRead(load);
   const action = usePatientAction(account);
+  const [showDocuments, setShowDocuments] = useState(false);
   const [edit, setEdit] = useState<Editor>();
   const [issued, setIssued] = useState<{
     guardianId: string;
@@ -74,6 +76,37 @@ export function PatientDetail({
     edit?.kind === "invite" || edit?.kind === "remove"
       ? record?.guardians.find((g) => g.id === edit.guardian.id && g.email === edit.guardian.email)
       : undefined;
+  if (showDocuments) {
+    const backToPatient = () => {
+      setShowDocuments(false);
+      reload();
+    };
+    return (
+      <View style={styles.section}>
+        {!record && (
+          <PatientReadState
+            styles={styles}
+            retry={reload}
+            error={result && "error" in result ? result.error : undefined}
+          />
+        )}
+        {result && "error" in result ? (
+          <Action
+            styles={styles}
+            label={t("nativeDocuments.backPatient")}
+            onPress={backToPatient}
+          />
+        ) : (
+          <Activity mode={record ? "visible" : "hidden"}>
+            <Text accessibilityRole="header" style={styles.heading}>
+              {record?.patient.name}
+            </Text>
+            <PatientDocuments {...props} patientId={patientId} back={backToPatient} />
+          </Activity>
+        )}
+      </View>
+    );
+  }
   return (
     <View style={styles.section}>
       {!edit && (
@@ -132,6 +165,14 @@ export function PatientDetail({
           {!edit ? (
             <>
               <View style={styles.actions}>
+                <Action
+                  styles={styles}
+                  label={t("nativeDocuments.records")}
+                  onPress={() => {
+                    setIssued(undefined);
+                    setShowDocuments(true);
+                  }}
+                />
                 <Action
                   styles={styles}
                   label={t("nativePatients.editPatient")}

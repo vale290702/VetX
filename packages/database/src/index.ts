@@ -30,6 +30,14 @@ export {
 } from "./directory.js";
 
 export * from "./registry.js";
+export * from "./documents.js";
+import type {
+  DocumentInput,
+  DocumentSharing,
+  DocumentPage,
+  StaffDocument,
+  OwnerDocument,
+} from "./documents.js";
 
 const probeTimeoutMs = 1_000;
 
@@ -64,6 +72,7 @@ export class PrismaDatabase {
       LIMIT 0
     `;
     await transaction.$queryRaw`SELECT public.registry_lock_tables() AS locked`;
+    await transaction.$queryRaw`SELECT public.document_lock_tables() AS locked`;
     const [result] = await transaction.$queryRaw<{ active: boolean }[]>`
       SELECT current_setting('row_security') = 'on'
         AND NOT EXISTS (
@@ -75,7 +84,7 @@ export class PrismaDatabase {
       FROM unnest(ARRAY['public.users', 'public.organization_memberships', 'public.clinic_grants',
                         'public.organizations', 'public.clinics', 'public.directory_events',
                         'public.patients', 'public.owner_contacts', 'public.guardians',
-                        'public.registry_events', 'public.pet_link_attempts']::regclass[]) AS tables(relation)
+                        'public.registry_events', 'public.pet_link_attempts', 'public.medical_documents', 'public.document_events']::regclass[]) AS tables(relation)
       JOIN pg_catalog.pg_class ON pg_class.oid = relation
     `;
     if (!result?.active) throw new Error("Database row security is inactive");
@@ -273,6 +282,100 @@ export class PrismaDatabase {
       "",
       "",
       Prisma.sql`SELECT public.registry_owner_pets() AS result`,
+    );
+  }
+
+  reserveDocument(
+    actor: StaffPrincipal,
+    org: string,
+    clinic: string,
+    patient: string,
+    id: string,
+    input: DocumentInput,
+  ): Promise<StaffDocument> {
+    return this.registryQuery(
+      actor,
+      org,
+      clinic,
+      Prisma.sql`SELECT public.document_reserve(${patient}::uuid,${id}::uuid,${input.title},${input.mediaType},${input.byteLength}::int,${input.sha256}) AS result`,
+    );
+  }
+  finishDocument(
+    actor: StaffPrincipal,
+    org: string,
+    clinic: string,
+    patient: string,
+    id: string,
+    sha256: string,
+  ): Promise<StaffDocument> {
+    return this.registryQuery(
+      actor,
+      org,
+      clinic,
+      Prisma.sql`SELECT public.document_finish(${patient}::uuid,${id}::uuid,${sha256}) AS result`,
+    );
+  }
+  shareDocument(
+    actor: StaffPrincipal,
+    org: string,
+    clinic: string,
+    patient: string,
+    id: string,
+    sharing: DocumentSharing,
+  ): Promise<DocumentSharing> {
+    return this.registryQuery(
+      actor,
+      org,
+      clinic,
+      Prisma.sql`SELECT public.document_share(${patient}::uuid,${id}::uuid,${sharing.guardianIds}::uuid[],${sharing.revision}::int) AS result`,
+    );
+  }
+  getDocument(
+    actor: StaffPrincipal,
+    org: string,
+    clinic: string,
+    patient: string,
+    id: string,
+  ): Promise<StaffDocument> {
+    return this.registryQuery(
+      actor,
+      org,
+      clinic,
+      Prisma.sql`SELECT public.document_staff_read(${patient}::uuid,${id}::uuid,1) AS result`,
+    );
+  }
+  listDocuments(
+    actor: StaffPrincipal,
+    org: string,
+    clinic: string,
+    patient: string,
+    page: number,
+  ): Promise<DocumentPage<StaffDocument>> {
+    return this.registryQuery(
+      actor,
+      org,
+      clinic,
+      Prisma.sql`SELECT public.document_staff_read(${patient}::uuid,NULL,${page}::int) AS result`,
+    );
+  }
+  getOwnerDocument(actor: OwnerPrincipal, pet: string, asset: string): Promise<OwnerDocument> {
+    return this.registryQuery(
+      actor,
+      "",
+      "",
+      Prisma.sql`SELECT public.document_owner_read(${pet}::uuid,${asset}::uuid,1) AS result`,
+    );
+  }
+  listOwnerDocuments(
+    actor: OwnerPrincipal,
+    pet: string,
+    page: number,
+  ): Promise<DocumentPage<OwnerDocument>> {
+    return this.registryQuery(
+      actor,
+      "",
+      "",
+      Prisma.sql`SELECT public.document_owner_read(${pet}::uuid,NULL,${page}::int) AS result`,
     );
   }
 
