@@ -203,3 +203,50 @@ body {
     inline-size: min(44%, 16rem);
   }
 }
+
+.auth-section {
+  display: grid;
+  gap: var(--vetx-space-regular);
+  margin-block-start: var(--vetx-space-compact);
+  overflow-wrap: anywhere;
+}
+
+.auth-section h2,
+.auth-section h3 {
+  font-size: var(--vetx-type-body);
+  font-weight: 650;
+}
+
+.auth-section .auth-notice,
+.entry-heading .auth-notice {
+  color: var(--vetx-color-warning);
+  font-size: var(--vetx-type-caption);
+}
+
+.auth-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--vetx-space-compact);
+}
+
+.auth-actions a {
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.auth-primary {
+  padding-inline: var(--vetx-space-inset);
+  background: var(--vetx-color-folio);
+  color: var(--vetx-color-folio-ink);
+}
+
+.auth-primary:hover {
+  background: color-mix(in srgb, var(--vetx-color-folio) 86%, var(--vetx-color-folio-ink));
+}
+
+.organization-list {
+  margin-block-start: var(--vetx-space-tight);
+  padding-inline-start: var(--vetx-space-regular);
+  color: var(--vetx-color-muted);
+  list-style: disc;
+}

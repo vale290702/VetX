@@ -20,7 +20,7 @@
     "db:validate": "pnpm --filter @vetx/database db:validate",
     "db:migrate": "turbo run build --filter=@vetx/config && pnpm --filter @vetx/database db:migrate",
     "generate:api": "turbo run build --filter=@vetx/api && pnpm --filter @vetx/api openapi:generate && pnpm --filter @vetx/api-client generate",
-    "test:integration": "pnpm --filter @vetx/testing test:integration"
+    "test:integration": "turbo run build --filter=@vetx/database && pnpm --filter @vetx/testing test:integration"
   },
   "devDependencies": {
     "@eslint/js": "9.39.5",

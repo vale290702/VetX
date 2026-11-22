@@ -4,13 +4,13 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "env": ["EXPO_PUBLIC_API_URL"],
+      "env": ["EXPO_PUBLIC_API_URL", "EXPO_PUBLIC_OIDC_*"],
       "outputs": ["dist/**", ".next/**", "!.next/cache/**"],
       "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/.env"]
     },
     "dev": {
       "dependsOn": ["^build"],
-      "passThroughEnv": ["API_*", "DATABASE_URL", "EXPO_PUBLIC_API_URL", "NODE_ENV"],
+      "passThroughEnv": ["EXPO_PUBLIC_*", "NODE_ENV"],
       "cache": false,
       "persistent": true
     },
@@ -18,8 +18,45 @@
       "dependsOn": ["^build"],
       "outputs": []
     },
-    "test": { "outputs": [] },
-    "@vetx/api#test": { "dependsOn": ["build"], "outputs": [] },
-    "@vetx/config#test": { "dependsOn": ["build"], "outputs": [] }
+    "test": {
+      "outputs": []
+    },
+    "@vetx/api#test": {
+      "dependsOn": ["build"],
+      "outputs": []
+    },
+    "@vetx/config#test": {
+      "dependsOn": ["build"],
+      "outputs": []
+    },
+    "@vetx/api#dev": {
+      "dependsOn": ["^build"],
+      "passThroughEnv": [
+        "API_*",
+        "DATABASE_URL",
+        "OIDC_API_CLIENT_ID",
+        "OIDC_API_CLIENT_SECRET",
+        "OIDC_WEB_CLIENT_ID",
+        "OIDC_STAFF_CLIENT_ID",
+        "OIDC_OWNER_CLIENT_ID",
+        "OIDC_ISSUER_URL",
+        "NODE_ENV"
+      ],
+      "cache": false,
+      "persistent": true
+    },
+    "@vetx/web-staff#dev": {
+      "dependsOn": ["^build"],
+      "passThroughEnv": [
+        "API_INTERNAL_URL",
+        "WEB_*",
+        "OIDC_ISSUER_URL",
+        "OIDC_WEB_CLIENT_ID",
+        "OIDC_WEB_CLIENT_SECRET",
+        "NODE_ENV"
+      ],
+      "cache": false,
+      "persistent": true
+    }
   }
 }

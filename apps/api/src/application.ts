@@ -1,20 +1,35 @@
 import "reflect-metadata";
-import type { LoggerService } from "@nestjs/common";
+import { type DynamicModule, type LoggerService, Module } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
 import type { NestExpressApplication } from "@nestjs/platform-express";
 import { SwaggerModule } from "@nestjs/swagger";
+import { type AccessDependencies, AccessModule } from "./access.js";
 import { HealthModule, type ReadinessCheck } from "./health.js";
 import { configureHttp } from "./http.js";
 import { createOpenApiDocument } from "./openapi.js";
 
+@Module({})
+class AppModule {
+  static register(readiness: ReadinessCheck, access: AccessDependencies): DynamicModule {
+    return {
+      module: AppModule,
+      imports: [HealthModule.register(readiness), AccessModule.register(access)],
+    };
+  }
+}
+
 export async function createApplication(
   readiness: ReadinessCheck,
   logger: LoggerService | false,
+  access: AccessDependencies = {},
 ): Promise<NestExpressApplication> {
-  const app = await NestFactory.create<NestExpressApplication>(HealthModule.register(readiness), {
-    logger,
-    abortOnError: false,
-  });
+  const app = await NestFactory.create<NestExpressApplication>(
+    AppModule.register(readiness, access),
+    {
+      logger,
+      abortOnError: false,
+    },
+  );
   configureHttp(app);
   SwaggerModule.setup("openapi", app, () => createOpenApiDocument(app), {
     ui: false,

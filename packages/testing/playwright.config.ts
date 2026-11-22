@@ -24,6 +24,7 @@ export default defineConfig({
     { name: "desktop", use: { ...devices["Desktop Chrome"] } },
     {
       name: "mobile-dark",
+      testIgnore: "**/identity.spec.ts",
       use: { ...devices["Pixel 7"], defaultBrowserType: "chromium", colorScheme: "dark" },
     },
   ],

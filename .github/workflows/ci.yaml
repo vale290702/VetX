@@ -48,11 +48,11 @@ jobs:
         run: pnpm build
       - name: Verify database migration and privileges
         run: pnpm test:integration
-      - name: Start the local database and apply migrations
+      - name: Start identity services and apply migrations
         run: |
           cp .env.example .env
           pnpm compose config --quiet
-          pnpm compose up -d --wait postgres
+          pnpm compose up -d --wait postgres redis keycloak mailpit
           pnpm db:migrate
       - name: Run browser tests
         run: |
