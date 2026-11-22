@@ -1,0 +1,19 @@
+{
+  "name": "@vetx/i18n",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./native": "./src/native.ts"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "i18next": "27.2.4",
+    "i18next-icu": "2.7.1",
+    "intl-messageformat": "12.2.0"
+  }
+}

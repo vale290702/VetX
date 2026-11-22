@@ -1,0 +1,154 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/health/live": {
+      "get": {
+        "operationId": "getLiveness",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "headers": {
+              "x-request-id": {
+                "description": "Identifier assigned to this request",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            },
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Check whether the API is running",
+        "tags": [
+          "health"
+        ]
+      }
+    },
+    "/health/ready": {
+      "get": {
+        "operationId": "getReadiness",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "headers": {
+              "x-request-id": {
+                "description": "Identifier assigned to this request",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            },
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthDto"
+                }
+              }
+            }
+          },
+          "503": {
+            "headers": {
+              "x-request-id": {
+                "description": "Identifier assigned to this request",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            },
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Check whether the API can access the identity schema",
+        "tags": [
+          "health"
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "VetX API",
+    "description": "",
+    "version": "0.1.0",
+    "contact": {}
+  },
+  "tags": [],
+  "servers": [],
+  "components": {
+    "schemas": {
+      "HealthDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok"
+            ]
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "ErrorDetailDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "enum": [
+              "BAD_REQUEST",
+              "UNAUTHORIZED",
+              "FORBIDDEN",
+              "NOT_FOUND",
+              "CONFLICT",
+              "TOO_MANY_REQUESTS",
+              "SERVICE_UNAVAILABLE",
+              "INTERNAL_ERROR",
+              "HTTP_ERROR"
+            ]
+          },
+          "message": {
+            "type": "string"
+          },
+          "requestId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "requestId"
+        ]
+      },
+      "ApiErrorDto": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "$ref": "#/components/schemas/ErrorDetailDto"
+          }
+        },
+        "required": [
+          "error"
+        ]
+      }
+    }
+  }
+}

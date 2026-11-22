@@ -1,0 +1,66 @@
+name: VetX CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: vetx-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      COREPACK_ENABLE_DOWNLOAD_PROMPT: "0"
+      EXPO_NO_TELEMETRY: "1"
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version-file: .nvmrc
+      - name: Install workspace
+        run: |
+          corepack enable
+          pnpm install --frozen-lockfile
+      - name: Validate and regenerate API contracts
+        run: |
+          git ls-files --error-unmatch packages/contracts/openapi.json packages/api-client/src/schema.d.ts
+          pnpm db:validate
+          pnpm generate:api
+          git diff --exit-code -- packages/contracts/openapi.json packages/api-client/src/schema.d.ts
+      - name: Check and test source
+        run: |
+          pnpm format:check
+          pnpm lint
+          pnpm typecheck
+          pnpm test
+      - name: Build web, API and iOS and Android bundles
+        run: pnpm build
+      - name: Verify database migration and privileges
+        run: pnpm test:integration
+      - name: Start the local database and apply migrations
+        run: |
+          cp .env.example .env
+          pnpm compose config --quiet
+          pnpm compose up -d --wait postgres
+          pnpm db:migrate
+      - name: Run browser tests
+        run: |
+          pnpm --filter @vetx/testing exec playwright install --with-deps chromium
+          pnpm test:e2e
+      - name: Stop services
+        if: always()
+        run: |
+          if test -f .env; then
+            pnpm compose down
+          fi

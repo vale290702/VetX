@@ -1,0 +1,29 @@
+{
+  "brand": "VetX",
+  "entry": {
+    "staff": {
+      "title": "Veterinary team",
+      "description": "The VetX workspace for veterinary clinics and organizations.",
+      "appName": "VetX Staff"
+    },
+    "pets": {
+      "title": "Pet owner access",
+      "description": "Your VetX space for veterinary records shared by your pet’s clinic.",
+      "appName": "VetX Pet Owners"
+    }
+  },
+  "language": {
+    "label": "Language",
+    "es": "Español",
+    "en": "English",
+    "preferenceError": "Your language changed for this session. The preference could not be saved.",
+    "loading": "Loading language",
+    "initializationError": "The language settings could not be loaded."
+  },
+  "service": {
+    "checking": "Checking service",
+    "available": "Service available",
+    "unavailable": "Service unavailable",
+    "unconfigured": "Service connection not configured"
+  }
+}

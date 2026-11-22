@@ -1,0 +1,31 @@
+{
+  "name": "@vetx/api",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "nodemon --watch src --ext ts --signal SIGTERM --exec 'pnpm build && pnpm start'",
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "node --test test/*.test.mjs",
+    "start": "node dist/main.js",
+    "openapi:generate": "node dist/generate-openapi.js"
+  },
+  "dependencies": {
+    "@nestjs/common": "11.2.11",
+    "@nestjs/core": "11.2.11",
+    "@nestjs/platform-express": "11.2.11",
+    "@nestjs/swagger": "11.4.8",
+    "@vetx/config": "workspace:*",
+    "@vetx/database": "workspace:*",
+    "class-transformer": "0.5.1",
+    "class-validator": "0.15.1",
+    "reflect-metadata": "0.2.2",
+    "rxjs": "7.8.2"
+  },
+  "devDependencies": {
+    "@types/express": "5.0.6",
+    "@types/node": "24.19.2",
+    "nodemon": "3.1.14",
+    "typescript": "5.9.3"
+  }
+}

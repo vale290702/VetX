@@ -1,0 +1,14 @@
+packages:
+  - apps/*
+  - packages/*
+
+overrides:
+  # Keep Prisma's CLI dependency on the patched Effect 3 release.
+  "@prisma/config>effect": 3.22.1
+
+onlyBuiltDependencies:
+  - "@nestjs/core"
+  - "@prisma/engines"
+  - esbuild
+  - prisma
+  - sharp

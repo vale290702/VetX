@@ -1,0 +1,32 @@
+{
+  "name": "@vetx/web-staff",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "node --import ../../scripts/load-workspace-env.mjs ./node_modules/next/dist/bin/next dev",
+    "build": "next build",
+    "start": "node --import ../../scripts/load-workspace-env.mjs ./node_modules/next/dist/bin/next start",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@fontsource/instrument-serif": "5.3.0",
+    "@fontsource-variable/instrument-sans": "5.3.0",
+    "@vetx/api-client": "workspace:*",
+    "@vetx/config": "workspace:*",
+    "@vetx/design-tokens": "workspace:*",
+    "@vetx/i18n": "workspace:*",
+    "@vetx/ui-web": "workspace:*",
+    "next": "16.4.6",
+    "next-intl": "4.15.3",
+    "react": "19.2.7",
+    "react-dom": "19.2.7"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "4.3.5",
+    "@types/node": "24.10.1",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
+    "postcss": "8.5.33",
+    "tailwindcss": "4.3.5"
+  }
+}

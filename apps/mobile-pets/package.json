@@ -1,0 +1,31 @@
+{
+  "name": "@vetx/mobile-pets",
+  "version": "0.1.0",
+  "private": true,
+  "main": "index.ts",
+  "scripts": {
+    "dev": "node --import ../../scripts/load-workspace-env.mjs ./node_modules/expo/bin/cli start --port 8082",
+    "ios": "node --import ../../scripts/load-workspace-env.mjs ./node_modules/expo/bin/cli run:ios --port 8082",
+    "android": "node --import ../../scripts/load-workspace-env.mjs ./node_modules/expo/bin/cli run:android --port 8082",
+    "build": "node --import ../../scripts/load-workspace-env.mjs ./node_modules/expo/bin/cli export --platform ios --platform android",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@expo-google-fonts/instrument-serif": "0.4.1",
+    "@react-native-async-storage/async-storage": "2.2.0",
+    "@vetx/i18n": "workspace:*",
+    "@vetx/ui-mobile": "workspace:*",
+    "expo": "56.0.24",
+    "expo-font": "56.0.7",
+    "expo-status-bar": "56.0.4",
+    "expo-system-ui": "56.0.5",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "react-native": "0.85.3",
+    "react-native-safe-area-context": "5.7.0"
+  },
+  "devDependencies": {
+    "@types/node": "24.10.1",
+    "@types/react": "19.2.14"
+  }
+}

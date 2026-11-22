@@ -1,0 +1,25 @@
+{
+  "$schema": "https://turborepo.dev/schema.json",
+  "globalDependencies": ["tsconfig.base.json", "scripts/load-workspace-env.mjs"],
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "env": ["EXPO_PUBLIC_API_URL"],
+      "outputs": ["dist/**", ".next/**", "!.next/cache/**"],
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/.env"]
+    },
+    "dev": {
+      "dependsOn": ["^build"],
+      "passThroughEnv": ["API_*", "DATABASE_URL", "EXPO_PUBLIC_API_URL", "NODE_ENV"],
+      "cache": false,
+      "persistent": true
+    },
+    "typecheck": {
+      "dependsOn": ["^build"],
+      "outputs": []
+    },
+    "test": { "outputs": [] },
+    "@vetx/api#test": { "dependsOn": ["build"], "outputs": [] },
+    "@vetx/config#test": { "dependsOn": ["build"], "outputs": [] }
+  }
+}

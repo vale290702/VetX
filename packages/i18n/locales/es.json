@@ -1,0 +1,29 @@
+{
+  "brand": "VetX",
+  "entry": {
+    "staff": {
+      "title": "Equipo veterinario",
+      "description": "El espacio de trabajo de VetX para clínicas y organizaciones veterinarias.",
+      "appName": "VetX Equipo"
+    },
+    "pets": {
+      "title": "Acceso de tutores",
+      "description": "Tu espacio en VetX para los registros que comparte la clínica de tu mascota.",
+      "appName": "VetX Tutores"
+    }
+  },
+  "language": {
+    "label": "Idioma",
+    "es": "Español",
+    "en": "English",
+    "preferenceError": "El idioma cambió para esta sesión. No se pudo guardar la preferencia.",
+    "loading": "Cargando el idioma",
+    "initializationError": "No se pudo cargar la configuración de idioma."
+  },
+  "service": {
+    "checking": "Comprobando el servicio",
+    "available": "Servicio disponible",
+    "unavailable": "Servicio no disponible",
+    "unconfigured": "Conexión al servicio sin configurar"
+  }
+}
