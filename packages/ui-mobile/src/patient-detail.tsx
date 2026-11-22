@@ -2,6 +2,7 @@ import { Activity, useCallback, useEffect, useState } from "react";
 import { AppState, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
+import { PatientDocuments } from "./medical-documents";
 import { Appointments } from "./appointments";
 import { PatientEncounters } from "./clinical-notes";
 import { startCodeExpiry } from "./code-expiry";
@@ -31,7 +32,7 @@ export function PatientDetail({
   const load = useCallback(() => client.detail(scope, patientId), [client, scope, patientId]);
   const { result, reload } = usePatientRead(load);
   const action = usePatientAction(account);
-  const [care, setCare] = useState<"notes" | "appointments">();
+  const [care, setCare] = useState<"notes" | "appointments" | "documents">();
   const [edit, setEdit] = useState<Editor>();
   const [issued, setIssued] = useState<{
     guardianId: string;
@@ -98,7 +99,9 @@ export function PatientDetail({
             <Text accessibilityRole="header" style={styles.heading}>
               {record?.patient.name}
             </Text>
-            {care === "notes" ? (
+            {care === "documents" ? (
+              <PatientDocuments {...props} patientId={patientId} back={backToPatient} />
+            ) : care === "notes" ? (
               <PatientEncounters
                 {...props}
                 patientId={patientId}
@@ -190,6 +193,14 @@ export function PatientDetail({
                   onPress={() => {
                     setIssued(undefined);
                     setCare("appointments");
+                  }}
+                />
+                <Action
+                  styles={styles}
+                  label={t("nativeDocuments.records")}
+                  onPress={() => {
+                    setIssued(undefined);
+                    setCare("documents");
                   }}
                 />
                 <Action

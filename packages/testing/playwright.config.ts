@@ -28,6 +28,7 @@ export default defineConfig({
         "**/identity.spec.ts",
         "**/administration-api.spec.ts",
         "**/registry-api.spec.ts",
+        "**/documents-api.spec.ts",
       ],
       use: { ...devices["Pixel 7"], defaultBrowserType: "chromium", colorScheme: "dark" },
     },

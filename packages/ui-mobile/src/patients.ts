@@ -1,6 +1,7 @@
 import type { paths } from "@vetx/api-client";
 import type { fetch as expoFetch } from "expo/fetch";
 
+import { createDocuments } from "./documents.ts";
 import { createCare } from "./care-client.ts";
 import {
   createPatientTransport,
@@ -25,6 +26,7 @@ export function patientFailure(error: unknown, action: "read" | "write" | "redee
     if (action === "redeem" && error.status === 404) return "unavailableCode";
     if (error.status === 429) return "tooManyAttempts";
     if (error.status === 400) return "invalid";
+    if (error.status === 413) return "documentTooLarge";
     if (error.code === "APPOINTMENT_OVERLAP") return "overlap";
     if (error.status === 409) return "conflict";
     if (error.status === 403 || error.status === 404) return "denied";
@@ -48,6 +50,7 @@ export function createPatients(
   const transport = createPatientTransport(session, origin, fetcher);
   const { api, staff, owner } = transport;
   return {
+    documents: createDocuments(transport, session, origin, fetcher),
     care: createCare(transport),
     list(scope: ClinicScope, page: number, search: string) {
       return staff(scope, async (config, path) =>
