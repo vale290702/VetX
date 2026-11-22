@@ -1,6 +1,6 @@
 import { ConsoleLogger } from "@nestjs/common";
 import { KeycloakTokenVerifier } from "@vetx/auth";
-import { ConfigurationError, loadApiConfig, loadOidcConfig } from "@vetx/config";
+import { ConfigurationError, loadApiConfig, loadOidcConfig, loadPetLinkConfig } from "@vetx/config";
 import { PrismaDatabase } from "@vetx/database";
 import { createApplication } from "./application.js";
 
@@ -12,6 +12,8 @@ async function main(): Promise<void> {
   const app = await createApplication(database, logger, {
     database,
     directory: database,
+    registry: database,
+    petLinks: loadPetLinkConfig(),
     tokenVerifier: oidc && new KeycloakTokenVerifier(oidc),
   });
   try {

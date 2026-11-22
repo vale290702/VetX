@@ -2,7 +2,7 @@
 
 ## Local accounts
 
-Open the staff app at the exact origin set in `WEB_PUBLIC_ORIGIN`. Select **Iniciar sesión** or **Sign in**. The local realm allows account registration and defaults to Spanish. Registration creates an identity. Staff access requires an explicit organization membership in the application database.
+Open the staff app at the exact origin set in `WEB_PUBLIC_ORIGIN`. Select **Iniciar sesión** or **Sign in**. The local realm allows account registration and defaults to Spanish. Registration includes an email verification message. Use the local Mailpit inbox to complete verification in development. Existing realms can enable **Verify email** under realm login settings. Staff access requires an explicit organization membership in the application database.
 
 Keycloak stores credentials and authentication factors. Users can configure an authenticator and review active sessions in the Keycloak account console at `http://127.0.0.1:58080/realms/vetx/account/`. The password recovery link on the sign-in page sends a recovery message to the local Mailpit inbox at `http://127.0.0.1:58025`. Configure an authenticated SMTP service for deployed environments.
 
@@ -51,3 +51,5 @@ The example uses the default Compose database `vetx`. The API uses the restricte
 The development realm template lives in `infrastructure/keycloak/vetx-realm.json`. Compose supplies its client identifiers, secrets and the single web callback origin at import time. Keycloak imports a realm once. To change client settings on a realm already in use, apply the corresponding changes through the Keycloak administration interface.
 
 Use the same issuer URL for every participant, HTTPS for deployed origins, and a private Redis instance restricted to the web app. Direct password grants are disabled on the application clients. The development Compose stack uses local credentials, development-mode Keycloak and a local mail sink. [Keycloak import behavior](https://www.keycloak.org/server/importExport)
+
+The development Compose service sets `KEYCLOAK_MEMORY_LIMIT` to 1 GiB by default. This gives the JVM a container-specific heap budget when other services share the Docker VM. [Keycloak container memory settings](https://www.keycloak.org/server/containers#_specifying_different_memory_settings)

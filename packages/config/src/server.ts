@@ -132,3 +132,38 @@ export function loadOidcConfig(env = environment()): OidcConfig | undefined {
   }
   return { issuer, apiClientId, apiClientSecret, webClientId, staffClientId, ownerClientId };
 }
+
+export interface PetLinkConfig {
+  keyHex: string;
+  lifetimeSeconds: number;
+  attemptLimit: number;
+  windowSeconds: number;
+}
+
+export function loadPetLinkConfig(env = environment()): PetLinkConfig | undefined {
+  if (
+    [
+      "PET_LINK_HMAC_KEY_HEX",
+      "PET_LINK_LIFETIME_SECONDS",
+      "PET_LINK_ATTEMPT_LIMIT",
+      "PET_LINK_WINDOW_SECONDS",
+    ].every((key) => env[key] === undefined)
+  )
+    return undefined;
+  const keyHex = env.PET_LINK_HMAC_KEY_HEX;
+  if (!keyHex || !/^[a-f0-9]{64}$/i.test(keyHex))
+    throw new ConfigurationError("PET_LINK_HMAC_KEY_HEX requires 32 bytes encoded as hexadecimal");
+  const positive = (name: string) => {
+    const raw = env[name] ?? "";
+    const number = Number(raw);
+    if (!/^[1-9]\d*$/.test(raw) || !Number.isSafeInteger(number) || number > 2_147_483_647)
+      throw new ConfigurationError(`${name} must be a positive 32-bit integer`);
+    return number;
+  };
+  return {
+    keyHex,
+    lifetimeSeconds: positive("PET_LINK_LIFETIME_SECONDS"),
+    attemptLimit: positive("PET_LINK_ATTEMPT_LIMIT"),
+    windowSeconds: positive("PET_LINK_WINDOW_SECONDS"),
+  };
+}

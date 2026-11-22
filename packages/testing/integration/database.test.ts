@@ -34,8 +34,13 @@ test(
           "clinic_grants",
           "clinics",
           "directory_events",
+          "guardians",
           "organization_memberships",
           "organizations",
+          "owner_contacts",
+          "patients",
+          "pet_link_attempts",
+          "registry_events",
           "users",
         ],
       );

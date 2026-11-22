@@ -13,6 +13,7 @@ model Organization {
   id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name      String
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  petLinkLifetimeSeconds Int? @map("pet_link_lifetime_seconds")
   directoryRevision Int @default(0) @map("directory_revision")
   clinics     Clinic[]
   memberships OrganizationMembership[]
@@ -28,6 +29,8 @@ model Clinic {
   name           String
   createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
 
+  patients Patient[]
+  ownerContacts OwnerContact[]
   grants         ClinicGrant[]
 
   @@unique([organizationId, id])
@@ -91,4 +94,83 @@ model DirectoryEvent {
 
   @@id([organizationId, revision])
   @@map("directory_events")
+}
+
+model Patient {
+  organizationId String          @map("organization_id") @db.Uuid
+  clinicId       String          @map("clinic_id") @db.Uuid
+  id             String          @db.Uuid
+  name           String
+  species        String
+  birthDate      DateTime?       @map("birth_date") @db.Date
+  revision       Int             @default(1)
+  clinic         Clinic          @relation(fields: [organizationId, clinicId], references: [organizationId, id], onUpdate: NoAction, onDelete: NoAction)
+  guardians      Guardian[]
+  events         RegistryEvent[]
+
+  @@id([organizationId, clinicId, id])
+  @@map("patients")
+}
+
+model OwnerContact {
+  organizationId String     @map("organization_id") @db.Uuid
+  clinicId       String     @map("clinic_id") @db.Uuid
+  id             String     @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name           String
+  email          String
+  clinic         Clinic     @relation(fields: [organizationId, clinicId], references: [organizationId, id], onUpdate: NoAction, onDelete: NoAction)
+  guardians      Guardian[]
+
+  @@id([organizationId, clinicId, id])
+  @@unique([organizationId, clinicId, email])
+  @@map("owner_contacts")
+}
+
+model Guardian {
+  organizationId  String       @map("organization_id") @db.Uuid
+  clinicId        String       @map("clinic_id") @db.Uuid
+  patientId       String       @map("patient_id") @db.Uuid
+  id              String       @db.Uuid
+  contactId       String       @map("contact_id") @db.Uuid
+  removedAt       DateTime?    @map("removed_at") @db.Timestamptz(3)
+  issueRequestId  String?      @map("issue_request_id") @db.Uuid
+  digest          String?
+  expiresAt       DateTime?    @map("expires_at") @db.Timestamptz(3)
+  recipientIssuer String?      @map("recipient_issuer")
+  recipientEmail  String?      @map("recipient_email")
+  ownerSubject    String?      @map("owner_subject")
+  petId           String?      @map("pet_id") @db.Uuid
+  claimRequestId  String?      @map("claim_request_id") @db.Uuid
+  claimTarget     String?      @map("claim_target") @db.Uuid
+  patient         Patient      @relation(fields: [organizationId, clinicId, patientId], references: [organizationId, clinicId, id], onUpdate: NoAction, onDelete: NoAction)
+  contact         OwnerContact @relation(fields: [organizationId, clinicId, contactId], references: [organizationId, clinicId, id], onUpdate: NoAction, onDelete: NoAction)
+
+  @@id([organizationId, clinicId, patientId, id])
+  @@map("guardians")
+}
+
+model RegistryEvent {
+  id             BigInt   @id @default(autoincrement())
+  organizationId String   @map("organization_id") @db.Uuid
+  clinicId       String   @map("clinic_id") @db.Uuid
+  patientId      String   @map("patient_id") @db.Uuid
+  guardianId     String?  @map("guardian_id") @db.Uuid
+  actorIssuer    String   @map("actor_issuer")
+  actorSubject   String   @map("actor_subject")
+  action         String
+  requestId      String?  @map("request_id") @db.Uuid
+  recordedAt     DateTime @default(dbgenerated("clock_timestamp()")) @map("recorded_at") @db.Timestamptz(3)
+  patient        Patient  @relation(fields: [organizationId, clinicId, patientId], references: [organizationId, clinicId, id], onUpdate: NoAction, onDelete: NoAction)
+
+  @@map("registry_events")
+}
+
+model PetLinkAttempt {
+  issuer      String
+  subject     String
+  windowStart DateTime @map("window_start") @db.Timestamptz(6)
+  failures    Int      @default(0)
+
+  @@id([issuer, subject])
+  @@map("pet_link_attempts")
 }

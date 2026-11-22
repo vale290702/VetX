@@ -95,7 +95,21 @@ export class KeycloakTokenVerifier implements TokenVerifier {
       throw new InvalidAccessTokenError();
     }
 
-    return { issuer, subject: sub, kind: azp === ownerClientId ? "owner" : "staff" };
+    if (azp !== ownerClientId) return { issuer, subject: sub, kind: "staff" };
+    const email = payload.email;
+    const verified =
+      payload.email_verified === true &&
+      state.email_verified === true &&
+      typeof email === "string" &&
+      state.email === email &&
+      email.length <= 254 &&
+      /^[^\s@]+@[^\s@]+\.[^\s@]+$/u.test(email);
+    return {
+      issuer,
+      subject: sub,
+      kind: "owner",
+      ...(verified ? { verifiedEmail: email.toLowerCase() } : {}),
+    };
   }
 
   private async verifyClaims(token: string) {

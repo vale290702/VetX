@@ -5,28 +5,19 @@ import { useTranslation } from "react-i18next";
 import { Action, type AccessStyles } from "./controls";
 import { DirectoryError, type DirectoryView, type StaffDirectoryClient } from "./directory";
 import { DirectoryEditor, type Edit } from "./directory-editor";
+import { ClinicPatients } from "./clinic-patients";
+import type { PatientClient } from "./patients";
 import type { MobileAccount } from "./session";
 
-type Props = { client: StaffDirectoryClient; styles: AccessStyles };
+type Props = { client: StaffDirectoryClient; patients: PatientClient; styles: AccessStyles };
 type Organization = MobileAccount["organizations"][number];
 
-export function StaffDirectoryGate({
+export function StaffDirectory({
   account,
   client,
+  patients,
   styles,
-}: Props & { account?: MobileAccount }) {
-  // Preserve draft input while /me is being checked. Sign-out unmounts this gate.
-  const [lastVerified, setLastVerified] = useState(account);
-  if (account && account !== lastVerified) setLastVerified(account);
-  const profile = account ?? lastVerified;
-  return profile ? (
-    <Activity mode={account ? "visible" : "hidden"}>
-      <StaffDirectory key={profile.subject} account={profile} client={client} styles={styles} />
-    </Activity>
-  ) : null;
-}
-
-function StaffDirectory({ account, client, styles }: Props & { account: MobileAccount }) {
+}: Props & { account: MobileAccount }) {
   const { t } = useTranslation();
   const [selected, select] = useState<string>();
   const [shareFailed, setShareFailed] = useState(false);
@@ -89,6 +80,7 @@ function StaffDirectory({ account, client, styles }: Props & { account: MobileAc
             organization={organization}
             account={account}
             client={client}
+            patients={patients}
             styles={styles}
           />
         </>
@@ -106,9 +98,11 @@ function OrganizationDirectory({
   organization,
   account,
   client,
+  patients,
   styles,
 }: Props & { organization: Organization; account: MobileAccount }) {
   const { t } = useTranslation();
+  const [selectedClinic, setSelectedClinic] = useState<{ id: string; name: string }>();
   const [tab, setTab] = useState<"clinics" | "staff">("clinics");
   const [page, setPage] = useState(1);
   const [refresh, setRefresh] = useState(0);
@@ -210,6 +204,34 @@ function OrganizationDirectory({
     loaded?.account === account && loaded.page === page && loaded.refresh === refresh
       ? loaded.result
       : undefined;
+  const granted =
+    result && "view" in result
+      ? result.view.kind === "staff"
+        ? result.view.clinics
+        : result.view.directory.clinics
+      : undefined;
+  const currentClinic = granted?.find((c) => c.id === selectedClinic?.id);
+  if (selectedClinic && (!result || currentClinic)) {
+    return (
+      <>
+        {!currentClinic && (
+          <Text accessibilityLiveRegion="polite" style={styles.support}>
+            {t("directory.loading")}
+          </Text>
+        )}
+        <Activity mode={currentClinic ? "visible" : "hidden"}>
+          <ClinicPatients
+            account={account}
+            client={patients}
+            styles={styles}
+            organizationId={organizationId}
+            clinic={currentClinic ?? selectedClinic}
+            back={() => setSelectedClinic(undefined)}
+          />
+        </Activity>
+      </>
+    );
+  }
   if (!result)
     return (
       <Text accessibilityLiveRegion="polite" style={styles.support}>
@@ -303,8 +325,14 @@ function OrganizationDirectory({
           {clinics.map((clinic) => (
             <View key={clinic.id} style={styles.row}>
               <Text style={styles.heading}>{clinic.name}</Text>
-              {admin && (
-                <View style={styles.actions}>
+              <View style={styles.actions}>
+                <Action
+                  styles={styles}
+                  label={t("nativePatients.patients")}
+                  accessibilityLabel={t("nativePatients.patientsIn", { clinic: clinic.name })}
+                  onPress={() => setSelectedClinic(clinic)}
+                />
+                {admin && (
                   <Action
                     styles={styles}
                     label={t("directory.renameClinic")}
@@ -313,8 +341,8 @@ function OrganizationDirectory({
                       begin({ kind: "clinic", creating: false, clinic, revision: admin.revision })
                     }
                   />
-                </View>
-              )}
+                )}
+              </View>
             </View>
           ))}
         </>

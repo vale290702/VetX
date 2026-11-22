@@ -1,6 +1,7 @@
 import { createVetxClient, type paths } from "@vetx/api-client";
 import type { fetch as expoFetch } from "expo/fetch";
 
+import { nativeRequest } from "./native-request.ts";
 import type { MobileSession } from "./session";
 
 const administration = "/organizations/{organizationId}/administration";
@@ -42,17 +43,7 @@ export function createDirectory(
   function options(organizationId: string, token: string, signal: AbortSignal) {
     return {
       params: { path: { organizationId } },
-      headers: { Authorization: `Bearer ${token}`, "Cache-Control": "no-store" },
-      async fetch(request: Request) {
-        return fetch(request.url, {
-          method: request.method,
-          headers: request.headers,
-          body: request.method === "GET" ? undefined : await request.text(),
-          credentials: "omit",
-          redirect: "error",
-          signal,
-        });
-      },
+      ...nativeRequest(token, signal, fetch),
     };
   }
 

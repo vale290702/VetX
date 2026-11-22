@@ -1,11 +1,24 @@
 import { PrismaPg } from "@prisma/adapter-pg";
-import type { StaffPrincipal } from "@vetx/permissions";
+import type { AccessPrincipal, OwnerPrincipal, StaffPrincipal } from "@vetx/permissions";
 import {
   type AdministrationDirectory,
   directoryResult,
   type DirectoryRevision,
   type DirectoryRole,
 } from "./directory.js";
+import {
+  type Guardian,
+  type GuardianInput,
+  type IssuePetLinkInput,
+  type OwnerPet,
+  type PatientDetail,
+  type PatientInput,
+  type PatientPage,
+  type PatientSummary,
+  type RedeemPetLinkInput,
+  registryResult,
+  type RegistryErrorCode,
+} from "./registry.js";
 import { Prisma, PrismaClient } from "./generated/client.js";
 
 export {
@@ -15,6 +28,8 @@ export {
   type DirectoryRevision,
   type DirectoryRole,
 } from "./directory.js";
+
+export * from "./registry.js";
 
 const probeTimeoutMs = 1_000;
 
@@ -48,6 +63,7 @@ export class PrismaDatabase {
                     public.organization_memberships, public.clinic_grants
       LIMIT 0
     `;
+    await transaction.$queryRaw`SELECT public.registry_lock_tables() AS locked`;
     const [result] = await transaction.$queryRaw<{ active: boolean }[]>`
       SELECT current_setting('row_security') = 'on'
         AND NOT EXISTS (
@@ -57,14 +73,16 @@ export class PrismaDatabase {
         )
         AND bool_and(row_security_active(relation) AND pg_class.relforcerowsecurity) AS active
       FROM unnest(ARRAY['public.users', 'public.organization_memberships', 'public.clinic_grants',
-                        'public.organizations', 'public.clinics', 'public.directory_events']::regclass[]) AS tables(relation)
+                        'public.organizations', 'public.clinics', 'public.directory_events',
+                        'public.patients', 'public.owner_contacts', 'public.guardians',
+                        'public.registry_events', 'public.pet_link_attempts']::regclass[]) AS tables(relation)
       JOIN pg_catalog.pg_class ON pg_class.oid = relation
     `;
     if (!result?.active) throw new Error("Database row security is inactive");
   }
 
   listOrganizations(principal: StaffPrincipal): Promise<ResourceSummary[]> {
-    return this.withStaffAccess(principal, "", (transaction) =>
+    return this.withAccess(principal, "", (transaction) =>
       transaction.organization.findMany({
         select: { id: true, name: true },
         orderBy: [{ name: "asc" }, { id: "asc" }],
@@ -76,7 +94,7 @@ export class PrismaDatabase {
     principal: StaffPrincipal,
     organizationId: string,
   ): Promise<ResourceSummary[] | null> {
-    return this.withStaffAccess(principal, organizationId, async (transaction) => {
+    return this.withAccess(principal, organizationId, async (transaction) => {
       const rows = await transaction.$queryRaw<(ResourceSummary | { id: null; name: null })[]>`
         SELECT clinic.id, clinic.name
         FROM public.organizations AS organization
@@ -143,18 +161,149 @@ export class PrismaDatabase {
     );
   }
 
+  listPatients(
+    principal: StaffPrincipal,
+    org: string,
+    clinic: string,
+    page: number,
+    search: string,
+  ): Promise<PatientPage> {
+    return this.registryQuery(
+      principal,
+      org,
+      clinic,
+      Prisma.sql`SELECT public.registry_list(${page}::int, ${search}) AS result`,
+    );
+  }
+
+  getPatient(
+    principal: StaffPrincipal,
+    org: string,
+    clinic: string,
+    patient: string,
+  ): Promise<PatientDetail> {
+    return this.registryQuery(
+      principal,
+      org,
+      clinic,
+      Prisma.sql`SELECT public.registry_detail(${patient}::uuid) AS result`,
+    );
+  }
+
+  savePatient(
+    principal: StaffPrincipal,
+    org: string,
+    clinic: string,
+    patient: string,
+    input: PatientInput,
+  ): Promise<PatientSummary> {
+    return this.registryQuery(
+      principal,
+      org,
+      clinic,
+      Prisma.sql`SELECT public.registry_save_patient(
+      ${patient}::uuid, ${input.name}, ${input.species}, ${input.birthDate}::text, ${input.revision}::int) AS result`,
+    );
+  }
+
+  addGuardian(
+    principal: StaffPrincipal,
+    org: string,
+    clinic: string,
+    patient: string,
+    guardian: string,
+    input: GuardianInput,
+  ): Promise<Guardian> {
+    return this.registryQuery(
+      principal,
+      org,
+      clinic,
+      Prisma.sql`SELECT public.registry_add_guardian(
+      ${patient}::uuid, ${guardian}::uuid, ${input.name}, ${input.email}) AS result`,
+    );
+  }
+
+  async removeGuardian(
+    principal: StaffPrincipal,
+    org: string,
+    clinic: string,
+    patient: string,
+    guardian: string,
+  ): Promise<void> {
+    await this.registryQuery(
+      principal,
+      org,
+      clinic,
+      Prisma.sql`SELECT public.registry_remove_guardian(${patient}::uuid, ${guardian}::uuid) AS result`,
+    );
+  }
+
+  issuePetLink(
+    principal: StaffPrincipal,
+    org: string,
+    clinic: string,
+    patient: string,
+    guardian: string,
+    input: IssuePetLinkInput,
+  ): Promise<{ expiresAt: string }> {
+    return this.registryQuery(
+      principal,
+      org,
+      clinic,
+      Prisma.sql`SELECT public.registry_issue(
+      ${patient}::uuid, ${guardian}::uuid, ${input.requestId}::uuid, ${input.digest}, ${input.lifetimeSeconds}::int) AS result`,
+    );
+  }
+
+  redeemPetLink(principal: OwnerPrincipal, input: RedeemPetLinkInput): Promise<{ petId: string }> {
+    return this.registryQuery(
+      principal,
+      "",
+      "",
+      Prisma.sql`SELECT public.registry_redeem(
+      ${input.digest}, ${input.requestId}::uuid, ${input.existingPetId ?? null}::uuid,
+      ${input.attemptLimit}::int, ${input.windowSeconds}::int) AS result`,
+      principal.verifiedEmail,
+    );
+  }
+
+  listOwnerPets(principal: OwnerPrincipal): Promise<{ pets: OwnerPet[] }> {
+    return this.registryQuery(
+      principal,
+      "",
+      "",
+      Prisma.sql`SELECT public.registry_owner_pets() AS result`,
+    );
+  }
+
+  private async registryQuery<T>(
+    principal: AccessPrincipal,
+    org: string,
+    clinic: string,
+    query: Prisma.Sql,
+    verifiedEmail = "",
+  ): Promise<T> {
+    const rows = await this.withAccess(principal, org, async (transaction) => {
+      await transaction.$queryRaw`SELECT set_config('vetx.clinic_id', ${clinic}, true),
+        set_config('vetx.verified_email', ${verifiedEmail}, true)`;
+      return transaction.$queryRaw<{ result: T | { error: RegistryErrorCode } }[]>(query);
+    });
+    // A rejected redemption still commits its rate-limit counter.
+    return registryResult(rows);
+  }
+
   private directoryQuery<T extends DirectoryRevision>(
     principal: StaffPrincipal,
     organizationId: string,
     query: Prisma.Sql,
   ): Promise<T> {
-    return this.withStaffAccess(principal, organizationId, async (transaction) =>
+    return this.withAccess(principal, organizationId, async (transaction) =>
       directoryResult<T>(await transaction.$queryRaw(query)),
     );
   }
 
-  private withStaffAccess<T>(
-    principal: StaffPrincipal,
+  private withAccess<T>(
+    principal: AccessPrincipal,
     organizationId: string,
     use: (transaction: Prisma.TransactionClient) => Promise<T>,
   ): Promise<T> {
