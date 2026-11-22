@@ -2,6 +2,8 @@
 
 VetX includes a staff web app, a staff mobile app, a pet-owner mobile app, and one NestJS API. Users can sign in through Keycloak in English or Spanish. The API resolves staff access from organization memberships and clinic grants in PostgreSQL. Clinics can register patients and guardians. Owners can link a clinic record to their account using a single-use code. [Patient and guardian guide](docs/patients-and-guardians.md)
 
+Staff can record clinical encounters, share individual notes with linked guardians, and book or reschedule patient appointments. [Clinical care guide](docs/clinical-care.md)
+
 ## Repository structure
 
 ```text

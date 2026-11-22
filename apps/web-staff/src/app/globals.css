@@ -479,6 +479,61 @@ body {
   user-select: all;
 }
 
+.directory-form textarea {
+  width: 100%;
+  padding: var(--vetx-space-inline);
+  border: 1px solid var(--vetx-color-muted);
+  border-radius: var(--vetx-radius-control);
+  color: var(--vetx-color-ink);
+  background: var(--vetx-color-paper);
+  font: inherit;
+  resize: vertical;
+}
+.soap-fields,
+.soap-note,
+.clinical-entry,
+.agenda-row {
+  display: grid;
+  gap: var(--vetx-space-inline);
+}
+.soap-fields legend {
+  margin-block-end: var(--vetx-space-inline);
+}
+.soap-note dt,
+.agenda-row h3,
+.clinical-entry h3 {
+  font-weight: 650;
+}
+.soap-note dd {
+  white-space: pre-wrap;
+  max-inline-size: 75ch;
+}
+.clinical-entry h3 {
+  font-size: 1.25rem;
+}
+.agenda-row time {
+  font-variant-numeric: tabular-nums;
+}
+.agenda-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--vetx-space-regular);
+}
+@media (min-width: 49rem) {
+  .agenda-row {
+    grid-template-columns: minmax(12rem, 1fr) minmax(0, 2fr);
+  }
+  .soap-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.care-fields {
+  display: grid;
+  min-inline-size: 0;
+  gap: var(--vetx-space-regular);
+}
+
 .medical-document h3 {
   font-weight: 650;
 }

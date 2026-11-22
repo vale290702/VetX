@@ -31,10 +31,15 @@ test(
       assert.deepEqual(
         protections.rows.map((row) => row.relname),
         [
+          "appointments",
+          "care_events",
           "clinic_grants",
+          "clinical_encounters",
           "clinics",
           "directory_events",
           "document_events",
+          "encounter_recipients",
+          "encounter_sharing",
           "guardians",
           "medical_documents",
           "organization_memberships",

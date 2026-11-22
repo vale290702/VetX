@@ -59,6 +59,7 @@ export function Action({
   role = "button",
   selected,
   accessibilityLabel,
+  expanded,
   destructive = false,
 }: {
   label: string;
@@ -70,6 +71,7 @@ export function Action({
   role?: "button" | "radio" | "checkbox";
   selected?: boolean;
   accessibilityLabel?: string;
+  expanded?: boolean;
   destructive?: boolean;
 }) {
   const [focused, setFocused] = useState(false);
@@ -81,6 +83,7 @@ export function Action({
       onBlur={() => setFocused(false)}
       accessibilityState={{
         busy,
+        expanded,
         disabled: disabled || busy,
         checked: role !== "button" ? selected : undefined,
       }}
@@ -100,6 +103,7 @@ export function Action({
           destructive && styles.warning,
         ]}
       >
+        {role === "checkbox" && selected ? "✓ " : ""}
         {label}
       </Text>
     </Pressable>
@@ -115,6 +119,7 @@ export function Field({
   styles,
   identifier,
   inputMode,
+  multiline = false,
 }: {
   label: string;
   value: string;
@@ -124,6 +129,7 @@ export function Field({
   styles: AccessStyles;
   identifier?: boolean;
   inputMode?: TextInputProps["inputMode"];
+  multiline?: boolean;
 }) {
   const [focused, setFocused] = useState(false);
   return (
@@ -138,7 +144,9 @@ export function Field({
         autoCorrect={!identifier}
         editable={!disabled}
         maxLength={maxLength}
-        returnKeyType="done"
+        multiline={multiline}
+        textAlignVertical={multiline ? "top" : undefined}
+        returnKeyType={multiline ? "default" : "done"}
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}
         style={[styles.field, focused && styles.focus]}

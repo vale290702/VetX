@@ -41,6 +41,11 @@ export async function createDirectoryFixture() {
       for (const table of [
         "document_events",
         "medical_documents",
+        "care_events",
+        "encounter_recipients",
+        "encounter_sharing",
+        "appointments",
+        "clinical_encounters",
         "registry_events",
         "guardians",
         "owner_contacts",

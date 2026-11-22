@@ -1,5 +1,5 @@
 import { StorageUnavailable } from "./documents/storage.js";
-import { DirectoryError, RegistryError } from "@vetx/database";
+import { CareError, DirectoryError, RegistryError } from "@vetx/database";
 import { randomUUID } from "node:crypto";
 import {
   type ArgumentsHost,
@@ -25,6 +25,7 @@ const errors = {
   EMAIL_VERIFICATION_REQUIRED: "A verified email address is required",
   NOT_FOUND: "Resource not found",
   CONFLICT: "Request conflict",
+  APPOINTMENT_OVERLAP: "The patient has another appointment during that time",
   LAST_ORGANIZATION_ADMIN: "The organization must retain an administrator",
   TOO_MANY_REQUESTS: "Too many requests",
   SERVICE_UNAVAILABLE: "Service unavailable",
@@ -79,6 +80,8 @@ const registryStatus = {
 } as const;
 function statusOf(exception: unknown): number {
   if (exception instanceof StorageUnavailable) return HttpStatus.SERVICE_UNAVAILABLE;
+  if (exception instanceof CareError)
+    return exception.code === "overlap" ? HttpStatus.CONFLICT : registryStatus[exception.code];
   if (exception instanceof RegistryError) return registryStatus[exception.code];
   if (exception instanceof DirectoryError) {
     if (exception.code === "forbidden") return HttpStatus.FORBIDDEN;
@@ -97,6 +100,14 @@ function statusOf(exception: unknown): number {
   return HttpStatus.INTERNAL_SERVER_ERROR;
 }
 
+function codeOf(exception: unknown, status: number): ErrorCode {
+  if (exception instanceof EmailVerificationRequired) return "EMAIL_VERIFICATION_REQUIRED";
+  if (exception instanceof CareError && exception.code === "overlap") return "APPOINTMENT_OVERLAP";
+  if (exception instanceof DirectoryError && exception.code === "last_admin")
+    return "LAST_ORGANIZATION_ADMIN";
+  return codesByStatus[status] ?? (status >= 500 ? "INTERNAL_ERROR" : "HTTP_ERROR");
+}
+
 @Catch()
 class HttpErrorFilter implements ExceptionFilter {
   private readonly logger = new Logger(HttpErrorFilter.name);
@@ -104,12 +115,7 @@ class HttpErrorFilter implements ExceptionFilter {
   catch(exception: unknown, host: ArgumentsHost): void {
     const response = host.switchToHttp().getResponse<Response>();
     const status = statusOf(exception);
-    const code =
-      exception instanceof EmailVerificationRequired
-        ? "EMAIL_VERIFICATION_REQUIRED"
-        : exception instanceof DirectoryError && exception.code === "last_admin"
-          ? "LAST_ORGANIZATION_ADMIN"
-          : (codesByStatus[status] ?? (status >= 500 ? "INTERNAL_ERROR" : "HTTP_ERROR"));
+    const code = codeOf(exception, status);
     const currentId = response.getHeader(requestIdHeader);
     const requestId = typeof currentId === "string" ? currentId : randomUUID();
 
