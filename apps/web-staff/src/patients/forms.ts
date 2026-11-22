@@ -1,7 +1,7 @@
 import { isDirectoryId } from "../directory/forms.ts";
 
 export type ClinicScope = { organizationId: string; clinicId: string };
-type ListQuery = { page?: number; search?: string };
+type ListQuery = { page?: number; search?: string; timeZone?: string };
 export const patientNotices = [
   "saved",
   "invalid",
@@ -15,6 +15,7 @@ export type PatientNotice = (typeof patientNotices)[number];
 export function registryPath({ organizationId, clinicId }: ClinicScope, query: ListQuery = {}) {
   const path = `/organizations/${organizationId}/clinics/${clinicId}/patients`;
   const params = new URLSearchParams();
+  if (query.timeZone) params.set("timeZone", query.timeZone);
   if (query.search) params.set("search", query.search);
   if (query.page && query.page > 1) params.set("page", String(query.page));
   return params.size ? `${path}?${params}` : path;

@@ -5,13 +5,18 @@ import type { NestExpressApplication } from "@nestjs/platform-express";
 import { SwaggerModule } from "@nestjs/swagger";
 import { type AccessDependencies, AccessModule } from "./access.js";
 import { IdentityModule } from "./identity-context.js";
+import { CareModule, type CareStore } from "./care/module.js";
 import { RegistryModule, type RegistryStore } from "./registry/module.js";
 import type { PetLinkConfig } from "@vetx/config";
 import { HealthModule, type ReadinessCheck } from "./health.js";
 import { configureHttp } from "./http.js";
 import { createOpenApiDocument } from "./openapi.js";
 
-type Dependencies = AccessDependencies & { registry?: RegistryStore; petLinks?: PetLinkConfig };
+type Dependencies = AccessDependencies & {
+  care?: CareStore;
+  registry?: RegistryStore;
+  petLinks?: PetLinkConfig;
+};
 
 @Module({})
 class AppModule {
@@ -23,6 +28,7 @@ class AppModule {
         HealthModule.register(readiness),
         AccessModule.register(access),
         RegistryModule.register(access.registry, access.petLinks),
+        CareModule.register(access.care),
       ],
     };
   }

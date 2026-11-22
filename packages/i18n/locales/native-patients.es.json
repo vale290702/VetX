@@ -47,5 +47,6 @@
   "loading": "Cargando expedientes…",
   "codeHelp": "Ingresa los 32 caracteres del código. Puedes incluir los espacios o guiones.",
   "tooManyAttempts": "Demasiados intentos. Espera antes de volver a usar un código.",
-  "hideCode": "Ocultar código"
+  "hideCode": "Ocultar código",
+  "overlap": "Este paciente ya tiene una cita en ese horario. Elige otro horario e inténtalo de nuevo."
 }

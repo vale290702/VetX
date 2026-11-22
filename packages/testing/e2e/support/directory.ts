@@ -18,7 +18,17 @@ export async function createDirectoryFixture() {
   async function cleanup() {
     try {
       await db.query("BEGIN");
-      for (const table of ["registry_events", "guardians", "owner_contacts", "patients"]) {
+      for (const table of [
+        "care_events",
+        "encounter_recipients",
+        "encounter_sharing",
+        "appointments",
+        "clinical_encounters",
+        "registry_events",
+        "guardians",
+        "owner_contacts",
+        "patients",
+      ]) {
         await db.query(`DELETE FROM ${table} WHERE organization_id=$1`, [organizationId]);
       }
       await db.query("DELETE FROM pet_link_attempts WHERE issuer=$1 AND subject=ANY($2::text[])", [
