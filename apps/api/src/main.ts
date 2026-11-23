@@ -47,6 +47,7 @@ async function main(): Promise<void> {
     clinicalRecords: database,
     inventory: database,
     billing: database,
+    fiscal: database,
     procurement: database,
     referrals: database,
     referralDirectory: keys,

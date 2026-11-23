@@ -23,6 +23,7 @@ model Organization {
 }
 
 model Clinic {
+  fiscalProfiles FiscalProfile[]
   prices BillingPrice[]
   sales BillingSale[]
   cashShifts CashShift[]
@@ -857,6 +858,7 @@ model BillingPrice {
 }
 
 model BillingSale {
+  fiscalInvoices FiscalInvoiceRecord[]
   organizationId String @map("organization_id") @db.Uuid
   clinicId String @map("clinic_id") @db.Uuid
   id String @db.Uuid
@@ -931,4 +933,61 @@ model BillingPriceEvent {
   entry BillingPrice @relation(fields:[organizationId,clinicId,priceId],references:[organizationId,clinicId,id],onDelete:NoAction,onUpdate:NoAction)
   @@id([organizationId,clinicId,priceId,revision])
   @@map("billing_price_events")
+}
+
+model FiscalProfile {
+  organizationId String @map("organization_id") @db.Uuid
+  clinicId String @map("clinic_id") @db.Uuid
+  environment String
+  issuerNumber String @map("issuer_number")
+  branch String
+  terminal String
+  profile Json @db.JsonB
+  enabled Boolean
+  nextNumber BigInt @map("next_number")
+  clinic Clinic @relation(fields:[organizationId,clinicId],references:[organizationId,id],onDelete:NoAction,onUpdate:NoAction)
+  invoices FiscalInvoiceRecord[]
+  @@id([organizationId,clinicId,environment])
+  @@unique([environment,issuerNumber,branch,terminal])
+  @@map("fiscal_profiles")
+}
+
+model FiscalInvoiceRecord {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId String @map("organization_id") @db.Uuid
+  clinicId String @map("clinic_id") @db.Uuid
+  saleId String @map("sale_id") @db.Uuid
+  environment String
+  request Json @db.JsonB
+  snapshot Json @db.JsonB
+  documentKey String @map("document_key")
+  actorIssuer String @map("actor_issuer")
+  actorSubject String @map("actor_subject")
+  createdAt DateTime @map("created_at") @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(3)
+  state String @default("pending")
+  lastIssue String? @map("last_issue")
+  signedXml Bytes? @map("signed_xml")
+  receiptXml Bytes? @map("receipt_xml")
+  lease String? @db.Uuid
+  leaseUntil DateTime? @map("lease_until") @db.Timestamptz(6)
+  nextAttempt DateTime @map("next_attempt") @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  attempts Int @default(0)
+  events FiscalEvent[]
+  sale BillingSale @relation(fields:[organizationId,clinicId,saleId],references:[organizationId,clinicId,id],onDelete:NoAction,onUpdate:NoAction)
+  profile FiscalProfile @relation(fields:[organizationId,clinicId,environment],references:[organizationId,clinicId,environment],onDelete:NoAction,onUpdate:NoAction)
+  @@unique([organizationId,clinicId,saleId,environment])
+  @@unique([environment,documentKey])
+  @@map("fiscal_invoices")
+}
+
+model FiscalEvent {
+  sequence BigInt @id @default(autoincrement())
+  organizationId String @map("organization_id") @db.Uuid
+  clinicId String @map("clinic_id") @db.Uuid
+  invoiceId String @map("invoice_id") @db.Uuid
+  state String
+  issue String?
+  at DateTime @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(3)
+  invoice FiscalInvoiceRecord @relation(fields:[invoiceId],references:[id],onDelete:NoAction,onUpdate:NoAction)
+  @@map("fiscal_events")
 }

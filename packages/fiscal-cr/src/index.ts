@@ -30,7 +30,8 @@ export interface FiscalStatus {
   receiptXml?: Buffer;
 }
 export type Submission =
-  { key: string; status: "submitted" } | { key: string; status: "known"; state: HaciendaState };
+  | { key: string; status: "submitted" }
+  | { key: string; status: "known"; state: HaciendaState; receiptXml?: Buffer };
 export interface FiscalReception {
   submit(envelope: FiscalEnvelope): Promise<Submission>;
   status(key: string): Promise<FiscalStatus | null>;
@@ -269,17 +270,25 @@ export class HaciendaClient implements FiscalReception {
     // A lost reply or duplicate-key response can follow a successful intake.
     // Reconcile the existing key before the outbox decides whether to retry.
     const existing = await this.status(envelope.key);
-    if (existing) return { key: envelope.key, status: "known", state: existing.state };
+    if (existing)
+      return {
+        key: envelope.key,
+        status: "known",
+        state: existing.state,
+        ...(existing.receiptXml ? { receiptXml: existing.receiptXml } : {}),
+      };
     throw new HaciendaError("unconfirmed");
   }
 }
 
 export { loadFiscalSettings } from "./config.js";
 export { FiscalXmlSigner, type FiscalSigningMaterial } from "./signing.js";
-export { validateSignedInvoice } from "./schema.js";
+export { validateSignedInvoice, FiscalXmlValidationError } from "./schema.js";
 export {
   buildFiscalInvoice,
   prepareFiscalInvoice,
+  preflightFiscalInvoice,
+  FiscalSnapshotError,
   type FiscalInvoice,
   type FiscalLine,
   type InvoiceIssuer,

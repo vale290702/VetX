@@ -5,6 +5,7 @@ import { Action, Field } from "./controls";
 import type { ClinicPatientProps } from "./patient-form";
 import { PatientReadState, usePatientRead } from "./patient-controls";
 import { BillingRows, GoBack, Heading, Submit, Totals, useBillingWrite } from "./billing-controls";
+import { FiscalInvoice } from "./fiscal";
 import { Drawers } from "./billing-drawers";
 import {
   formatDecimal,
@@ -62,10 +63,12 @@ export function Invoices(
     </View>
   );
 }
-export function Invoice(props: ClinicPatientProps & { id: string; back: () => void }) {
+export function Invoice(
+  props: ClinicPatientProps & { id: string; admin: boolean | undefined; back: () => void },
+) {
   const { t, i18n } = useTranslation(),
     { styles, scope, client, id, back } = props,
-    [paymentSale, setPaymentSale] = useState<Sale>();
+    [detail, setDetail] = useState<{ screen: "payment" | "fiscal"; sale: Sale }>();
   const { result, reload } = usePatientRead(
     useCallback(() => client.billing.sale(scope, id), [client, scope, id]),
   );
@@ -78,20 +81,25 @@ export function Invoice(props: ClinicPatientProps & { id: string; back: () => vo
   );
   const verifiedSale = result && "value" in result ? result.value : undefined;
   const error = result && "error" in result ? result.error : undefined;
-  if (paymentSale && error === "denied") setPaymentSale(undefined);
-  if (paymentSale && error !== "denied") {
+  if (detail && error === "denied") setDetail(undefined);
+  if (detail && error !== "denied") {
+    const detailProps = {
+      ...props,
+      sale: verifiedSale ?? detail.sale,
+      back: () => {
+        setDetail(undefined);
+        reload();
+      },
+    };
     return (
       <>
         {!verifiedSale && <PatientReadState styles={styles} error={error} retry={reload} />}
         <Activity mode={verifiedSale ? "visible" : "hidden"}>
-          <PaymentForm
-            {...props}
-            sale={verifiedSale ?? paymentSale}
-            back={() => {
-              setPaymentSale(undefined);
-              reload();
-            }}
-          />
+          {detail.screen === "fiscal" ? (
+            <FiscalInvoice {...detailProps} />
+          ) : (
+            <PaymentForm {...detailProps} />
+          )}
         </Activity>
       </>
     );
@@ -155,9 +163,14 @@ export function Invoice(props: ClinicPatientProps & { id: string; back: () => vo
           styles={styles}
           primary
           label={t("nativeBilling.addPayment")}
-          onPress={() => setPaymentSale(sale)}
+          onPress={() => setDetail({ screen: "payment", sale })}
         />
       )}
+      <Action
+        styles={styles}
+        label={t("nativeFiscal.electronicInvoice")}
+        onPress={() => setDetail({ screen: "fiscal", sale })}
+      />
       <Heading styles={styles}>{t("nativeBilling.payments")}</Heading>
       <BillingRows
         styles={styles}

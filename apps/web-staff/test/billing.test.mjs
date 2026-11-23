@@ -30,3 +30,21 @@ test("billing BFF accepts only known scoped operations and bounded query fields"
   ])
     assert.equal(billingTarget("POST", path, new URLSearchParams()), null);
 });
+
+test("fiscal requests distinguish environments, reads, retries and the two retained XML artifacts", () => {
+  const path = ["sales", "a1234567-1111-2222-3333-123456789abc", "fiscal", "sandbox"];
+  const params = new URLSearchParams();
+  for (const method of ["GET", "POST"])
+    assert.equal(billingTarget(method, path, params), "billing/" + path.join("/"));
+  assert.equal(
+    billingTarget("GET", [...path, "artifacts", "receipt"], params),
+    "billing/" + path.join("/") + "/artifacts/receipt",
+  );
+  for (const [method, segments] of [
+    ["GET", [...path, "retry"]],
+    ["POST", [...path, "artifacts", "invoice"]],
+    ["GET", [...path, "artifacts", "credential"]],
+    ["POST", [...path.slice(0, 3), "prod"]],
+  ])
+    assert.equal(billingTarget(method, segments, params), null);
+});
