@@ -10,6 +10,7 @@ export interface StockItemInput extends WarehouseInput {
   unit: string;
 }
 export interface StockItem extends StockItemInput {
+  unitLocked: boolean;
   id: string;
 }
 export const movementKinds = [
@@ -30,6 +31,11 @@ export interface StockMovementInput {
   reason: string;
 }
 export interface StockMovement extends StockMovementInput {
+  itemName: string;
+  sku: string;
+  unit: string;
+  fromWarehouseName: string | null;
+  toWarehouseName: string | null;
   id: string;
   fromBalance: string | null;
   toBalance: string | null;

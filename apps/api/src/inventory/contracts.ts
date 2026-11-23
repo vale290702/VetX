@@ -45,6 +45,7 @@ export class StockItemInputDto extends WarehouseInputDto {
   @label(40) readonly unit!: string;
 }
 export class StockItemDto extends StockItemInputDto {
+  @ApiProperty() readonly unitLocked!: boolean;
   @id() readonly id!: string;
 }
 export class StockSearchDto extends PageQueryDto {
@@ -77,6 +78,11 @@ class LedgerActorDto {
   @ApiProperty() readonly subject!: string;
 }
 export class MovementDto extends MovementInputDto {
+  @ApiProperty() readonly itemName!: string;
+  @ApiProperty() readonly sku!: string;
+  @ApiProperty() readonly unit!: string;
+  @ApiProperty({ type: "string", nullable: true }) readonly fromWarehouseName!: string | null;
+  @ApiProperty({ type: "string", nullable: true }) readonly toWarehouseName!: string | null;
   @id() readonly id!: string;
   @ApiProperty({ type: "string", nullable: true }) readonly fromBalance!: string | null;
   @ApiProperty({ type: "string", nullable: true }) readonly toBalance!: string | null;

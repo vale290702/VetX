@@ -962,6 +962,7 @@ export interface components {
             revision: number;
             sku: string;
             unit: string;
+            unitLocked: boolean;
             /** Format: uuid */
             id: string;
         };
@@ -1010,6 +1011,11 @@ export interface components {
             quantity: string;
             lot: string;
             reason: string;
+            itemName: string;
+            sku: string;
+            unit: string;
+            fromWarehouseName: string | null;
+            toWarehouseName: string | null;
             /** Format: uuid */
             id: string;
             fromBalance: string | null;

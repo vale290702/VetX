@@ -6254,6 +6254,9 @@
             "type": "string",
             "maxLength": 40
           },
+          "unitLocked": {
+            "type": "boolean"
+          },
           "id": {
             "type": "string",
             "format": "uuid"
@@ -6264,6 +6267,7 @@
           "revision",
           "sku",
           "unit",
+          "unitLocked",
           "id"
         ]
       },
@@ -6434,6 +6438,23 @@
             "type": "string",
             "maxLength": 250
           },
+          "itemName": {
+            "type": "string"
+          },
+          "sku": {
+            "type": "string"
+          },
+          "unit": {
+            "type": "string"
+          },
+          "fromWarehouseName": {
+            "type": "string",
+            "nullable": true
+          },
+          "toWarehouseName": {
+            "type": "string",
+            "nullable": true
+          },
           "id": {
             "type": "string",
             "format": "uuid"
@@ -6462,6 +6483,11 @@
           "quantity",
           "lot",
           "reason",
+          "itemName",
+          "sku",
+          "unit",
+          "fromWarehouseName",
+          "toWarehouseName",
           "id",
           "fromBalance",
           "toBalance",

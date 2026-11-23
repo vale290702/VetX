@@ -22,6 +22,7 @@ CREATE TABLE public.stock_balances (
  FOREIGN KEY(organization_id,clinic_id,item_id) REFERENCES public.inventory_items(organization_id,clinic_id,id)
 );
 CREATE TABLE public.stock_movements (
+ item_name text NOT NULL,sku text NOT NULL,unit text NOT NULL,from_warehouse_name text,to_warehouse_name text,
  organization_id uuid NOT NULL, clinic_id uuid NOT NULL, id uuid NOT NULL, item_id uuid NOT NULL,
  kind text NOT NULL, from_warehouse_id uuid, to_warehouse_id uuid, lot text NOT NULL, reason text NOT NULL,
  quantity numeric(18,3) NOT NULL CHECK(quantity>0 AND quantity<1000000000000000), from_balance numeric(18,3), to_balance numeric(18,3),
@@ -70,6 +71,7 @@ CREATE FUNCTION vetx_stock.label(v text,lim integer) RETURNS boolean LANGUAGE sq
 $$;
 CREATE FUNCTION vetx_stock.movement(m public.stock_movements) RETURNS jsonb LANGUAGE sql STABLE SET search_path=pg_catalog,pg_temp AS $$
  SELECT jsonb_build_object('id',m.id,'kind',m.kind,'itemId',m.item_id,'quantity',m.quantity::text,'fromWarehouseId',m.from_warehouse_id,
+ 'itemName',m.item_name,'sku',m.sku,'unit',m.unit,'fromWarehouseName',m.from_warehouse_name,'toWarehouseName',m.to_warehouse_name,
  'toWarehouseId',m.to_warehouse_id,'fromBalance',m.from_balance::text,'toBalance',m.to_balance::text,'lot',m.lot,'reason',m.reason,
  'recordedAt',vetx_care.utc(m.recorded_at),'actor',jsonb_build_object('issuer',m.actor_issuer,'subject',m.actor_subject))
 $$;
@@ -77,8 +79,9 @@ $$;
 CREATE FUNCTION vetx_stock.warehouse(w public.inventory_warehouses) RETURNS jsonb LANGUAGE sql IMMUTABLE SET search_path=pg_catalog,pg_temp AS $$
  SELECT jsonb_build_object('id',w.id,'name',w.name,'revision',w.revision)
 $$;
-CREATE FUNCTION vetx_stock.item(i public.inventory_items) RETURNS jsonb LANGUAGE sql IMMUTABLE SET search_path=pg_catalog,pg_temp AS $$
- SELECT jsonb_build_object('id',i.id,'name',i.name,'sku',i.sku,'unit',i.unit,'revision',i.revision)
+CREATE FUNCTION vetx_stock.item(i public.inventory_items) RETURNS jsonb LANGUAGE sql STABLE SET search_path=pg_catalog,pg_temp AS $$
+ SELECT jsonb_build_object('id',i.id,'name',i.name,'sku',i.sku,'unit',i.unit,'revision',i.revision,
+ 'unitLocked',exists(select from public.stock_movements m where (m.organization_id,m.clinic_id,m.item_id)=(i.organization_id,i.clinic_id,i.id)))
 $$;
 
 CREATE FUNCTION public.stock_save_warehouse(warehouse uuid,name_input text,expected integer) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,pg_temp AS $$
@@ -222,8 +225,12 @@ BEGIN
      ON CONFLICT (organization_id,clinic_id,warehouse_id,item_id,lot) DO UPDATE SET quantity=excluded.quantity;
  END IF;
  INSERT INTO public.stock_movements(organization_id,clinic_id,id,item_id,kind,from_warehouse_id,to_warehouse_id,
-   quantity,lot,reason,from_balance,to_balance,actor_issuer,actor_subject)
-   VALUES(org,clinic,request,item,kind_input,origin,destination,amount,lot_input,reason_input,after_debit,after_credit,issuer,subject)
+   quantity,lot,reason,from_balance,to_balance,actor_issuer,actor_subject,item_name,sku,unit,from_warehouse_name,to_warehouse_name)
+   SELECT org,clinic,request,item,kind_input,origin,destination,amount,lot_input,reason_input,after_debit,after_credit,issuer,subject,
+   i.name,i.sku,i.unit,src.name,dst.name FROM public.inventory_items i
+   LEFT JOIN public.inventory_warehouses src ON (src.organization_id,src.clinic_id,src.id)=(org,clinic,origin)
+   LEFT JOIN public.inventory_warehouses dst ON (dst.organization_id,dst.clinic_id,dst.id)=(org,clinic,destination)
+   WHERE (i.organization_id,i.clinic_id,i.id)=(org,clinic,item)
    RETURNING * INTO movement;
  RETURN vetx_stock.movement(movement);
 END

@@ -438,6 +438,11 @@ model StockBalance {
 }
 
 model StockMovement {
+  itemName String @map("item_name")
+  sku String
+  unit String
+  fromWarehouseName String? @map("from_warehouse_name")
+  toWarehouseName String? @map("to_warehouse_name")
   organizationId String @map("organization_id") @db.Uuid
   clinicId       String @map("clinic_id") @db.Uuid
   id             String @db.Uuid
