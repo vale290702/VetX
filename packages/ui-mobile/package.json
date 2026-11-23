@@ -14,6 +14,7 @@
     "@vetx/api-client": "workspace:*",
     "@vetx/config": "workspace:*",
     "@vetx/design-tokens": "workspace:*",
+    "@vetx/fiscal-cr": "workspace:*",
     "@vetx/i18n": "workspace:*",
     "react-i18next": "18.0.3"
   },

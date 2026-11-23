@@ -25,6 +25,10 @@
       "dependsOn": ["build"],
       "outputs": []
     },
+    "@vetx/worker#test": {
+      "dependsOn": ["build"],
+      "outputs": []
+    },
     "@vetx/api#test": {
       "dependsOn": ["build"],
       "outputs": []

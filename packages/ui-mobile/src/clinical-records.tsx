@@ -26,6 +26,21 @@ type Props = ClinicPatientProps & { patientId: string; back: () => void; openNot
 type Screen =
   { op: Operation; current?: StaffRecord } | { op: "share" | "history"; current: StaffRecord };
 export function ClinicalRecords(props: Props) {
+  const { account, scope, patientId } = props;
+  return (
+    <ClinicalChart
+      key={JSON.stringify([
+        account.issuer,
+        account.subject,
+        scope.organizationId,
+        scope.clinicId,
+        patientId,
+      ])}
+      {...props}
+    />
+  );
+}
+function ClinicalChart(props: Props) {
   const { t } = useTranslation(),
     { styles, scope, patientId, client } = props,
     [page, setPage] = useState(1),
@@ -40,12 +55,25 @@ export function ClinicalRecords(props: Props) {
     setScreen(undefined);
     reload();
   }
-  if (screen?.op === "history")
-    return <ClinicalHistory {...props} id={screen.current.id} back={back} />;
-  if (screen?.op === "share")
-    return <ClinicalAccess {...props} id={screen.current.id} back={back} />;
-  if (screen)
-    return <ClinicalEditor {...props} op={screen.op} current={screen.current} back={back} />;
+  const authorized = result && "value" in result;
+  const error = result && "error" in result ? result.error : undefined;
+  if (screen && error === "denied") setScreen(undefined);
+  if (screen && error !== "denied") {
+    const form =
+      screen.op === "history" ? (
+        <ClinicalHistory {...props} id={screen.current.id} back={back} />
+      ) : screen.op === "share" ? (
+        <ClinicalAccess {...props} id={screen.current.id} back={back} />
+      ) : (
+        <ClinicalEditor {...props} op={screen.op} current={screen.current} back={back} />
+      );
+    return (
+      <>
+        {!authorized && <PatientReadState styles={styles} error={error} retry={reload} />}
+        <Activity mode={authorized ? "visible" : "hidden"}>{form}</Activity>
+      </>
+    );
+  }
   return (
     <View style={styles.section}>
       <Action styles={styles} label={t("nativeCare.backPatient")} onPress={props.back} />
@@ -183,47 +211,77 @@ function ClinicalAccess(props: Props & { id: string }) {
     }, [scope, client, patientId, id]),
   );
   const valid = result && "value" in result ? result.value : undefined;
+  const error = result && "error" in result ? result.error : undefined;
+  const denied = error === "denied" || (valid && !valid.current);
   const [previous, setPrevious] = useState<typeof valid>();
-  const [refreshVersion, setRefreshVersion] = useState(0);
-  function refresh() {
-    setRefreshVersion((v) => v + 1);
-    reload();
+  const [generation, setGeneration] = useState(0);
+  if (denied && previous) setPrevious(undefined);
+  if (valid?.current && previous !== valid) {
+    const linked = new Set(valid.guardians.filter((g) => g.linked).map((g) => g.id));
+    if (previous?.guardians.some((g) => g.linked && !linked.has(g.id))) setGeneration((v) => v + 1);
+    setPrevious(valid);
   }
-  if (previous && result && "error" in result && result.error === "denied") setPrevious(undefined);
-  if (valid && previous !== valid) setPrevious(valid);
   const snapshot = valid ?? previous;
-  if ((result && "error" in result) || !snapshot?.current)
+  if (denied || !snapshot?.current)
     return (
       <View style={styles.section}>
         <Action styles={styles} label={t("nativeClinical.all")} onPress={back} />
-        <PatientReadState
-          styles={styles}
-          error={result && "error" in result ? result.error : valid ? "denied" : undefined}
-          retry={reload}
-        />
+        <PatientReadState styles={styles} error={denied ? "denied" : error} retry={reload} />
       </View>
     );
   const { current, guardians } = snapshot;
   const key = JSON.stringify([
-    refreshVersion,
+    generation,
     current.revisionId,
-    current.sharing,
-    guardians.map((g) => [g.id, g.linked]),
+    current.revision,
+    current.sharing.revision,
+    [...current.sharing.guardianIds].sort(),
   ]);
+  function restart() {
+    setGeneration((v) => v + 1);
+    reload();
+  }
   return (
     <>
-      {!valid && <PatientReadState styles={styles} retry={reload} />}
+      {!valid && <PatientReadState styles={styles} error={error} retry={reload} />}
       <Activity mode={valid ? "visible" : "hidden"}>
-        <ShareForm {...props} key={key} current={current} guardians={guardians} reload={refresh} />
+        <ShareForm
+          {...props}
+          key={key}
+          current={current}
+          guardians={guardians}
+          verified={!!valid}
+          reload={reload}
+          restart={restart}
+        />
       </Activity>
     </>
   );
 }
+
 function ShareForm(
-  props: Props & { current: StaffRecord; guardians: Guardian[]; reload: () => void },
+  props: Props & {
+    current: StaffRecord;
+    guardians: Guardian[];
+    verified: boolean;
+    reload: () => void;
+    restart: () => void;
+  },
 ) {
   const { t } = useTranslation(),
-    { styles, current, guardians, scope, client, account, patientId, back, reload } = props;
+    {
+      styles,
+      current,
+      guardians,
+      scope,
+      client,
+      account,
+      patientId,
+      back,
+      reload,
+      restart,
+      verified,
+    } = props;
   const [selected, setSelected] = useState(current.sharing.guardianIds);
   const send = useClinicalWrite<ClinicalShare, StaffRecord["sharing"]>(
     account,
@@ -237,7 +295,7 @@ function ShareForm(
       <Action
         styles={styles}
         label={t("nativeClinical.all")}
-        disabled={send.pending}
+        disabled={send.pending || !verified}
         onPress={back}
       />
       <ClinicalHeading styles={styles}>{t("nativeClinical.sharing")}</ClinicalHeading>
@@ -261,7 +319,7 @@ function ShareForm(
                   styles={styles}
                   key={g.id}
                   role="checkbox"
-                  disabled={send.pending}
+                  disabled={send.pending || !verified}
                   selected={selected.includes(g.id)}
                   label={g.name + " · " + g.email}
                   onPress={() =>
@@ -285,17 +343,20 @@ function ShareForm(
       )}
       <Action
         styles={styles}
-        disabled={send.pending}
+        disabled={send.pending || !verified}
         label={t("nativeCare.refreshGuardians")}
         onPress={reload}
       />
       <SubmitClinical
         styles={styles}
         state={send}
+        disabled={!verified}
         valid={!!change}
         label={t("nativeClinical.saveAccess")}
-        submit={() => send.submit(change)}
-        refresh={reload}
+        submit={() => {
+          if (verified) send.submit(change);
+        }}
+        refresh={restart}
       />
     </View>
   );

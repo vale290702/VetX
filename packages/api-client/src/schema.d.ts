@@ -476,6 +476,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/organizations/{organizationId}/clinics/{clinicId}/billing/sales/{saleId}/fiscal/{environment}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getFiscalInvoiceStatus"];
+        put: operations["issueFiscalInvoice"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/organizations/{organizationId}/clinics/{clinicId}/billing/sales/{saleId}/fiscal/{environment}/artifacts/{kind}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["downloadFiscalArtifact"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/organizations/{organizationId}/clinics/{clinicId}/billing/sales/{saleId}/fiscal/{environment}/retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["retryFiscalInvoice"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/organizations/{organizationId}/clinics/{clinicId}/inventory/warehouses": {
         parameters: {
             query?: never;
@@ -1585,6 +1633,62 @@ export interface components {
         };
         CloseShiftDto: {
             counted: string;
+        };
+        FiscalRecordDto: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            saleId: string;
+            /** @enum {string} */
+            environment: "sandbox" | "production";
+            key: string;
+            /** @enum {string} */
+            state: "pending" | "signed" | "sending" | "submitted" | "processing" | "accepted" | "rejected" | "invalid" | "blocked";
+            issue: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            hasSignedXml: boolean;
+            hasReceipt: boolean;
+        };
+        FiscalStatusDto: {
+            enabled: boolean;
+            invoice: components["schemas"]["FiscalRecordDto"] | null;
+        };
+        RecipientIdentityDto: {
+            /** @enum {string} */
+            type: "01" | "02" | "03" | "04" | "05" | "06";
+            number: string;
+        };
+        RecipientDto: {
+            name: string;
+            identity: components["schemas"]["RecipientIdentityDto"];
+            /** Format: email */
+            email?: string;
+        };
+        TermsDto: {
+            /** @enum {string} */
+            code: "01" | "02";
+            days?: number;
+        };
+        MedicineDto: {
+            registration: string;
+            form: string;
+        };
+        FiscalClassDto: {
+            /** @enum {string} */
+            unitCode: "1" | "´" | "´´" | "°C" | "1/m" | "A" | "A/m" | "A/m²" | "Acv" | "Al" | "Alc" | "B" | "Bq" | "C" | "C/kg" | "C/m²" | "C/m³" | "Cc" | "Cd" | "cd/m²" | "Cm" | "cm" | "Cu" | "D" | "eV" | "F" | "F/m" | "Fa" | "G" | "Gal" | "Gy" | "Gy/s" | "h" | "H" | "H/m" | "Hz" | "I" | "J" | "J/(kg·K)" | "J/(mol·K)" | "J/K" | "J/kg" | "J/m³" | "J/mol" | "K" | "Kat" | "kat/m³" | "Kg" | "kg/m³" | "Km" | "Kw" | "kWh" | "L" | "Lm" | "Ln" | "Lx" | "M" | "m/s" | "m/s²" | "m²" | "m³" | "Min" | "mL" | "Mm" | "Mol" | "mol/m³" | "N" | "N/m" | "N·m" | "Np" | "º" | "Os" | "Otros" | "Oz" | "Pa" | "Pa·s" | "Qq" | "Rad" | "rad/s" | "rad/s²" | "S" | "s" | "Sp" | "Spe" | "Sr" | "St" | "Sv" | "t" | "T" | "U" | "Ua" | "Unid" | "V" | "V/m" | "W" | "W/(m·K)" | "W/(m²·sr)" | "W/m²" | "W/sr" | "Wb" | "Ω";
+            /** @enum {string} */
+            category: "goods" | "service";
+            /** @enum {string} */
+            vatTariffCode: "02" | "03" | "04" | "06" | "07" | "08" | "09";
+            medicine?: components["schemas"]["MedicineDto"];
+        };
+        FiscalDraftDto: {
+            recipient: components["schemas"]["RecipientDto"];
+            recipientActivity?: string;
+            terms: components["schemas"]["TermsDto"];
+            exchangeRate: string;
+            lines: components["schemas"]["FiscalClassDto"][];
         };
         WarehouseDto: {
             name: string;
@@ -4425,6 +4529,299 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CashShiftDto"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+        };
+    };
+    getFiscalInvoiceStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationId: string;
+                clinicId: string;
+                saleId: string;
+                environment: "sandbox" | "production";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FiscalStatusDto"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+        };
+    };
+    issueFiscalInvoice: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationId: string;
+                clinicId: string;
+                saleId: string;
+                environment: "sandbox" | "production";
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FiscalDraftDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FiscalRecordDto"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+        };
+    };
+    downloadFiscalArtifact: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationId: string;
+                clinicId: string;
+                saleId: string;
+                environment: "sandbox" | "production";
+                kind: "invoice" | "receipt";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/xml": string;
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+        };
+    };
+    retryFiscalInvoice: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationId: string;
+                clinicId: string;
+                saleId: string;
+                environment: "sandbox" | "production";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FiscalRecordDto"];
                 };
             };
             400: {

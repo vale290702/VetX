@@ -48,8 +48,14 @@ export interface FiscalInvoice {
   total: string;
   payments: { code: "01" | "02" | "04"; amount: string }[];
 }
+export class FiscalSnapshotError extends Error {
+  constructor() {
+    super("Invalid fiscal invoice snapshot");
+    this.name = "FiscalSnapshotError";
+  }
+}
 function requireValue(ok: unknown): asserts ok {
-  if (!ok) throw new Error("Invalid fiscal invoice snapshot");
+  if (!ok) throw new FiscalSnapshotError();
 }
 function scaled(value: string, places = 5) {
   requireValue(typeof value === "string" && /^(?:0|[1-9]\d{0,12})(?:\.\d{1,5})?$/.test(value));
@@ -200,6 +206,30 @@ export function buildFiscalInvoice(input: FiscalInvoice): { key: string; xml: st
   element(summary, "TotalComprobante", money(total));
   return { key, xml: new XMLSerializer().serializeToString(doc) };
 }
+// The pinned v4.4 schema requires a Signature even for checking the public invoice
+// fields. This schema-only element has no usable algorithm or cryptographic value.
+// It stays inside preflight and is never stored, returned or submitted.
+const schemaOnlySignature = [
+  '<Signature xmlns="http://www.w3.org/2000/09/xmldsig#">',
+  '<SignedInfo><CanonicalizationMethod Algorithm="urn:vetx:preflight"/>',
+  '<SignatureMethod Algorithm="urn:vetx:preflight"/>',
+  '<Reference><DigestMethod Algorithm="urn:vetx:preflight"/><DigestValue>AA==</DigestValue></Reference></SignedInfo>',
+  "<SignatureValue>AA==</SignatureValue></Signature>",
+].join("");
+
+/** Verify the frozen invoice against the pinned XSD before its outbox transaction commits. */
+export async function preflightFiscalInvoice(
+  snapshot: FiscalInvoice,
+  timeoutMs: number,
+): Promise<string> {
+  const { key, xml } = buildFiscalInvoice(snapshot);
+  const closingTag = "</FacturaElectronica>";
+  requireValue(xml.endsWith(closingTag));
+  const document = xml.slice(0, -closingTag.length) + schemaOnlySignature + closingTag;
+  await validateSignedInvoice(Buffer.from(document), timeoutMs);
+  return key;
+}
+
 export async function prepareFiscalInvoice(
   snapshot: FiscalInvoice,
   signer: FiscalXmlSigner,
