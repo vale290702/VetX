@@ -1,6 +1,6 @@
 {
   "billing": "Sales and billing",
-  "clinicBilling": "Billing at {clinic}",
+  "clinicBilling": "Sales and billing at {clinic}",
   "directory": "Organization directory",
   "views": "Billing views",
   "sales": "Sales",

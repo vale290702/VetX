@@ -237,7 +237,7 @@ BEGIN
  CASE collection
  WHEN 'prices' THEN
   SELECT coalesce(jsonb_agg(vetx_billing.price(p::public.billing_prices) ORDER BY lower(p.name),p.id),'[]') INTO result FROM (
-    SELECT * FROM public.billing_prices WHERE (organization_id,clinic_id)=(org,clinic) AND position(lower(btrim(term)) in lower(name))>0
+    SELECT * FROM public.billing_prices WHERE (organization_id,clinic_id)=(org,clinic) AND (position(lower(btrim(term)) in lower(name))>0 OR position(btrim(term) in cabys)>0)
     ORDER BY lower(name),id LIMIT 26 OFFSET skip) p;
  WHEN 'sales' THEN
   SELECT coalesce(jsonb_agg(vetx_billing.sale(p::public.billing_sales) ORDER BY p.number DESC),'[]') INTO result FROM (

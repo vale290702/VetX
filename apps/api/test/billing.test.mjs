@@ -57,6 +57,14 @@ test("only a staff identity can checkout and invoice totals cannot be supplied b
     assert.equal(ok.headers.get("cache-control"), "no-store");
     assert.equal(calls.length, 1);
     assert.deepEqual(calls[0].slice(1, 4), [org, clinic, id]);
+    const full = {
+      ...body,
+      lines: Array.from({ length: 1000 }, () => ({ ...body.lines[0], lot: "請".repeat(120) })),
+    };
+    assert.ok(Buffer.byteLength(JSON.stringify(full)) > 100 * 1024);
+    assert.equal((await send("staff", full)).status, 200);
+    assert.equal(calls.at(-1)[4].lines.length, 1000);
+    assert.equal((await send("staff", { ...full, extra: "x".repeat(768 * 1024) })).status, 413);
   } finally {
     await app.close();
   }

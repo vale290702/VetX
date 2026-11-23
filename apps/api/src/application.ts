@@ -1,3 +1,4 @@
+import { json } from "express";
 import "reflect-metadata";
 import { type DynamicModule, type LoggerService, Module } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
@@ -62,6 +63,11 @@ export async function createApplication(
       logger,
       abortOnError: false,
     },
+  );
+  // A maximum-size checkout exceeds the general JSON body budget.
+  app.use(
+    "/organizations/:organizationId/clinics/:clinicId/billing/sales/:saleId",
+    json({ limit: "768kb" }),
   );
   configureHttp(app);
   SwaggerModule.setup("openapi", app, () => createOpenApiDocument(app), {

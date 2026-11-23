@@ -20,7 +20,7 @@ async function enterBilling(
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
   await enterCredentials(page, user);
   await page.getByRole("link", { name: org, exact: true }).click();
-  await page.getByRole("link", { name: "Billing at Central", exact: true }).click();
+  await page.getByRole("link", { name: "Sales and billing at Central", exact: true }).click();
 }
 test("a clinic prices inventory, sells a lot and reconciles external and cash payments", async ({
   page,

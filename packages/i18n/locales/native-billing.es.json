@@ -20,7 +20,7 @@
     "paid": "Pagado {amount} {currency}",
     "balance": "Saldo pendiente {amount} {currency}"
   },
-  "searchPrices": "Buscar precios por nombre",
+  "searchPrices": "Buscar precios por nombre o código CABYS",
   "emptyPrices": "No hay precios en esta página.",
   "priceSummary": "{amount} {currency} por {unit} · impuesto del {rate}% · CABYS {cabys}",
   "newPrice": "Crear precio",
