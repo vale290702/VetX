@@ -29,6 +29,7 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
 } from "@nestjs/swagger";
+import { FiscalXmlValidationError } from "@vetx/fiscal-cr";
 import type { FiscalDraft, PrismaDatabase } from "@vetx/database";
 import type { StaffPrincipal } from "@vetx/permissions";
 import { ApiErrorDto } from "../http.js";
@@ -95,7 +96,13 @@ class FiscalController {
       ...input,
       terms: input.terms.code === "02" ? { code: "02", days: input.terms.days! } : { code: "01" },
     };
-    return this.db.issueFiscalInvoice(actor, org, clinic, sale, env, draft);
+    return this.db
+      .issueFiscalInvoice(actor, org, clinic, sale, env, draft)
+      .catch((error: unknown) => {
+        if (error instanceof FiscalXmlValidationError && error.kind === "unavailable")
+          throw new ServiceUnavailableException();
+        throw error;
+      });
   }
   @Get("artifacts/:kind")
   @ApiOperation({ operationId: "downloadFiscalArtifact" })

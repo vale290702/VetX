@@ -4,6 +4,8 @@ import {
   FiscalXmlSigner,
   HaciendaClient,
   HaciendaError,
+  FiscalSnapshotError,
+  FiscalXmlValidationError,
   prepareFiscalInvoice,
   type HaciendaSettings,
 } from "@vetx/fiscal-cr";
@@ -66,11 +68,11 @@ export function mountedIssuers(
             });
             return await prepareFiscalInvoice(snapshot, signer, settings.timeoutMs);
           } catch (error) {
-            if (
-              error instanceof Error &&
-              /Invalid fiscal invoice snapshot|Fiscal XML validation failed/.test(error.message)
-            )
-              throw new HaciendaError("invalid_submission");
+            if (error instanceof FiscalXmlValidationError)
+              throw new HaciendaError(
+                error.kind === "unavailable" ? "unavailable" : "invalid_submission",
+              );
+            if (error instanceof FiscalSnapshotError) throw new HaciendaError("invalid_submission");
             throw new HaciendaError("configuration");
           } finally {
             key?.fill(0);

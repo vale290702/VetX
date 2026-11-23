@@ -95,15 +95,44 @@ test("staff queue a sandbox fiscal invoice once and retrieve the retained XML fo
       panel.getByText("Electronic invoicing is not enabled for this clinic in this environment."),
     ).toBeVisible();
     await expect(panel.locator("summary")).toHaveCount(0);
+    // Both enabled environments still use this isolated local database and no worker.
+    await db.query(
+      "INSERT INTO fiscal_profiles(organization_id,clinic_id,environment,issuer_number,branch,terminal,profile,enabled,next_number) SELECT organization_id,clinic_id,'production',issuer_number,branch,terminal,profile,true,1 FROM fiscal_profiles WHERE organization_id=$1 AND clinic_id=$2 AND environment='sandbox'",
+      [f.organizationId, clinic],
+    );
+    await page.reload();
     await panel.getByRole("link", { name: "Sandbox", exact: true }).click();
-    await panel.getByText("Prepare electronic invoice").click();
     const input = panel.getByRole("form", { name: "Queue sandbox invoice" });
-    await input.getByLabel("Recipient’s legal name").fill("Ana Mora");
-    await input.getByRole("combobox", { name: /Identification type/ }).selectOption("01");
-    await input.getByLabel("Identification number").fill("100000001");
-    await input.getByLabel("Credit term in days").fill("15");
-    await input.getByRole("combobox", { name: /Fiscal category/ }).selectOption("service");
-    await input.getByRole("combobox", { name: /Fiscal unit code/ }).selectOption("Sp");
+    async function fillSandbox() {
+      await expect(panel.getByText("Invoice environment · Sandbox", { exact: true })).toBeVisible();
+      if (!(await input.isVisible())) await panel.getByText("Prepare electronic invoice").click();
+      await input.getByLabel("Recipient’s legal name").fill("Ana Mora");
+      await input.getByRole("combobox", { name: /Identification type/ }).selectOption("01");
+      await input.getByLabel("Identification number").fill("100000001");
+      await input.getByLabel("Credit term in days").fill("15");
+      await input.getByRole("combobox", { name: /Fiscal category/ }).selectOption("service");
+      await input.getByRole("combobox", { name: /Fiscal unit code/ }).selectOption("Sp");
+    }
+    await fillSandbox();
+    // Lose the response before it reaches the server. Changing environment must
+    // discard the captured recipient, body and retry action.
+    await page.route(
+      "**/billing/*/*/sales/*/fiscal/sandbox",
+      (route) => route.fulfill({ status: 503, body: "" }),
+      { times: 1 },
+    );
+    await input.getByRole("button", { name: "Queue sandbox invoice" }).click();
+    await expect(input.getByRole("button", { name: "Retry original submission" })).toBeVisible();
+    await panel.getByRole("link", { name: "Production", exact: true }).click();
+    await expect(
+      panel.getByText("Invoice environment · Production", { exact: true }),
+    ).toBeVisible();
+    await panel.getByText("Prepare electronic invoice").click();
+    const live = panel.getByRole("form", { name: "Queue production invoice" });
+    await expect(live.getByLabel("Recipient’s legal name")).toHaveValue("");
+    await expect(live.getByRole("button", { name: "Retry original submission" })).toHaveCount(0);
+    await panel.getByRole("link", { name: "Sandbox", exact: true }).click();
+    await fillSandbox();
     const sent: string[] = [];
     await page.route("**/billing/*/*/sales/*/fiscal/sandbox", async (route) => {
       if (route.request().method() !== "POST") return route.continue();

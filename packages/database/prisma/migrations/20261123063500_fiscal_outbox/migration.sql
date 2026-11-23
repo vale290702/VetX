@@ -57,6 +57,16 @@ BEGIN
  IF NOT vetx_fiscal.dispatcher() OR env NOT IN ('production','sandbox') OR jsonb_typeof(settings) IS DISTINCT FROM 'object'
  OR num_nonnulls(org,clinic,env,issuer,settings->>'branch',settings->>'terminal',settings->>'providerId',settings->>'issuerActivity',active,starting_number)<>10
  OR starting_number NOT BETWEEN 1 AND 9999999999 THEN RAISE EXCEPTION 'Invalid fiscal profile'; END IF;
+ -- Validate public issuer fields before enabling a series. Disabling a legacy
+ -- profile remains possible even if its recorded address needs correction.
+ IF active AND (
+    jsonb_typeof(settings #> '{issuer,name}') IS DISTINCT FROM 'string'
+    OR char_length(settings #>> '{issuer,name}') NOT BETWEEN 5 AND 100
+    OR NOT vetx_stock.label(settings #>> '{issuer,name}',100)
+    OR jsonb_typeof(settings #> '{issuer,address,details}') IS DISTINCT FROM 'string'
+    OR char_length(settings #>> '{issuer,address,details}') NOT BETWEEN 5 AND 250
+    OR NOT vetx_stock.label(settings #>> '{issuer,address,details}',250)
+ ) THEN RAISE EXCEPTION 'Invalid fiscal profile'; END IF;
  PERFORM pg_advisory_xact_lock(hashtextextended(org::text||clinic::text||env,0));
  SELECT * INTO existing FROM public.fiscal_profiles WHERE (organization_id,clinic_id,environment)=(org,clinic,env) FOR UPDATE;
  IF FOUND THEN
@@ -99,7 +109,7 @@ BEGIN
  SELECT * INTO i FROM public.fiscal_invoices WHERE (organization_id,clinic_id,sale_id,environment)=(org,clinic,sale,env);
  IF FOUND THEN
    IF (i.request,i.actor_issuer,i.actor_subject) IS DISTINCT FROM (draft,actor_iss,actor_sub) THEN RETURN '{"error":"conflict"}';END IF;
-   RETURN jsonb_build_object('invoice',vetx_fiscal.status(i),'snapshot',i.snapshot);
+   RETURN jsonb_build_object('invoice',vetx_fiscal.status(i),'snapshot',i.snapshot,'created',false);
  END IF;
  SELECT * INTO s FROM public.billing_sales WHERE (organization_id,clinic_id,id)=(org,clinic,sale);
  IF NOT FOUND THEN RETURN '{"error":"not_found"}'; END IF;
@@ -128,7 +138,7 @@ BEGIN
  VALUES(org,clinic,sale,env,draft,frozen,k,actor_iss,actor_sub) RETURNING * INTO i;
  UPDATE public.fiscal_profiles SET next_number=next_number+1 WHERE (organization_id,clinic_id,environment)=(org,clinic,env);
  PERFORM vetx_fiscal.event(i);
- RETURN jsonb_build_object('invoice',vetx_fiscal.status(i),'snapshot',i.snapshot);
+ RETURN jsonb_build_object('invoice',vetx_fiscal.status(i),'snapshot',i.snapshot,'created',true);
 END $$;
 CREATE FUNCTION public.fiscal_lock_tables() RETURNS boolean LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,pg_temp AS $$
 BEGIN LOCK TABLE public.fiscal_profiles,public.fiscal_invoices,public.fiscal_events IN ACCESS SHARE MODE; RETURN true; END $$;
@@ -172,7 +182,7 @@ BEGIN
  UPDATE public.fiscal_invoices j SET state=CASE WHEN next_state='defer' THEN j.state ELSE next_state END,
  last_issue=issue,lease=NULL,lease_until=NULL,next_attempt=clock_timestamp()+make_interval(secs=>delay_seconds),receipt_xml=coalesce(receipt,j.receipt_xml)
  WHERE id=job AND lease=token AND lease_until>clock_timestamp() AND
- (next_state='defer' OR (j.state NOT IN('accepted','rejected') AND next_state IN ('blocked','invalid')) OR (j.state IN ('sending','submitted','processing') AND next_state IN ('submitted','processing','accepted','rejected')) OR (j.state=next_state AND j.receipt_xml IS NULL AND next_state IN('accepted','rejected')))
+ (next_state='defer' OR (j.state IN('pending','signed','sending') AND next_state IN ('blocked','invalid')) OR (j.state IN ('sending','submitted','processing') AND next_state IN ('submitted','processing','accepted','rejected')) OR (j.state=next_state AND j.receipt_xml IS NULL AND next_state IN('accepted','rejected')))
  RETURNING * INTO i;
  IF NOT FOUND THEN RETURN false; END IF;PERFORM vetx_fiscal.event(i);RETURN true;
 END $$;

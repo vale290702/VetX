@@ -48,7 +48,7 @@ function setup(state = "pending", options = {}) {
         events.push("post");
         assert.deepEqual(envelope.signedXml, signed);
         if (options.error) throw options.error;
-        return { key, status: "submitted" };
+        return options.result ?? { key, status: "submitted" };
       },
     },
   });
@@ -95,4 +95,17 @@ test("recovery checks sending keys and retains authority receipts without postin
     "post",
     { s: "defer", issue: "rate_limited", delay: 20, receipt: undefined },
   ]);
+});
+
+test("a known decision is recorded as soon as submit returns it", async () => {
+  for (const receiptXml of [undefined, signed]) {
+    const result = { key, status: "known", state: "aceptado", receiptXml };
+    const delivery = setup("signed", { result });
+    await delivery.run();
+    assert.deepEqual(delivery.events, [
+      "sending",
+      "post",
+      { s: "accepted", issue: null, delay: receiptXml ? 0 : 5, receipt: receiptXml },
+    ]);
+  }
 });

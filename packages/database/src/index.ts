@@ -1,4 +1,8 @@
-import { buildFiscalInvoice, type FiscalInvoice } from "@vetx/fiscal-cr";
+import {
+  preflightFiscalInvoice,
+  FiscalXmlValidationError,
+  type FiscalInvoice,
+} from "@vetx/fiscal-cr";
 import type { ClinicFiscalStatus, FiscalDraft, FiscalEnvironment, FiscalRecord } from "./fiscal.js";
 export * from "./fiscal.js";
 import type {
@@ -1148,16 +1152,19 @@ export class PrismaDatabase {
       org,
       async (transaction) => {
         await transaction.$queryRaw`SELECT set_config('vetx.clinic_id',${clinic},true)`;
-        type Frozen = { invoice: FiscalRecord; snapshot: FiscalInvoice };
+        type Frozen = { invoice: FiscalRecord; snapshot: FiscalInvoice; created: boolean };
         const rows = await transaction.$queryRaw<
           { result: Frozen | { error: RegistryErrorCode } }[]
         >`SELECT public.fiscal_request(${sale}::uuid,${environment},${JSON.stringify(draft)}::jsonb) AS result`;
-        const { invoice, snapshot } = registryResult<Frozen>(rows);
+        const { invoice, snapshot, created } = registryResult<Frozen>(rows);
+        if (created === false) return invoice;
         // A rejected snapshot rolls back its sequence and outbox entry together.
         try {
-          if (buildFiscalInvoice(snapshot).key !== invoice.key)
+          if ((await preflightFiscalInvoice(snapshot, 5000)) !== invoice.key)
             throw new Error("Fiscal key mismatch");
-        } catch {
+        } catch (error) {
+          if (error instanceof FiscalXmlValidationError && error.kind === "unavailable")
+            throw error;
           throw new RegistryError("invalid");
         }
         return invoice;

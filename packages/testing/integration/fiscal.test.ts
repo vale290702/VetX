@@ -114,7 +114,99 @@ test(
         { code: "invalid" },
       );
       const issue = () => db.issueFiscalInvoice(staff, org, clinic, sale, "sandbox", draft);
+      await t.test(
+        "schema-invalid invoice content rolls back the reservation, event and series before correction",
+        async () => {
+          const unchanged = async () => {
+            assert.equal(
+              (await db.fiscalStatus(staff, org, clinic, sale, "sandbox")).invoice,
+              null,
+            );
+            assert.equal(
+              (
+                await admin.query(
+                  "SELECT next_number FROM fiscal_profiles WHERE organization_id=$1 AND clinic_id=$2 AND environment='sandbox'",
+                  [org, clinic],
+                )
+              ).rows[0].next_number,
+              "19",
+            );
+            assert.equal(
+              (await admin.query("SELECT count(*) AS n FROM fiscal_events")).rows[0].n,
+              "0",
+            );
+          };
+          for (const issuer of [
+            { ...profile.issuer, name: "ABC" },
+            { ...profile.issuer, address: { ...profile.issuer.address, details: "XYZ" } },
+          ]) {
+            await assert.rejects(
+              dispatch.query(provision, [org, clinic, "sandbox", { ...profile, issuer }, 19, true]),
+              /Invalid fiscal profile/,
+            );
+            // Read a legacy provisioned profile directly, as it could predate the stricter provisioner.
+            await admin.query(
+              "UPDATE fiscal_profiles SET profile=$1::jsonb WHERE organization_id=$2 AND clinic_id=$3",
+              [JSON.stringify({ ...profile, issuer }), org, clinic],
+            );
+            await assert.rejects(issue(), { code: "invalid" });
+            await unchanged();
+          }
+          await dispatch.query(provision, [org, clinic, "sandbox", profile, 19, true]);
+          const shortPrice = randomUUID(),
+            badSale = randomUUID();
+          const pr = await db.saveBillingPrice(staff, org, clinic, shortPrice, {
+            name: "IV",
+            unit: "servicio",
+            currency: "CRC",
+            unitPrice: "100",
+            taxRate: "13",
+            cabys: "8352000000000",
+            stockItemId: null,
+            revision: 0,
+          });
+          await db.createSale(staff, org, clinic, badSale, {
+            currency: "CRC",
+            patientId: null,
+            lines: [
+              {
+                priceId: shortPrice,
+                priceRevision: pr.revision,
+                warehouseId: null,
+                lot: "",
+                quantity: "1",
+              },
+            ],
+          });
+          await assert.rejects(
+            db.issueFiscalInvoice(staff, org, clinic, badSale, "sandbox", {
+              ...draft,
+              terms: { code: "02", days: 30 },
+            }),
+            { code: "invalid" },
+          );
+          assert.equal(
+            (await db.fiscalStatus(staff, org, clinic, badSale, "sandbox")).invoice,
+            null,
+          );
+          await unchanged();
+        },
+      );
+      const originalPath = process.env.PATH!;
+      try {
+        process.env.PATH = "/nonexistent/vetx-validator";
+        await assert.rejects(issue(), { name: "FiscalXmlValidationError", kind: "unavailable" });
+        assert.equal((await db.fiscalStatus(staff, org, clinic, sale, "sandbox")).invoice, null);
+      } finally {
+        process.env.PATH = originalPath;
+      }
       const [a, b] = await Promise.all([issue(), issue()]);
+      try {
+        process.env.PATH = "/nonexistent/vetx-validator";
+        assert.deepEqual(await issue(), a);
+      } finally {
+        process.env.PATH = originalPath;
+      }
       assert.deepEqual(a, b);
       assert.equal(a.key.slice(21, 41), "00100001010000000019");
       assert.equal((await db.fiscalStatus(staff, org, clinic, sale, "production")).invoice, null);

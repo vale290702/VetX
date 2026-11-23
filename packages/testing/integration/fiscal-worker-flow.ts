@@ -77,11 +77,17 @@ export async function exerciseFiscalWorker(
     }
     if (req.url === "/recepcion/" + key && posts) {
       polls++;
+      // The first status request and its token refresh both fail. The next lookup
+      // temporarily loses the key. An acknowledged invoice must only be polled.
+      if (polls <= 2) return json({}, 401);
+      if (polls === 3) return json({}, 404);
+      // Lose polling credentials again after a final decision but before the receipt.
+      if (polls === 5 || polls === 6) return json({}, 401);
       return json({
         clave: key,
         fecha: new Date().toISOString(),
         "ind-estado": "aceptado",
-        ...(polls >= 2 ? { "respuesta-xml": receipt.toString("base64") } : {}),
+        ...(polls >= 7 ? { "respuesta-xml": receipt.toString("base64") } : {}),
       });
     }
     json({}, 404);
@@ -139,15 +145,20 @@ export async function exerciseFiscalWorker(
   try {
     let record: FiscalRecord | null = null;
     const deadline = Date.now() + 25000;
+    const observations = new Set<string>();
     while (Date.now() < deadline && worker.exitCode === null) {
       record = await status();
+      if (record) observations.add(record.state + "/" + record.issue);
       if (record?.hasReceipt) break;
       await delay(100);
     }
     assert.equal(record?.state, "accepted", events);
     assert.equal(record.hasReceipt, true, events);
+    assert.ok(observations.has("submitted/authentication"));
+    assert.ok(observations.has("submitted/unconfirmed"));
+    assert.ok(observations.has("accepted/authentication"));
     assert.equal(posts, 1);
-    assert.ok(polls >= 2);
+    assert.ok(polls >= 7);
     assert.ok(xml?.includes(Buffer.from("SignedProperties")));
     assert.ok(!(await readFile(join(dir, "private.pem"))).equals(xml!));
   } finally {

@@ -91,7 +91,14 @@ export function FiscalStatus({
               )}
             </>
           ) : (
-            status.enabled && <FiscalForm ctx={ctx} sale={sale} environment={environment} />
+            status.enabled && (
+              <FiscalForm
+                key={JSON.stringify([ctx.issuer, ctx.subject, ctx.endpoint, sale.id, environment])}
+                ctx={ctx}
+                sale={sale}
+                environment={environment}
+              />
+            )
           )}
         </>
       )}

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { test } from "node:test";
+import { FiscalXmlValidationError } from "@vetx/fiscal-cr";
 import { createApplication } from "../dist/application.js";
 test("fiscal status, issuance and retries require staff and accept only explicit fiscal classifications", async () => {
   const calls = [],
@@ -18,6 +19,7 @@ test("fiscal status, issuance and retries require staff and accept only explicit
     hasSignedXml: false,
     hasReceipt: false,
   };
+  let validatorAvailable = true;
   const app = await createApplication({ async checkReady() {} }, false, {
     tokenVerifier: {
       verify: async (token) => ({
@@ -36,6 +38,7 @@ test("fiscal status, issuance and retries require staff and accept only explicit
         return { enabled: true, invoice: null };
       },
       issueFiscalInvoice: async (...args) => {
+        if (!validatorAvailable) throw new FiscalXmlValidationError("unavailable");
         calls.push(args);
         return record;
       },
@@ -93,6 +96,10 @@ test("fiscal status, issuance and retries require staff and accept only explicit
     assert.equal(await file.text(), "<fixture/>");
     assert.equal(file.headers.get("cache-control"), "no-store");
     assert.equal(calls.length, 4);
+    validatorAvailable = false;
+    const unavailable = await send("sandbox", "PUT", draft);
+    assert.equal(unavailable.status, 503);
+    assert.equal((await unavailable.json()).error.code, "SERVICE_UNAVAILABLE");
     assert.deepEqual(calls[1].slice(1, 5), [org, clinic, sale, "sandbox"]);
   } finally {
     await app.close();

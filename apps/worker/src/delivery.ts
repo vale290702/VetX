@@ -49,7 +49,7 @@ export async function deliverOne(
     delay = pollSeconds,
     receipt?: Buffer,
   ) => jobs.finish(job, outcome, issue, delay, receipt);
-  async function record(status: FiscalStatus) {
+  async function record(status: Pick<FiscalStatus, "key" | "state" | "receiptXml">) {
     if (status.key !== job!.key) throw new HaciendaError("unexpected_response");
     if (
       (job!.state === "accepted" && status.state !== "aceptado") ||
@@ -62,7 +62,7 @@ export async function deliverOne(
       case "rechazado":
         return finish("rejected", null, status.receiptXml ? 0 : pollSeconds, status.receiptXml);
       case "error":
-        return finish("blocked", "authority_error", 0);
+        return finish("processing", "authority_error");
       default:
         return finish("processing");
     }
@@ -98,16 +98,22 @@ export async function deliverOne(
       signedXml: bytes,
     });
     if (result.status === "known") {
-      const status = await issuer.reception.status(job.key);
-      if (status) {
-        await record(status);
-        return true;
-      }
+      await record(result);
+      return true;
     }
+    if (result.key !== job.key) throw new HaciendaError("unexpected_response");
     await finish("submitted");
   } catch (error) {
     // Unexpected storage failures preserve the lease and the saved bytes for recovery.
     if (!(error instanceof HaciendaError)) throw error;
+    if (["submitted", "processing", "accepted", "rejected"].includes(job.state)) {
+      await finish(
+        "defer",
+        error.kind,
+        Math.min(2147483647, Math.max(pollSeconds, error.retryAfterSeconds ?? 0)),
+      );
+      return true;
+    }
     switch (error.kind) {
       case "configuration":
       case "authentication":
