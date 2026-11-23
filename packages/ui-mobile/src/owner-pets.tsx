@@ -3,6 +3,7 @@ import { Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
 import { ReleasedClinical } from "./clinical-records";
+import { OwnerPrescriptions } from "./pharmacy";
 import { OwnerReferrals } from "./referrals";
 import { OwnerExchange } from "./owner-exchange";
 import { OwnerDocuments } from "./medical-documents";
@@ -33,7 +34,7 @@ export function OwnerPets({
   const { t } = useTranslation();
   const [selected, setSelected] = useState<{
     petId: string;
-    kind: "notes" | "documents" | "export" | "referrals" | "clinical";
+    kind: "notes" | "documents" | "export" | "referrals" | "clinical" | "prescriptions";
   }>();
   const [draft, setDraft] = useState<LinkDraft>();
   const [linked, setLinked] = useState(false);
@@ -51,6 +52,7 @@ export function OwnerPets({
       documents: OwnerDocuments,
       export: OwnerExchange,
       referrals: OwnerReferrals,
+      prescriptions: OwnerPrescriptions,
     }[selected.kind];
     return (
       <>
@@ -123,6 +125,15 @@ export function OwnerPets({
                 accessibilityLabel={t("nativeCare.releasedFor", { name: pet.name })}
                 onPress={() => {
                   setSelected({ petId: pet.id, kind: "notes" });
+                  setLinked(false);
+                }}
+              />
+              <Action
+                styles={styles}
+                label={t("nativeTrade.prescriptions")}
+                accessibilityLabel={t("nativeTrade.forPet", { name: pet.name })}
+                onPress={() => {
+                  setSelected({ petId: pet.id, kind: "prescriptions" });
                   setLinked(false);
                 }}
               />

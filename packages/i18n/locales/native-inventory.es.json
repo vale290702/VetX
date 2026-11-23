@@ -11,7 +11,7 @@
   "sku": "SKU",
   "unit": "Unidad base",
   "unitValue": "Unidad · {unit}",
-  "unitHelp": "Elige la unidad que se usará para todos los movimientos. Se fija al registrar el primer movimiento.",
+  "unitHelp": "Puedes cambiar la unidad base hasta que el artículo se use en una orden de compra, una receta firmada o un movimiento de inventario.",
   "refresh": "Actualizar inventario",
   "searchItems": "Buscar por nombre o SKU",
   "noItems": "Ningún artículo coincide con la búsqueda.",
@@ -69,5 +69,6 @@
   "matched": "Se encontró el movimiento {id}. Ver el historial.",
   "itemId": "Identificador del artículo · {id}",
   "fromId": "Identificador del almacén de origen · {id}",
-  "toId": "Identificador del almacén de destino · {id}"
+  "toId": "Identificador del almacén de destino · {id}",
+  "unitLocked": "Una orden de compra, una receta firmada o un movimiento de inventario ya fijó la unidad base de este artículo."
 }

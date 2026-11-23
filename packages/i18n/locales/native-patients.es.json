@@ -1,5 +1,6 @@
 {
   "clinicalUnavailable": "Los registros clínicos no están disponibles temporalmente.",
+  "billingUnavailable": "La facturación no está disponible. Inténtalo de nuevo más tarde.",
   "patients": "Pacientes",
   "patientsIn": "Pacientes de {clinic}",
   "backClinics": "Volver a las clínicas",
@@ -56,5 +57,6 @@
   "exchangeSize": "El paquete supera el tamaño permitido. Selecciona menos registros o elige un paquete más pequeño.",
   "handoffUnavailable": "No se pudo abrir el menú del dispositivo para compartir el archivo. Inténtalo de nuevo.",
   "referralsUnavailable": "Las referencias clínicas no están disponibles en este momento. Inténtalo más tarde.",
-  "inventoryUnavailable": "El inventario de la clínica no está disponible. Inténtalo más tarde."
+  "inventoryUnavailable": "El inventario de la clínica no está disponible. Inténtalo más tarde.",
+  "tradeUnavailable": "El servicio de la clínica no está disponible. Inténtalo más tarde."
 }

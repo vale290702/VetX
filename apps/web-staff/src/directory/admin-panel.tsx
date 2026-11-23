@@ -5,7 +5,9 @@ import { type Locale } from "@vetx/i18n";
 import { Button } from "@vetx/ui-web";
 import { getTranslations } from "next-intl/server";
 
+import { TradeLink } from "../trade/nav";
 import { InventoryLink } from "../inventory/navigation";
+import { BillingLink } from "../billing/navigation";
 import { ReferralLink } from "../referrals/navigation";
 import { Link } from "../i18n/routing";
 import { MemberFields, type Clinic, type Member } from "./member-fields";
@@ -121,7 +123,17 @@ export async function AdminPanel({ csrf, locale, organizationId, directory }: Pr
                 >
                   {exchange("importTitle")}
                 </Link>
+                <TradeLink
+                  locale={locale}
+                  scope={{ organizationId, clinicId: clinic.id }}
+                  clinic={clinic.name}
+                />
                 <InventoryLink
+                  locale={locale}
+                  scope={{ organizationId, clinicId: clinic.id }}
+                  clinic={clinic.name}
+                />
+                <BillingLink
                   locale={locale}
                   scope={{ organizationId, clinicId: clinic.id }}
                   clinic={clinic.name}

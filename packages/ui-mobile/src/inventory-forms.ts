@@ -31,12 +31,12 @@ export function displayQuantity(value: string, locale: string) {
   const point = formatter.formatToParts(1.1).find((p) => p.type === "decimal")?.value ?? ".";
   return whole + point + decimal;
 }
-function milli(value: string) {
+export function stockThousandths(value: string) {
   const [integer, decimal = ""] = value.split(".");
   return BigInt(integer! + decimal.padEnd(3, "0"));
 }
 export function canDebit(balance: string, quantity: string) {
-  return milli(balance) >= milli(quantity);
+  return stockThousandths(balance) >= stockThousandths(quantity);
 }
 const label = (s: string, max: number) =>
   !!s.trim() && s.trim().length <= max && !/\p{Cc}/u.test(s.trim());

@@ -3,6 +3,7 @@ import { AppState, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
 import { ClinicalRecords } from "./clinical-records";
+import { PatientPharmacy } from "./pharmacy";
 import { PatientReferrals } from "./referrals";
 import { ImportedHistory } from "./imported-history";
 import { PatientDocuments } from "./medical-documents";
@@ -36,7 +37,7 @@ export function PatientDetail({
   const { result, reload } = usePatientRead(load);
   const action = usePatientAction(account);
   const [care, setCare] = useState<
-    "notes" | "appointments" | "documents" | "imports" | "referrals" | "clinical"
+    "notes" | "appointments" | "documents" | "imports" | "referrals" | "clinical" | "pharmacy"
   >();
   const [edit, setEdit] = useState<Editor>();
   const [issued, setIssued] = useState<{
@@ -111,6 +112,8 @@ export function PatientDetail({
                 back={backToPatient}
                 openNotes={() => setCare("notes")}
               />
+            ) : care === "pharmacy" ? (
+              <PatientPharmacy {...props} patientId={patientId} back={backToPatient} />
             ) : care === "referrals" ? (
               <PatientReferrals {...props} patientId={patientId} back={backToPatient} />
             ) : care === "imports" ? (
@@ -209,6 +212,14 @@ export function PatientDetail({
                   onPress={() => {
                     setIssued(undefined);
                     setCare("appointments");
+                  }}
+                />
+                <Action
+                  styles={styles}
+                  label={t("nativeTrade.prescriptions")}
+                  onPress={() => {
+                    setIssued(undefined);
+                    setCare("pharmacy");
                   }}
                 />
                 <Action

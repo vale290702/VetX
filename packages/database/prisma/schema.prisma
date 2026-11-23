@@ -23,6 +23,12 @@ model Organization {
 }
 
 model Clinic {
+  prices BillingPrice[]
+  sales BillingSale[]
+  cashShifts CashShift[]
+  tradeSuppliers TradeSupplier[]
+  pharmacyCapabilities PharmacyCapability[]
+  pharmacyEvents PharmacyEvent[]
   exchangePackages ExchangePackage[]
   id             String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   organizationId String       @map("organization_id") @db.Uuid
@@ -42,6 +48,7 @@ model Clinic {
 }
 
 model User {
+  pharmacyCapabilities PharmacyCapability[]
   id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   identityIssuer  String   @map("identity_issuer")
   identitySubject String   @map("identity_subject")
@@ -101,6 +108,9 @@ model DirectoryEvent {
 }
 
 model Patient {
+  sales BillingSale[]
+  patientPrescriptions PatientPrescription[]
+  prescriptionSharing PrescriptionSharing[]
   exchangeMappings ExchangePatient[]
   exports ExchangeExportEvent[]
   organizationId String          @map("organization_id") @db.Uuid
@@ -407,6 +417,9 @@ model InventoryWarehouse {
 }
 
 model InventoryItem {
+  prices BillingPrice[]
+  purchaseLines PurchaseLine[]
+  patientPrescriptions PatientPrescription[]
   organizationId String @map("organization_id") @db.Uuid
   clinicId       String @map("clinic_id") @db.Uuid
   id             String @db.Uuid
@@ -439,6 +452,9 @@ model StockBalance {
 }
 
 model StockMovement {
+  purchaseReceiptLines PurchaseReceiptLine?
+  supplierReturns SupplierReturn?
+  prescriptionDispensings PrescriptionDispensing?
   ledgerSequence BigInt @default(autoincrement()) @map("ledger_sequence")
   itemName String @map("item_name")
   sku String
@@ -468,6 +484,204 @@ model StockMovement {
   @@index([organizationId, clinicId, ledgerSequence(sort: Desc)], map: "stock_chronology")
   @@index([organizationId, clinicId, itemId], map: "stock_item_history")
   @@map("stock_movements")
+}
+
+model TradeSupplier {
+  organizationId String @map("organization_id") @db.Uuid
+  clinicId String @map("clinic_id") @db.Uuid
+  id String @db.Uuid
+  name String
+  revision Int
+  actorIssuer String @map("actor_issuer")
+  actorSubject String @map("actor_subject")
+  clinic Clinic @relation(fields: [organizationId, clinicId], references: [organizationId, id], onDelete: NoAction, onUpdate: NoAction)
+  purchaseOrders PurchaseOrder[]
+
+  @@id([organizationId, clinicId, id])
+  @@map("trade_suppliers")
+}
+
+model PurchaseOrder {
+  organizationId String @map("organization_id") @db.Uuid
+  clinicId String @map("clinic_id") @db.Uuid
+  id String @db.Uuid
+  supplierId String @map("supplier_id") @db.Uuid
+  supplierName String @map("supplier_name")
+  actorIssuer String @map("actor_issuer")
+  actorSubject String @map("actor_subject")
+  recordedAt DateTime @default(dbgenerated("clock_timestamp()")) @map("recorded_at") @db.Timestamptz(3)
+  supplier TradeSupplier @relation(fields: [organizationId, clinicId, supplierId], references: [organizationId, clinicId, id], onDelete: NoAction, onUpdate: NoAction)
+  purchaseLines PurchaseLine[]
+  purchaseReceipts PurchaseReceipt[]
+
+  @@id([organizationId, clinicId, id])
+  @@index([organizationId, clinicId, recordedAt(sort: Desc), id], map: "purchases_by_time")
+  @@map("purchase_orders")
+}
+
+model PurchaseLine {
+  organizationId String @map("organization_id") @db.Uuid
+  clinicId String @map("clinic_id") @db.Uuid
+  orderId String @map("order_id") @db.Uuid
+  itemId String @map("item_id") @db.Uuid
+  lineNo Int @map("line_no")
+  itemName String @map("item_name")
+  unit String
+  quantity Decimal @db.Decimal(18,3)
+  order PurchaseOrder @relation(fields: [organizationId, clinicId, orderId], references: [organizationId, clinicId, id], onDelete: NoAction, onUpdate: NoAction)
+  item InventoryItem @relation(fields: [organizationId, clinicId, itemId], references: [organizationId, clinicId, id], onDelete: NoAction, onUpdate: NoAction)
+  purchaseReceiptLines PurchaseReceiptLine[]
+
+  @@id([organizationId, clinicId, orderId, itemId])
+  @@unique([organizationId, clinicId, orderId, lineNo])
+  @@index([organizationId, clinicId, itemId], map: "purchase_item_commitments")
+  @@map("purchase_lines")
+}
+
+model PurchaseReceipt {
+  organizationId String @map("organization_id") @db.Uuid
+  clinicId String @map("clinic_id") @db.Uuid
+  id String @db.Uuid
+  orderId String @map("order_id") @db.Uuid
+  actorIssuer String @map("actor_issuer")
+  actorSubject String @map("actor_subject")
+  recordedAt DateTime @default(dbgenerated("clock_timestamp()")) @map("recorded_at") @db.Timestamptz(3)
+  order PurchaseOrder @relation(fields: [organizationId, clinicId, orderId], references: [organizationId, clinicId, id], onDelete: NoAction, onUpdate: NoAction)
+  purchaseReceiptLines PurchaseReceiptLine[]
+
+  @@id([organizationId, clinicId, id])
+  @@unique([organizationId, clinicId, id, orderId])
+  @@index([organizationId, clinicId, orderId, recordedAt(sort: Desc), id], map: "receipts_by_order")
+  @@map("purchase_receipts")
+}
+
+model PurchaseReceiptLine {
+  organizationId String @map("organization_id") @db.Uuid
+  clinicId String @map("clinic_id") @db.Uuid
+  receiptId String @map("receipt_id") @db.Uuid
+  orderId String @map("order_id") @db.Uuid
+  itemId String @map("item_id") @db.Uuid
+  movementId String @map("movement_id") @db.Uuid
+  lineNo Int @map("line_no")
+  receipt PurchaseReceipt @relation(fields: [organizationId, clinicId, receiptId, orderId], references: [organizationId, clinicId, id, orderId], onDelete: NoAction, onUpdate: NoAction, map: "receipt_header_fk")
+  orderedLine PurchaseLine @relation(fields: [organizationId, clinicId, orderId, itemId], references: [organizationId, clinicId, orderId, itemId], onDelete: NoAction, onUpdate: NoAction, map: "receipt_order_line_fk")
+  movement StockMovement @relation(fields: [organizationId, clinicId, movementId], references: [organizationId, clinicId, id], onDelete: NoAction, onUpdate: NoAction)
+  supplierReturns SupplierReturn[]
+
+  @@id([organizationId, clinicId, movementId])
+  @@unique([organizationId, clinicId, receiptId, lineNo])
+  @@index([organizationId, clinicId, orderId, itemId], map: "received_order_items")
+  @@map("purchase_receipt_lines")
+}
+
+model SupplierReturn {
+  organizationId String @map("organization_id") @db.Uuid
+  clinicId String @map("clinic_id") @db.Uuid
+  id String @db.Uuid
+  receiptMovementId String @map("receipt_movement_id") @db.Uuid
+  movementId String @map("movement_id") @db.Uuid
+  reason String
+  actorIssuer String @map("actor_issuer")
+  actorSubject String @map("actor_subject")
+  recordedAt DateTime @default(dbgenerated("clock_timestamp()")) @map("recorded_at") @db.Timestamptz(3)
+  receivedLine PurchaseReceiptLine @relation(fields: [organizationId, clinicId, receiptMovementId], references: [organizationId, clinicId, movementId], onDelete: NoAction, onUpdate: NoAction)
+  movement StockMovement @relation(fields: [organizationId, clinicId, movementId], references: [organizationId, clinicId, id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@id([organizationId, clinicId, id])
+  @@unique([organizationId, clinicId, movementId])
+  @@index([organizationId, clinicId, receiptMovementId], map: "returns_by_receipt")
+  @@map("supplier_returns")
+}
+
+model PharmacyCapability {
+  organizationId String @map("organization_id") @db.Uuid
+  clinicId String @map("clinic_id") @db.Uuid
+  userId String @map("user_id") @db.Uuid
+  canPrescribe Boolean @map("can_prescribe")
+  canDispense Boolean @map("can_dispense")
+  revision Int
+  actorIssuer String @map("actor_issuer")
+  actorSubject String @map("actor_subject")
+  clinic Clinic @relation(fields: [organizationId, clinicId], references: [organizationId, id], onDelete: NoAction, onUpdate: NoAction)
+  account User @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@id([organizationId, clinicId, userId])
+  @@map("pharmacy_capabilities")
+}
+
+model PatientPrescription {
+  organizationId String @map("organization_id") @db.Uuid
+  clinicId String @map("clinic_id") @db.Uuid
+  id String @db.Uuid
+  patientId String @map("patient_id") @db.Uuid
+  itemId String @map("item_id") @db.Uuid
+  itemName String @map("item_name")
+  unit String
+  medication String
+  instructions String
+  quantity Decimal @db.Decimal(18,3)
+  actorIssuer String @map("actor_issuer")
+  actorSubject String @map("actor_subject")
+  recordedAt DateTime @default(dbgenerated("clock_timestamp()")) @map("recorded_at") @db.Timestamptz(3)
+  patient Patient @relation(fields: [organizationId, clinicId, patientId], references: [organizationId, clinicId, id], onDelete: NoAction, onUpdate: NoAction)
+  item InventoryItem @relation(fields: [organizationId, clinicId, itemId], references: [organizationId, clinicId, id], onDelete: NoAction, onUpdate: NoAction)
+  prescriptionDispensings PrescriptionDispensing[]
+  prescriptionSharing PrescriptionSharing?
+
+  @@id([organizationId, clinicId, id])
+  @@index([organizationId, clinicId, patientId, recordedAt(sort: Desc), id], map: "prescriptions_patient")
+  @@index([organizationId, clinicId, itemId], map: "prescription_item_commitments")
+  @@map("patient_prescriptions")
+}
+
+model PrescriptionDispensing {
+  organizationId String @map("organization_id") @db.Uuid
+  clinicId String @map("clinic_id") @db.Uuid
+  id String @db.Uuid
+  prescriptionId String @map("prescription_id") @db.Uuid
+  movementId String @map("movement_id") @db.Uuid
+  actorIssuer String @map("actor_issuer")
+  actorSubject String @map("actor_subject")
+  recordedAt DateTime @default(dbgenerated("clock_timestamp()")) @map("recorded_at") @db.Timestamptz(3)
+  prescription PatientPrescription @relation(fields: [organizationId, clinicId, prescriptionId], references: [organizationId, clinicId, id], onDelete: NoAction, onUpdate: NoAction)
+  movement StockMovement @relation(fields: [organizationId, clinicId, movementId], references: [organizationId, clinicId, id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@id([organizationId, clinicId, id])
+  @@unique([organizationId, clinicId, movementId])
+  @@index([organizationId, clinicId, prescriptionId], map: "dispensing_prescription")
+  @@map("prescription_dispensings")
+}
+
+model PrescriptionSharing {
+  organizationId String @map("organization_id") @db.Uuid
+  clinicId String @map("clinic_id") @db.Uuid
+  prescriptionId String @map("prescription_id") @db.Uuid
+  patientId String @map("patient_id") @db.Uuid
+  guardianIds String[] @map("guardian_ids") @db.Uuid
+  revision Int
+  actorIssuer String @map("actor_issuer")
+  actorSubject String @map("actor_subject")
+  prescription PatientPrescription @relation(fields: [organizationId, clinicId, prescriptionId], references: [organizationId, clinicId, id], onDelete: NoAction, onUpdate: NoAction)
+  patient Patient @relation(fields: [organizationId, clinicId, patientId], references: [organizationId, clinicId, id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@id([organizationId, clinicId, prescriptionId])
+  @@map("prescription_sharing")
+}
+
+model PharmacyEvent {
+  id BigInt @id @default(autoincrement())
+  organizationId String @map("organization_id") @db.Uuid
+  clinicId String @map("clinic_id") @db.Uuid
+  targetId String @map("target_id") @db.Uuid
+  action String
+  revision Int
+  actorIssuer String @map("actor_issuer")
+  actorSubject String @map("actor_subject")
+  recordedAt DateTime @default(dbgenerated("clock_timestamp()")) @map("recorded_at") @db.Timestamptz(3)
+  clinic Clinic @relation(fields: [organizationId, clinicId], references: [organizationId, id], onDelete: NoAction, onUpdate: NoAction)
+
+
+  @@map("pharmacy_events")
 }
 
 model ExchangePackage {
@@ -621,4 +835,100 @@ model ClinicalRecordHead {
   current ClinicalRecordRevision @relation(fields:[organizationId,clinicId,patientId,recordId,revision], references:[organizationId,clinicId,patientId,recordId,revision],onDelete:NoAction,onUpdate:NoAction)
   @@id([organizationId,clinicId,patientId,recordId])
   @@map("clinical_record_heads")
+}
+
+model BillingPrice {
+  unit String
+  changes BillingPriceEvent[]
+  organizationId String @map("organization_id") @db.Uuid
+  clinicId String @map("clinic_id") @db.Uuid
+  id String @db.Uuid
+  name String
+  currency String
+  unitPrice Decimal @map("unit_price") @db.Decimal(18,5)
+  taxRate Decimal @map("tax_rate") @db.Decimal(8,5)
+  cabys String
+  stockItemId String? @map("stock_item_id") @db.Uuid
+  revision Int
+  clinic Clinic @relation(fields: [organizationId,clinicId], references: [organizationId,id], onDelete: NoAction,onUpdate: NoAction)
+  item InventoryItem? @relation(fields: [organizationId,clinicId,stockItemId], references: [organizationId,clinicId,id], onDelete: NoAction,onUpdate: NoAction)
+  @@id([organizationId,clinicId,id])
+  @@map("billing_prices")
+}
+
+model BillingSale {
+  organizationId String @map("organization_id") @db.Uuid
+  clinicId String @map("clinic_id") @db.Uuid
+  id String @db.Uuid
+  number BigInt
+  patientId String? @map("patient_id") @db.Uuid
+  currency String
+  request Json @db.JsonB
+  lines Json @db.JsonB
+  subtotal Decimal @db.Decimal(18,5)
+  tax Decimal @db.Decimal(18,5)
+  total Decimal @db.Decimal(18,5)
+  actorIssuer String @map("actor_issuer")
+  actorSubject String @map("actor_subject")
+  recordedAt DateTime @default(dbgenerated("clock_timestamp()")) @map("recorded_at") @db.Timestamptz(3)
+  clinic Clinic @relation(fields: [organizationId,clinicId], references: [organizationId,id], onDelete: NoAction,onUpdate: NoAction)
+  patient Patient? @relation(fields: [organizationId,clinicId,patientId], references: [organizationId,clinicId,id], onDelete: NoAction,onUpdate: NoAction)
+  payments BillingPayment[]
+  @@id([organizationId,clinicId,id])
+  @@unique([organizationId,clinicId,number])
+  @@index([organizationId,clinicId,recordedAt(sort: Desc),id],map:"billing_sale_time")
+  @@map("billing_sales")
+}
+
+model CashShift {
+  organizationId String @map("organization_id") @db.Uuid
+  clinicId String @map("clinic_id") @db.Uuid
+  id String @db.Uuid
+  label String
+  currency String
+  openingFloat Decimal @map("opening_float") @db.Decimal(18,5)
+  cashierIssuer String @map("cashier_issuer")
+  cashierSubject String @map("cashier_subject")
+  openedAt DateTime @default(dbgenerated("clock_timestamp()")) @map("opened_at") @db.Timestamptz(3)
+  closedAt DateTime? @map("closed_at") @db.Timestamptz(3)
+  counted Decimal? @db.Decimal(18,5)
+  clinic Clinic @relation(fields: [organizationId,clinicId], references: [organizationId,id], onDelete: NoAction,onUpdate: NoAction)
+  payments BillingPayment[]
+  @@id([organizationId,clinicId,id])
+  @@map("cash_shifts")
+}
+
+model BillingPayment {
+  organizationId String @map("organization_id") @db.Uuid
+  clinicId String @map("clinic_id") @db.Uuid
+  id String @db.Uuid
+  saleId String @map("sale_id") @db.Uuid
+  currency String
+  amount Decimal @db.Decimal(18,5)
+  method String
+  reference String
+  shiftId String? @map("shift_id") @db.Uuid
+  actorIssuer String @map("actor_issuer")
+  actorSubject String @map("actor_subject")
+  recordedAt DateTime @default(dbgenerated("clock_timestamp()")) @map("recorded_at") @db.Timestamptz(3)
+  sale BillingSale @relation(fields:[organizationId,clinicId,saleId],references:[organizationId,clinicId,id],onDelete:NoAction,onUpdate:NoAction)
+  shift CashShift? @relation(fields:[organizationId,clinicId,shiftId],references:[organizationId,clinicId,id],onDelete:NoAction,onUpdate:NoAction)
+  @@id([organizationId,clinicId,id])
+  @@index([organizationId,clinicId,saleId],map:"billing_sale_payments")
+  @@index([organizationId,clinicId,shiftId],map:"billing_shift_payments")
+  @@map("billing_payments")
+}
+
+model BillingPriceEvent {
+  organizationId String @map("organization_id") @db.Uuid
+  clinicId String @map("clinic_id") @db.Uuid
+  priceId String @map("price_id") @db.Uuid
+  revision Int
+  price Json @db.JsonB
+  actorIssuer String @map("actor_issuer")
+  actorSubject String @map("actor_subject")
+  recordedAt DateTime @default(dbgenerated("clock_timestamp()")) @map("recorded_at") @db.Timestamptz(3)
+  entry BillingPrice @relation(fields:[organizationId,clinicId,priceId],references:[organizationId,clinicId,id],onDelete:NoAction,onUpdate:NoAction)
+  @@id([organizationId,clinicId,priceId,revision])
+  @@map("billing_price_events")
 }

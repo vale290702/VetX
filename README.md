@@ -8,6 +8,8 @@ Staff can record diagnoses, treatments, vaccinations and reviewed laboratory res
 
 Staff can request a referral to another clinic. The linked guardian decides whether the destination can read the referral and send a response. [Clinic referral guide](docs/clinic-referrals.md)
 
+Clinic staff can receive deliveries, return stock to suppliers and record prescription dispensing. Organization administrators grant prescribing and dispensing permissions separately. [Purchasing and pharmacy guide](docs/purchasing-and-pharmacy.md)
+
 ## Repository structure
 
 ```text

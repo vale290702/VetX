@@ -1,3 +1,4 @@
+import { json } from "express";
 import "reflect-metadata";
 import { type DynamicModule, type LoggerService, Module } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
@@ -5,7 +6,9 @@ import type { NestExpressApplication } from "@nestjs/platform-express";
 import { SwaggerModule } from "@nestjs/swagger";
 import { type AccessDependencies, AccessModule } from "./access.js";
 import { DocumentModule, type DocumentDependencies } from "./documents/module.js";
+import { ProcurementModule, type ProcurementStore } from "./procurement/module.js";
 import { InventoryModule, type InventoryStore } from "./inventory/module.js";
+import { BillingModule, type BillingStore } from "./billing/module.js";
 import { ClinicalExchangeModule } from "./exchange/module.js";
 import type { ExchangeDependencies } from "./exchange/service.js";
 import { IdentityModule } from "./identity-context.js";
@@ -19,7 +22,9 @@ import { configureHttp } from "./http.js";
 import { createOpenApiDocument } from "./openapi.js";
 
 type Dependencies = AccessDependencies & {
+  billing?: BillingStore;
   inventory?: InventoryStore;
+  procurement?: ProcurementStore;
   exchange?: ExchangeDependencies;
   documents?: DocumentDependencies;
   care?: CareStore;
@@ -41,7 +46,9 @@ class AppModule {
         AccessModule.register(access),
         RegistryModule.register(access.registry, access.petLinks),
         DocumentModule.register(access.documents),
+        BillingModule.register(access.billing),
         InventoryModule.register(access.inventory),
+        ProcurementModule.register(access.procurement),
         ClinicalExchangeModule.register(access.exchange),
         CareModule.register(access.care),
         ClinicalRecordsModule.register(access.clinicalRecords),
@@ -63,6 +70,13 @@ export async function createApplication(
       abortOnError: false,
     },
   );
+  // A maximum-size checkout exceeds the general JSON body budget.
+  app.use(
+    "/organizations/:organizationId/clinics/:clinicId/billing/sales/:saleId",
+    json({ limit: "768kb" }),
+  );
+  // Nest detects any installed JSON parser by name, including a route-scoped one.
+  app.useBodyParser("json");
   configureHttp(app);
   SwaggerModule.setup("openapi", app, () => createOpenApiDocument(app), {
     ui: false,
