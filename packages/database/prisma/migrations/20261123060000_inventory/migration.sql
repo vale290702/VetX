@@ -22,6 +22,7 @@ CREATE TABLE public.stock_balances (
  FOREIGN KEY(organization_id,clinic_id,item_id) REFERENCES public.inventory_items(organization_id,clinic_id,id)
 );
 CREATE TABLE public.stock_movements (
+ ledger_sequence bigint GENERATED ALWAYS AS IDENTITY,
  item_name text NOT NULL,sku text NOT NULL,unit text NOT NULL,from_warehouse_name text,to_warehouse_name text,
  organization_id uuid NOT NULL, clinic_id uuid NOT NULL, id uuid NOT NULL, item_id uuid NOT NULL,
  kind text NOT NULL, from_warehouse_id uuid, to_warehouse_id uuid, lot text NOT NULL, reason text NOT NULL,
@@ -37,7 +38,7 @@ CREATE TABLE public.stock_movements (
  FOREIGN KEY(organization_id,clinic_id,to_warehouse_id) REFERENCES public.inventory_warehouses(organization_id,clinic_id,id),
  FOREIGN KEY(organization_id,clinic_id,item_id) REFERENCES public.inventory_items(organization_id,clinic_id,id)
 );
-CREATE INDEX stock_chronology ON public.stock_movements(organization_id,clinic_id,recorded_at DESC,id);
+CREATE INDEX stock_chronology ON public.stock_movements(organization_id,clinic_id,ledger_sequence DESC);
 CREATE INDEX stock_item_history ON public.stock_movements(organization_id,clinic_id,item_id);
 ALTER TABLE public.inventory_warehouses ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.inventory_warehouses FORCE ROW LEVEL SECURITY;
@@ -172,7 +173,7 @@ BEGIN
 END
 $$;
 
-CREATE FUNCTION public.stock_record_movement(request uuid,item uuid,kind_input text,origin uuid,destination uuid,amount_input text,lot_input text,reason_input text)
+CREATE FUNCTION public.stock_record_movement(request uuid,item uuid,kind_input text,origin uuid,destination uuid,amount_input text,lot_input text,reason_input text,expected_unit text)
 RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,pg_temp AS $$
 DECLARE org uuid:=vetx_directory.organization_id(); clinic uuid:=vetx_registry.clinic_id(); movement public.stock_movements;
  issuer text:=current_setting('vetx.identity_issuer',true); subject text:=current_setting('vetx.identity_subject',true);
@@ -180,7 +181,7 @@ DECLARE org uuid:=vetx_directory.organization_id(); clinic uuid:=vetx_registry.c
 BEGIN
  -- This lock also serializes catalog edits and grant revocation with the ledger.
  IF NOT vetx_registry.clinic_access(true) THEN RETURN '{"error":"forbidden"}'; END IF;
- IF num_nonnulls(request,item,kind_input,amount_input,lot_input,reason_input)<>6
+ IF num_nonnulls(request,item,kind_input,amount_input,lot_input,reason_input)<>6 OR NOT vetx_stock.label(expected_unit,40)
     OR amount_input !~ '^[0-9]{1,15}([.][0-9]{1,3})?$' OR length(btrim(lot_input))>120
     OR lot_input ~ '[[:cntrl:]]' OR NOT vetx_stock.label(reason_input,250) THEN RETURN '{"error":"invalid"}'; END IF;
  amount:=amount_input::numeric(18,3); lot_input:=btrim(lot_input); reason_input:=btrim(reason_input);
@@ -192,8 +193,8 @@ BEGIN
  SELECT * INTO movement FROM public.stock_movements WHERE (organization_id,clinic_id,id)=(org,clinic,request);
  IF FOUND THEN
    IF (movement.actor_issuer,movement.actor_subject,movement.item_id,movement.kind,movement.from_warehouse_id,
-     movement.to_warehouse_id,movement.quantity,movement.lot,movement.reason)
-     IS DISTINCT FROM (issuer,subject,item,kind_input,origin,destination,amount,lot_input,reason_input)
+     movement.to_warehouse_id,movement.quantity,movement.lot,movement.reason,movement.unit)
+     IS DISTINCT FROM (issuer,subject,item,kind_input,origin,destination,amount,lot_input,reason_input,expected_unit)
      THEN RETURN '{"error":"conflict"}'; END IF;
    RETURN vetx_stock.movement(movement);
  END IF;
@@ -201,6 +202,8 @@ BEGIN
    OR (origin IS NOT NULL AND NOT EXISTS (SELECT FROM public.inventory_warehouses WHERE (organization_id,clinic_id,id)=(org,clinic,origin)))
    OR (destination IS NOT NULL AND NOT EXISTS (SELECT FROM public.inventory_warehouses WHERE (organization_id,clinic_id,id)=(org,clinic,destination)))
    THEN RETURN '{"error":"not_found"}'; END IF;
+
+ IF expected_unit IS DISTINCT FROM (SELECT i.unit FROM public.inventory_items i WHERE (i.organization_id,i.clinic_id,i.id)=(org,clinic,item)) THEN RETURN '{"error":"conflict"}'; END IF;
 
  -- Compute and validate both sides before writing either one. Historical
  -- balances stored on the event make an exact retry independent of later stock.
@@ -264,19 +267,19 @@ BEGIN
  IF NOT vetx_registry.clinic_access(false) THEN RETURN '{"error":"forbidden"}'; END IF;
  IF page IS NULL OR page<1 THEN RETURN '{"error":"invalid"}'; END IF;
  WITH matches AS MATERIALIZED (SELECT m FROM public.stock_movements m WHERE (m.organization_id,m.clinic_id)=(org,clinic)
-   ORDER BY m.recorded_at DESC,m.id LIMIT 26 OFFSET ((page::bigint-1)*25)),
- visible AS (SELECT * FROM matches ORDER BY (m).recorded_at DESC,(m).id LIMIT 25)
+   ORDER BY m.ledger_sequence DESC LIMIT 26 OFFSET ((page::bigint-1)*25)),
+ visible AS (SELECT * FROM matches ORDER BY (m).ledger_sequence DESC LIMIT 25)
  SELECT jsonb_build_object('page',page,'hasNextPage',(SELECT count(*)>25 FROM matches),
-   'movements',coalesce(jsonb_agg(vetx_stock.movement(m) ORDER BY (m).recorded_at DESC,(m).id),'[]')) INTO result FROM visible;
+   'movements',coalesce(jsonb_agg(vetx_stock.movement(m) ORDER BY (m).ledger_sequence DESC),'[]')) INTO result FROM visible;
  RETURN result;
 END
 $$;
 
 REVOKE ALL ON FUNCTION public.stock_lock_tables(),public.stock_save_warehouse(uuid,text,integer),public.stock_save_item(uuid,text,text,text,integer),
- public.stock_list_warehouses(integer),public.stock_list_items(text,integer),public.stock_record_movement(uuid,uuid,text,uuid,uuid,text,text,text),
+ public.stock_list_warehouses(integer),public.stock_list_items(text,integer),public.stock_record_movement(uuid,uuid,text,uuid,uuid,text,text,text,text),
  public.stock_list_balances(uuid,integer),public.stock_list_movements(integer) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.stock_lock_tables(),public.stock_save_warehouse(uuid,text,integer),public.stock_save_item(uuid,text,text,text,integer),
- public.stock_list_warehouses(integer),public.stock_list_items(text,integer),public.stock_record_movement(uuid,uuid,text,uuid,uuid,text,text,text),
+ public.stock_list_warehouses(integer),public.stock_list_items(text,integer),public.stock_record_movement(uuid,uuid,text,uuid,uuid,text,text,text,text),
  public.stock_list_balances(uuid,integer),public.stock_list_movements(integer) TO vetx_runtime;
 
 COMMIT;

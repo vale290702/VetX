@@ -55,6 +55,7 @@ test(
       const request = randomUUID(),
         receipt = {
           itemId: item,
+          unit: product.unit,
           fromWarehouseId: null,
           toWarehouseId: room,
           kind: "RECEIPT" as const,
@@ -179,6 +180,12 @@ test(
             ).unit,
             "box",
           );
+          const stale = { ...receipt, itemId: newId, unit: otherItem.unit };
+          await assert.rejects(post(randomUUID(), stale), { code: "conflict" });
+          const balances = await db.listStockBalances(staff, org, clinic, null, 1);
+          assert.ok(balances.balances.every((b) => b.itemId !== newId));
+          const journal = await db.listStockMovements(staff, org, clinic, 1);
+          assert.ok(journal.movements.every((m) => m.itemId !== newId));
           assert.equal((await db.saveStockItem(admin, org, other, item, product)).revision, 1);
           await assert.rejects(db.listStockItems(staff, org, other, "", 1), { code: "forbidden" });
           assert.deepEqual((await db.listStockBalances(admin, org, other, null, 1)).balances, []);
@@ -362,6 +369,37 @@ test(
           code: "invalid",
         });
       });
+
+      await t.test(
+        "journal order follows committed movements when clock readings tie",
+        async () => {
+          const earlier = "00000000-0000-4000-8000-000000000002";
+          const later = "00000000-0000-4000-8000-000000000003";
+          await post(earlier, { ...receipt, lot: "ORDER", quantity: "1" });
+          await post(later, { ...receipt, lot: "ORDER", quantity: "2" });
+          // Use the isolated bootstrap connection to reproduce a database clock tie.
+          await sql.query(
+            "UPDATE stock_movements SET recorded_at = '2020-01-01T00:00:00Z' WHERE id IN ($1,$2)",
+            [earlier, later],
+          );
+          const { movements } = await db.listStockMovements(staff, org, clinic, 1);
+          assert.deepEqual(
+            movements.filter((m) => m.lot === "ORDER").map((m) => [m.id, m.toBalance]),
+            [
+              [later, "3.000"],
+              [earlier, "1.000"],
+            ],
+          );
+          assert.equal(
+            (await post(later, { ...receipt, lot: "ORDER", quantity: "2" })).toBalance,
+            "3.000",
+          );
+          await assert.rejects(
+            post(later, { ...receipt, lot: "ORDER", quantity: "2", unit: "packs" }),
+            { code: "conflict" },
+          );
+        },
+      );
 
       await t.test(
         "stock data is tenant-protected, movement entries are immutable, and revoking grants takes effect immediately",

@@ -252,6 +252,7 @@ export function MovementForm({
     return parseMovement({
       kind,
       itemId: item.id,
+      unit: item.unit,
       quantity: typeof quantity === "string" ? quantity.trim().replace(",", ".") : quantity,
       reason: data.get("reason"),
       lot: data.get("lot"),

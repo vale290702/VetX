@@ -50,7 +50,7 @@
   "denied": "Su cuenta no tiene acceso a esta acción de inventario.",
   "missing": "El artículo o la bodega ya no está disponible.",
   "catalogConflict": "No se pudo guardar el catálogo. Revise la versión actual, el nombre o código único y la unidad base.",
-  "stockConflict": "No se pudo registrar el movimiento. Revise las existencias de esta bodega y lote y consulte el historial de movimientos.",
+  "stockConflict": "Actualiza el artículo y comprueba su unidad y el saldo disponible para este almacén y lote. Revisa el historial antes de volver a intentarlo.",
   "unavailable": "No se pudo cargar el inventario.",
   "refresh": "Actualizar inventario",
   "balance": "Existencias",

@@ -795,7 +795,7 @@ export class PrismaDatabase {
       org,
       clinic,
       Prisma.sql`SELECT public.stock_record_movement(${id}::uuid,${input.itemId}::uuid,${input.kind},
-      ${input.fromWarehouseId}::uuid,${input.toWarehouseId}::uuid,${input.quantity},${input.lot},${input.reason}) AS result`,
+      ${input.fromWarehouseId}::uuid,${input.toWarehouseId}::uuid,${input.quantity},${input.lot},${input.reason},${input.unit}) AS result`,
     );
   }
   listStockBalances(

@@ -449,6 +449,7 @@ model StockMovement {
   purchaseReceiptLines PurchaseReceiptLine?
   supplierReturns SupplierReturn?
   prescriptionDispensings PrescriptionDispensing?
+  ledgerSequence BigInt @default(autoincrement()) @map("ledger_sequence")
   itemName String @map("item_name")
   sku String
   unit String
@@ -474,7 +475,7 @@ model StockMovement {
   item           InventoryItem @relation(fields: [organizationId, clinicId, itemId], references: [organizationId, clinicId, id], onDelete: NoAction, onUpdate: NoAction)
 
   @@id([organizationId, clinicId, id])
-  @@index([organizationId, clinicId, recordedAt(sort: Desc), id], map: "stock_chronology")
+  @@index([organizationId, clinicId, ledgerSequence(sort: Desc)], map: "stock_chronology")
   @@index([organizationId, clinicId, itemId], map: "stock_item_history")
   @@map("stock_movements")
 }

@@ -41,11 +41,19 @@ export function canDebit(balance: string, quantity: string) {
 const label = (s: string, max: number) =>
   !!s.trim() && s.trim().length <= max && !/\p{Cc}/u.test(s.trim());
 export function movementInput(draft: MovementBody): MovementBody | undefined {
-  const { itemId, kind } = draft,
+  const { itemId, kind, unit } = draft,
     quantity = stockQuantity(draft.quantity),
     reason = draft.reason.trim(),
     lot = draft.lot.trim();
-  if (!itemId || !quantity || !label(reason, 250) || lot.length > 120 || /\p{Cc}/u.test(lot))
+  if (
+    !itemId ||
+    !unit ||
+    !label(unit, 40) ||
+    !quantity ||
+    !label(reason, 250) ||
+    lot.length > 120 ||
+    /\p{Cc}/u.test(lot)
+  )
     return;
   const fromWarehouseId = needsFrom(kind) ? draft.fromWarehouseId : null,
     toWarehouseId = needsTo(kind) ? draft.toWarehouseId : null;
@@ -55,7 +63,7 @@ export function movementInput(draft: MovementBody): MovementBody | undefined {
     fromWarehouseId === toWarehouseId
   )
     return;
-  return { itemId, kind, fromWarehouseId, toWarehouseId, quantity, reason, lot };
+  return { itemId, unit, kind, fromWarehouseId, toWarehouseId, quantity, reason, lot };
 }
 type Fields = { name: string; sku?: string; unit?: string; revision: number };
 export function catalogInput(kind: "item", fields: Fields): ItemInput | undefined;

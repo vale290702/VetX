@@ -56,6 +56,7 @@ export function MovementEditor({ item, seed, back, saved, ...props }: Props) {
   const tooMuch = !!(debit && balance && amount && !canDebit(balance.quantity, amount));
   const body = movementInput({
     itemId: item.id,
+    unit: item.unit,
     kind,
     quantity,
     fromWarehouseId: from?.id ?? null,

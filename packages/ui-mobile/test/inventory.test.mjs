@@ -35,6 +35,7 @@ test("quantities are exact decimal strings, including the largest accepted balan
 const draft = {
   kind: "TRANSFER",
   itemId: "i",
+  unit: "ea",
   fromWarehouseId: "a",
   toWarehouseId: "b",
   quantity: "1,125",

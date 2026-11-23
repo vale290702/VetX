@@ -50,7 +50,7 @@
   "denied": "Your account does not have access to this inventory action.",
   "missing": "This item or warehouse is no longer available.",
   "catalogConflict": "The catalog could not be saved. Check the current revision, unique name or SKU, and base unit.",
-  "stockConflict": "Movement could not be recorded. Check the available balance for this warehouse and lot, then review the movement journal.",
+  "stockConflict": "Refresh the item and check its unit and available balance for this warehouse and lot. Review the journal before trying again.",
   "unavailable": "Inventory could not be loaded.",
   "refresh": "Refresh inventory",
   "balance": "Balances",

@@ -68,6 +68,7 @@ export function parseMovement(raw: unknown): Movement | null {
     !object(raw) ||
     !kinds.some((kind) => kind === raw.kind) ||
     !isDirectoryId(raw.itemId) ||
+    !label(raw.unit, 40) ||
     typeof raw.quantity !== "string" ||
     !/^(?!0(?:\.0{1,3})?$)(?:0|[1-9]\d{0,14})(?:\.\d{1,3})?$/.test(raw.quantity) ||
     !label(raw.reason, 250) ||
@@ -83,6 +84,7 @@ export function parseMovement(raw: unknown): Movement | null {
   return {
     kind,
     itemId: raw.itemId,
+    unit: raw.unit,
     quantity: raw.quantity,
     lot: raw.lot.trim(),
     reason: raw.reason.trim(),

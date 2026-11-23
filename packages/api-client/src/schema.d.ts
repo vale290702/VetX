@@ -1275,6 +1275,7 @@ export interface components {
             kind: "RECEIPT" | "ISSUE" | "RETURN" | "TRANSFER" | "ADJUST_IN" | "ADJUST_OUT";
             /** Format: uuid */
             itemId: string;
+            unit: string;
             /** Format: uuid */
             fromWarehouseId: string | null;
             /** Format: uuid */
@@ -1285,7 +1286,6 @@ export interface components {
             reason: string;
             itemName: string;
             sku: string;
-            unit: string;
             fromWarehouseName: string | null;
             toWarehouseName: string | null;
             /** Format: uuid */
@@ -1306,6 +1306,7 @@ export interface components {
             kind: "RECEIPT" | "ISSUE" | "RETURN" | "TRANSFER" | "ADJUST_IN" | "ADJUST_OUT";
             /** Format: uuid */
             itemId: string;
+            unit: string;
             /** Format: uuid */
             fromWarehouseId: string | null;
             /** Format: uuid */
