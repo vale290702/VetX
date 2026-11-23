@@ -47,7 +47,7 @@
   "retryMovement": "Reintentar el mismo movimiento",
   "checkLedger": "Consultar historial",
   "catalogConflict": "El catálogo ha cambiado, el nombre o SKU ya está en uso o la unidad ya tiene movimientos. Vuelve al catálogo y revisa la entrada actual.",
-  "stockConflict": "Este movimiento entra en conflicto con las existencias actuales o con un movimiento anterior. Revisa el almacén y el lote antes de continuar.",
+  "stockConflict": "Vuelve a cargar el artículo y comprueba su unidad, el saldo del almacén y el lote. Revisa el historial antes de volver a intentarlo.",
   "reviewStock": "Revisar almacén y lote",
   "denied": "Tu acceso a esta entrada del inventario ha cambiado. Vuelve a la clínica para revisar tu acceso.",
   "invalid": "Revisa los datos y vuelve a intentarlo.",

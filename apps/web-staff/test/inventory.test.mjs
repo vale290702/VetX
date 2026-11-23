@@ -15,6 +15,7 @@ const base = {
   fromWarehouseId: null,
   toWarehouseId: first,
   itemId: item,
+  unit: "ea",
   quantity: "0.125",
   lot: "Batch 1",
   reason: "Delivery",

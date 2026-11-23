@@ -22,6 +22,7 @@ export const movementKinds = [
   "ADJUST_OUT",
 ] as const;
 export interface StockMovementInput {
+  unit: string;
   itemId: string;
   kind: (typeof movementKinds)[number];
   fromWarehouseId: string | null;
@@ -33,7 +34,6 @@ export interface StockMovementInput {
 export interface StockMovement extends StockMovementInput {
   itemName: string;
   sku: string;
-  unit: string;
   fromWarehouseName: string | null;
   toWarehouseName: string | null;
   id: string;

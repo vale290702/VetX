@@ -6416,6 +6416,10 @@
             "type": "string",
             "format": "uuid"
           },
+          "unit": {
+            "type": "string",
+            "maxLength": 40
+          },
           "fromWarehouseId": {
             "type": "string",
             "format": "uuid",
@@ -6442,9 +6446,6 @@
             "type": "string"
           },
           "sku": {
-            "type": "string"
-          },
-          "unit": {
             "type": "string"
           },
           "fromWarehouseName": {
@@ -6478,6 +6479,7 @@
         "required": [
           "kind",
           "itemId",
+          "unit",
           "fromWarehouseId",
           "toWarehouseId",
           "quantity",
@@ -6485,7 +6487,6 @@
           "reason",
           "itemName",
           "sku",
-          "unit",
           "fromWarehouseName",
           "toWarehouseName",
           "id",
@@ -6535,6 +6536,10 @@
             "type": "string",
             "format": "uuid"
           },
+          "unit": {
+            "type": "string",
+            "maxLength": 40
+          },
           "fromWarehouseId": {
             "type": "string",
             "format": "uuid",
@@ -6561,6 +6566,7 @@
         "required": [
           "kind",
           "itemId",
+          "unit",
           "fromWarehouseId",
           "toWarehouseId",
           "quantity",

@@ -47,7 +47,7 @@
   "retryMovement": "Retry the same movement",
   "checkLedger": "Check ledger",
   "catalogConflict": "The catalog changed, the name or SKU is already in use, or the unit has stock history. Return to the catalog and review the current entry.",
-  "stockConflict": "This movement conflicts with current stock or a previous entry. Review the warehouse and lot before trying again.",
+  "stockConflict": "Reload the item and check its unit, warehouse balance and lot. Review the journal before trying again.",
   "reviewStock": "Review warehouse and lot",
   "denied": "Access to this inventory entry has changed. Return to the clinic to review your access.",
   "invalid": "Check the entry and try again.",

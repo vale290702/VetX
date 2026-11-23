@@ -13,6 +13,7 @@ const fields = {
   fromWarehouseId: null,
   toWarehouseId: warehouse,
   itemId: item,
+  unit: "ea",
   lot: "A",
   reason: "Delivery",
 };

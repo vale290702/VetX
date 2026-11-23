@@ -60,6 +60,7 @@ export class MovementInputDto {
   @IsIn(movementKinds)
   readonly kind!: StockMovementInput["kind"];
   @id() @IsUUID() readonly itemId!: string;
+  @label(40) readonly unit!: string;
   @nullableId() readonly fromWarehouseId!: string | null;
   @nullableId() readonly toWarehouseId!: string | null;
   @ApiProperty({ type: "string", description: "Positive decimal, up to three fractional places" })
@@ -80,7 +81,6 @@ class LedgerActorDto {
 export class MovementDto extends MovementInputDto {
   @ApiProperty() readonly itemName!: string;
   @ApiProperty() readonly sku!: string;
-  @ApiProperty() readonly unit!: string;
   @ApiProperty({ type: "string", nullable: true }) readonly fromWarehouseName!: string | null;
   @ApiProperty({ type: "string", nullable: true }) readonly toWarehouseName!: string | null;
   @id() readonly id!: string;
