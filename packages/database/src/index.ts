@@ -103,7 +103,7 @@ import type {
 } from "./documents.js";
 
 const probeTimeoutMs = 1_000;
-const exchangeTimeoutMs = 30_000;
+const bulkTimeoutMs = 30_000;
 
 export interface ResourceSummary {
   id: string;
@@ -112,7 +112,7 @@ export interface ResourceSummary {
 
 export class PrismaDatabase {
   private readonly client: PrismaClient;
-  private readonly importClient: PrismaClient;
+  private readonly bulkClient: PrismaClient;
 
   constructor(databaseUrl: string) {
     this.client = new PrismaClient({
@@ -123,17 +123,17 @@ export class PrismaDatabase {
         statement_timeout: probeTimeoutMs,
       }),
     });
-    // A verified manifest may contain 24 MiB of clinical text. A small separate
-    // pool gives archive writes a bounded budget while preserving probe latency.
-    this.importClient = new PrismaClient({
+    // Verified archives and multi-line purchases use a small separate pool so
+    // their longer transactions do not consume readiness probe connections.
+    this.bulkClient = new PrismaClient({
       adapter: new PrismaPg({
         connectionString: databaseUrl,
         max: 2,
-        connectionTimeoutMillis: exchangeTimeoutMs,
-        query_timeout: exchangeTimeoutMs,
-        statement_timeout: exchangeTimeoutMs,
+        connectionTimeoutMillis: bulkTimeoutMs,
+        query_timeout: bulkTimeoutMs,
+        statement_timeout: bulkTimeoutMs,
       }),
-      transactionOptions: { maxWait: exchangeTimeoutMs, timeout: exchangeTimeoutMs },
+      transactionOptions: { maxWait: bulkTimeoutMs, timeout: bulkTimeoutMs },
     });
   }
 
@@ -394,7 +394,7 @@ export class PrismaDatabase {
       "",
       Prisma.sql`SELECT public.exchange_confirm_export(${pet}::uuid,${scope.organizationId}::uuid,${scope.clinicId}::uuid,${scope.patientId}::uuid,${selection.encounterIds}::uuid[],${selection.documentAssetIds}::uuid[],${selection.includeOwner}::boolean,${destination.organizationId}::uuid,${destination.clinicId}::uuid,${packageId}::uuid) AS result`,
       "",
-      this.importClient,
+      this.bulkClient,
     );
   }
   ownerExportSource(
@@ -409,7 +409,7 @@ export class PrismaDatabase {
       "",
       Prisma.sql`SELECT public.exchange_owner_source(${pet}::uuid,${scope.organizationId}::uuid,${scope.clinicId}::uuid,${scope.patientId}::uuid,${selection.encounterIds}::uuid[],${selection.documentAssetIds}::uuid[],${selection.includeOwner}::boolean) AS result`,
       "",
-      this.importClient,
+      this.bulkClient,
     );
   }
 
@@ -853,6 +853,8 @@ export class PrismaDatabase {
       org,
       clinic,
       Prisma.sql`SELECT public.trade_order(${id}::uuid,${input.supplierId}::uuid,${JSON.stringify(input.lines)}::jsonb) AS result`,
+      "",
+      this.bulkClient,
     );
   }
 
@@ -869,6 +871,8 @@ export class PrismaDatabase {
       org,
       clinic,
       Prisma.sql`SELECT public.trade_receive(${order}::uuid,${id}::uuid,${JSON.stringify(input.lines)}::jsonb) AS result`,
+      "",
+      this.bulkClient,
     );
   }
 
@@ -928,7 +932,7 @@ export class PrismaDatabase {
       staff,
       org,
       clinic,
-      Prisma.sql`SELECT public.pharmacy_prescribe(${patient}::uuid,${id}::uuid,${input.itemId}::uuid,${input.medication},${input.instructions},${input.quantity}) AS result`,
+      Prisma.sql`SELECT public.pharmacy_prescribe(${patient}::uuid,${id}::uuid,${input.itemId}::uuid,${input.medication},${input.instructions},${input.quantity},${input.expectedUnit}) AS result`,
     );
   }
 
@@ -1095,7 +1099,7 @@ export class PrismaDatabase {
       Prisma.sql`SELECT public.exchange_stage(
       ${JSON.stringify(metadata)}::jsonb, ${input.archiveSha256}, ${input.byteLength}::integer,
       ${JSON.stringify(input.recordDigests)}::jsonb) AS result`,
-      this.importClient,
+      this.bulkClient,
     );
   }
 
@@ -1126,7 +1130,7 @@ export class PrismaDatabase {
       clinic,
       Prisma.sql`SELECT public.exchange_commit(
       ${receiptId}::uuid, ${choice.mode}, ${choice.mode === "match" ? choice.patientId : null}::uuid) AS result`,
-      this.importClient,
+      this.bulkClient,
     );
   }
 
@@ -1268,6 +1272,6 @@ export class PrismaDatabase {
   }
 
   async onApplicationShutdown(): Promise<void> {
-    await Promise.all([this.client.$disconnect(), this.importClient.$disconnect()]);
+    await Promise.all([this.client.$disconnect(), this.bulkClient.$disconnect()]);
   }
 }

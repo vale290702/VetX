@@ -11,9 +11,12 @@ export interface TradeEvent {
   author: TradeAuthor;
   recordedAt: string;
 }
-export interface OrderLineInput {
+interface ItemQuantity {
   itemId: string;
   quantity: string;
+}
+export interface OrderLineInput extends ItemQuantity {
+  expectedUnit: string;
 }
 export interface PurchaseInput {
   supplierId: string;
@@ -23,7 +26,7 @@ export interface PurchaseOrder extends TradeEvent {
   supplierId: string;
   supplierName: string;
   status: "OPEN" | "PARTIALLY_RECEIVED" | "RECEIVED";
-  lines: (OrderLineInput & { itemName: string; unit: string; receivedQuantity: string })[];
+  lines: (ItemQuantity & { itemName: string; unit: string; receivedQuantity: string })[];
 }
 export interface DispensingInput {
   warehouseId: string;
@@ -49,17 +52,18 @@ export interface SupplierReturn extends TradeEvent, SupplierReturnInput {
   orderId: string;
   movementId: string;
 }
-export interface PrescriptionInput {
-  itemId: string;
+interface MedicationOrder extends ItemQuantity {
   medication: string;
   instructions: string;
-  quantity: string;
+}
+export interface PrescriptionInput extends MedicationOrder {
+  expectedUnit: string;
 }
 export interface PrescriptionSharing {
   guardianIds: string[];
   revision: number;
 }
-export interface Prescription extends PrescriptionInput, TradeEvent {
+export interface Prescription extends MedicationOrder, TradeEvent {
   patientId: string;
   itemName: string;
   unit: string;

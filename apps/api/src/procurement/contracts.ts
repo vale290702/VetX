@@ -60,9 +60,12 @@ class TradeEventDto {
   @ApiProperty({ type: TradeAuthorDto }) readonly author!: TradeAuthorDto;
   @ApiProperty({ format: "date-time" }) readonly recordedAt!: string;
 }
-export class OrderLineInputDto {
+class ItemQuantityDto {
   @uuid() readonly itemId!: string;
   @quantity() readonly quantity!: string;
+}
+export class OrderLineInputDto extends ItemQuantityDto {
+  @label(40) readonly expectedUnit!: string;
 }
 export class PurchaseInputDto {
   @uuid() readonly supplierId!: string;
@@ -74,7 +77,7 @@ export class PurchaseInputDto {
   )
   readonly lines!: OrderLineInputDto[];
 }
-class OrderLineDto extends OrderLineInputDto {
+class OrderLineDto extends ItemQuantityDto {
   @ApiProperty() readonly itemName!: string;
   @ApiProperty() readonly unit!: string;
   @ApiProperty() readonly receivedQuantity!: string;
@@ -145,6 +148,7 @@ export class RxSharingDto {
   @revision() readonly revision!: number;
 }
 export class PrescriptionInputDto {
+  @label(40) readonly expectedUnit!: string;
   @uuid() readonly itemId!: string;
   @label(250) readonly medication!: string;
   @ApiProperty({ maxLength: 8000 })

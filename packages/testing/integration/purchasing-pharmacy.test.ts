@@ -65,6 +65,7 @@ test(
       });
       const signed = {
         itemId: item,
+        expectedUnit: product.unit,
         medication: "Clinician-entered medication",
         instructions: "Directions recorded by the clinician.",
         quantity: "3",
@@ -94,8 +95,8 @@ test(
           const input = {
             supplierId: supplier,
             lines: [
-              { itemId: item, quantity: "5" },
-              { itemId: secondary, quantity: "2.125" },
+              { itemId: item, quantity: "5", expectedUnit: product.unit },
+              { itemId: secondary, quantity: "2.125", expectedUnit: product.unit },
             ],
           };
           const created = await db.createPurchaseOrder(pharmacist, org, clinic, order, input);
@@ -191,6 +192,9 @@ test(
             };
           const ret = await db.returnPurchaseStock(pharmacist, org, clinic, order, id, input);
           assert.notEqual(ret.movementId, receiptMovement);
+          const ledger = (await db.listStockMovements(pharmacist, org, clinic, 1)).movements;
+          assert.equal(ledger.find((m) => m.id === receiptMovement)?.unit, product.unit);
+          assert.equal(ledger.find((m) => m.id === ret.movementId)?.unit, product.unit);
           assert.equal(ret.author.subject, pharmacist.subject);
           assert.deepEqual(
             await db.returnPurchaseStock(pharmacist, org, clinic, order, id, input),
@@ -309,6 +313,12 @@ test(
           const [a, b] = await Promise.all([dispense(id), dispense(id)]);
           assert.deepEqual(a, b);
           assert.equal(a.author.subject, pharmacist.subject);
+          assert.equal(
+            (await db.listStockMovements(pharmacist, org, clinic, 1)).movements.find(
+              (m) => m.id === a.movementId,
+            )?.unit,
+            product.unit,
+          );
           const race = await Promise.allSettled([
             dispense(randomUUID(), "1.750"),
             dispense(randomUUID(), "1.750"),
@@ -457,7 +467,7 @@ test(
               (
                 await call("pharmacy.test.token", purchase, {
                   supplierId: supplier,
-                  lines: [{ itemId: item, quantity: "1.500" }],
+                  lines: [{ itemId: item, quantity: "1.500", expectedUnit: product.unit }],
                 })
               ).status,
               200,
@@ -501,13 +511,168 @@ test(
         },
       );
       await t.test(
+        "catalog unit changes invalidate an open draft and saved units bind retries",
+        async () => {
+          const purchaseItem = randomUUID(),
+            prescriptionItem = randomUUID(),
+            draftedOrder = randomUUID(),
+            draftedRx = randomUUID();
+          for (const [id, sku] of [
+            [purchaseItem, "DRAFT-ORDER"],
+            [prescriptionItem, "DRAFT-RX"],
+          ] as const) {
+            await db.saveStockItem(admin, org, clinic, id, { ...product, sku, unit: "boxes" });
+            await db.saveStockItem(admin, org, clinic, id, {
+              ...product,
+              sku,
+              unit: "vials",
+              revision: 1,
+            });
+          }
+          const orderDraft = (expectedUnit: string) =>
+            db.createPurchaseOrder(pharmacist, org, clinic, draftedOrder, {
+              supplierId: supplier,
+              lines: [
+                { itemId: item, quantity: "1", expectedUnit: product.unit },
+                { itemId: purchaseItem, quantity: "2", expectedUnit },
+              ],
+            });
+          const rxDraft = (expectedUnit: string) =>
+            db.prescribe(clinician, org, clinic, patient, draftedRx, {
+              ...signed,
+              itemId: prescriptionItem,
+              expectedUnit,
+            });
+          await assert.rejects(orderDraft(""), { code: "invalid" });
+          await assert.rejects(rxDraft(""), { code: "invalid" });
+          await assert.rejects(orderDraft("boxes"), { code: "conflict" });
+          await assert.rejects(rxDraft("boxes"), { code: "conflict" });
+          assert.equal(
+            (await db.listPurchaseOrders(admin, org, clinic, 1)).orders.some(
+              (o) => o.id === draftedOrder,
+            ),
+            false,
+          );
+          assert.equal(
+            (await db.listPrescriptions(clinician, org, clinic, patient, 1)).prescriptions.some(
+              (r) => r.id === draftedRx,
+            ),
+            false,
+          );
+          const savedOrder = await orderDraft("vials"),
+            savedRx = await rxDraft("vials");
+          assert.equal(savedOrder.lines[1]!.unit, "vials");
+          assert.equal("expectedUnit" in savedOrder.lines[1]!, false);
+          assert.equal(savedRx.unit, "vials");
+          assert.equal("expectedUnit" in savedRx, false);
+          assert.deepEqual(await orderDraft("vials"), savedOrder);
+          assert.deepEqual(await rxDraft("vials"), savedRx);
+          await assert.rejects(orderDraft("boxes"), { code: "conflict" });
+          await assert.rejects(rxDraft("boxes"), { code: "conflict" });
+          for (const [id, sku] of [
+            [purchaseItem, "DRAFT-ORDER"],
+            [prescriptionItem, "DRAFT-RX"],
+          ] as const) {
+            await assert.rejects(
+              db.saveStockItem(admin, org, clinic, id, {
+                ...product,
+                sku,
+                unit: "boxes",
+                revision: 2,
+              }),
+              { code: "conflict" },
+            );
+          }
+        },
+      );
+      await t.test(
+        "a concurrent catalog unit edit and first procurement use cannot both commit",
+        async () => {
+          for (const operation of ["order", "prescription"] as const) {
+            const itemId = randomUUID(),
+              sku = "RACE-" + operation;
+            await db.saveStockItem(admin, org, clinic, itemId, { ...product, sku });
+            const submit =
+              operation === "order"
+                ? db.createPurchaseOrder(pharmacist, org, clinic, randomUUID(), {
+                    supplierId: supplier,
+                    lines: [{ itemId, quantity: "2", expectedUnit: product.unit }],
+                  })
+                : db.prescribe(clinician, org, clinic, patient, randomUUID(), {
+                    ...signed,
+                    itemId,
+                  });
+            const [use, edit] = await Promise.allSettled([
+              submit,
+              db.saveStockItem(admin, org, clinic, itemId, {
+                ...product,
+                sku,
+                unit: "boxes",
+                revision: 1,
+              }),
+            ]);
+            assert.equal([use, edit].filter((result) => result.status === "fulfilled").length, 1);
+            assert.equal(
+              [use, edit].find((result) => result.status === "rejected")?.reason.code,
+              "conflict",
+            );
+            const catalog = await db.listStockItems(admin, org, clinic, sku, 1);
+            assert.equal(
+              catalog.items[0]?.unit,
+              use.status === "fulfilled" ? product.unit : "boxes",
+            );
+          }
+        },
+      );
+      await t.test(
+        "multi-line orders and receipts can wait for a clinic write past the probe deadline",
+        async () => {
+          const input = {
+            supplierId: supplier,
+            lines: [item, secondary].map((itemId) => ({
+              itemId,
+              quantity: "1",
+              expectedUnit: product.unit,
+            })),
+          };
+          const original = await db.createPurchaseOrder(
+            pharmacist,
+            org,
+            clinic,
+            randomUUID(),
+            input,
+          );
+          await sql.query("BEGIN");
+          try {
+            await sql.query("SELECT id FROM organizations WHERE id=$1 FOR UPDATE", [org]);
+            const writes = Promise.allSettled([
+              db.createPurchaseOrder(pharmacist, org, clinic, randomUUID(), input),
+              db.receivePurchaseOrder(pharmacist, org, clinic, original.id, randomUUID(), {
+                lines: [item, secondary].map((itemId) => ({ ...line, itemId })),
+              }),
+            ]);
+            // The ordinary connection has a one-second statement timeout. Both writes
+            // must survive a held organization lock using the bounded bulk pool.
+            await sql.query("SELECT pg_sleep(1.4)");
+            await sql.query("COMMIT");
+            for (const result of await writes) {
+              if (result.status === "rejected") throw result.reason;
+              assert.equal(result.value.lines.length, 2);
+            }
+          } catch (error) {
+            await sql.query("ROLLBACK");
+            throw error;
+          }
+        },
+      );
+      await t.test(
         "a full receipt can split a single ordered item across one hundred distinct lots",
         async () => {
           const orderId = randomUUID(),
             receiptId = randomUUID();
           await db.createPurchaseOrder(pharmacist, org, clinic, orderId, {
             supplierId: supplier,
-            lines: [{ itemId: secondary, quantity: "1" }],
+            lines: [{ itemId: secondary, quantity: "1", expectedUnit: product.unit }],
           });
           const lines = Array.from({ length: 100 }, (_, i) => ({
             itemId: secondary,
@@ -545,7 +710,10 @@ test(
             remoteOrg,
             user.id,
           ]);
-          const input = { supplierId: supplier, lines: [{ itemId: item, quantity: "1" }] };
+          const input = {
+            supplierId: supplier,
+            lines: [{ itemId: item, quantity: "1", expectedUnit: product.unit }],
+          };
           await assert.rejects(
             db.createPurchaseOrder(admin, remoteOrg, remoteClinic, order, input),
             { code: "not_found" },

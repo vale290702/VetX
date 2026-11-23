@@ -42,13 +42,17 @@ async function run(kind, procurement, fn) {
   }
 }
 test("staff and owner procurement routes enforce their audience and validate nested lists before storage", async () => {
-  const valid = { itemId: item, quantity: "1.125" },
+  const valid = { itemId: item, quantity: "1.125", expectedUnit: "units" },
     body = { supplierId: supply, lines: [valid] };
   await run("staff", {}, async (send) => {
     assert.equal((await send(purchase, body, false)).status, 401);
     assert.equal((await send(ownerPath)).status, 403);
     for (const bad of [
       { ...body, lines: [] },
+      ...[undefined, null, "", "a".repeat(41), "u\nnits"].map((expectedUnit) => ({
+        ...body,
+        lines: [{ ...valid, expectedUnit }],
+      })),
       { ...body, lines: null },
       { ...body, lines: [valid, valid] },
       { ...body, lines: [{ ...valid, author: "spoof" }] },
@@ -78,6 +82,38 @@ test("staff and owner procurement routes enforce their audience and validate nes
       (await send(prescription, { ...valid, medication: "entered", instructions: "   " })).status,
       400,
     );
+    for (const expectedUnit of [undefined, "", "a".repeat(41)]) {
+      assert.equal(
+        (
+          await send(prescription, {
+            ...valid,
+            expectedUnit,
+            medication: "entered",
+            instructions: "Entered directions",
+          })
+        ).status,
+        400,
+      );
+    }
+    assert.equal(
+      (
+        await send(purchase + "/receipts/" + randomUUID(), {
+          lines: [{ ...valid, warehouseId: warehouse, lot: "L" }],
+        })
+      ).status,
+      400,
+    );
+    assert.equal(
+      (
+        await send(prescription + "/dispensings/" + randomUUID(), {
+          warehouseId: warehouse,
+          lot: "L",
+          quantity: "1",
+          expectedUnit: "units",
+        })
+      ).status,
+      400,
+    );
     assert.equal(
       (await send(prescription + "/sharing", { revision: 0, guardianIds: [patient, patient] }))
         .status,
@@ -93,7 +129,10 @@ test("staff and owner procurement routes enforce their audience and validate nes
 test("capabilities, authored orders, partial receipts, staged dispensing and owner projection use authenticated identity", async () => {
   let n = 0;
   const lines = [{ itemId: item, warehouseId: warehouse, lot: "L", quantity: "1.000" }];
-  const payload = { supplierId: supply, lines: [{ itemId: item, quantity: "3" }] };
+  const payload = {
+    supplierId: supply,
+    lines: [{ itemId: item, quantity: "3", expectedUnit: "units" }],
+  };
   const store = {
     createPurchaseOrder: async (actor, o, c, id, input) => {
       assert.deepEqual(

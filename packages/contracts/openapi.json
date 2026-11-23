@@ -8882,11 +8882,16 @@
           "quantity": {
             "type": "string",
             "description": "Positive quantity with up to three decimal places"
+          },
+          "expectedUnit": {
+            "type": "string",
+            "maxLength": 40
           }
         },
         "required": [
           "itemId",
-          "quantity"
+          "quantity",
+          "expectedUnit"
         ]
       },
       "PurchaseInputDto": {
@@ -9312,6 +9317,10 @@
       "PrescriptionInputDto": {
         "type": "object",
         "properties": {
+          "expectedUnit": {
+            "type": "string",
+            "maxLength": 40
+          },
           "itemId": {
             "type": "string",
             "format": "uuid"
@@ -9330,6 +9339,7 @@
           }
         },
         "required": [
+          "expectedUnit",
           "itemId",
           "medication",
           "instructions",

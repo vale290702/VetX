@@ -1367,6 +1367,7 @@ export interface components {
             itemId: string;
             /** @description Positive quantity with up to three decimal places */
             quantity: string;
+            expectedUnit: string;
         };
         PurchaseInputDto: {
             /** Format: uuid */
@@ -1484,6 +1485,7 @@ export interface components {
             prescriptions: components["schemas"]["PrescriptionDto"][];
         };
         PrescriptionInputDto: {
+            expectedUnit: string;
             /** Format: uuid */
             itemId: string;
             medication: string;

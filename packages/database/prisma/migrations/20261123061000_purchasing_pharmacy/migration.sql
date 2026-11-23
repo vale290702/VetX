@@ -143,10 +143,10 @@ $$;
 CREATE FUNCTION vetx_trade.event(id uuid,issuer text,subject text,stamp timestamptz) RETURNS jsonb LANGUAGE sql STABLE SET search_path=pg_catalog,pg_temp AS $$
  SELECT jsonb_build_object('id',id,'author',jsonb_build_object('issuer',issuer,'subject',subject),'recordedAt',vetx_care.utc(stamp))
 $$;
-CREATE FUNCTION vetx_trade.stock(item uuid,warehouse uuid,lot text,amount numeric,kind text,reason text) RETURNS uuid LANGUAGE plpgsql SET search_path=pg_catalog,pg_temp AS $$
+CREATE FUNCTION vetx_trade.stock(item uuid,warehouse uuid,lot text,amount numeric,kind text,reason text,expected_unit text) RETURNS uuid LANGUAGE plpgsql SET search_path=pg_catalog,pg_temp AS $$
 DECLARE movement uuid:=gen_random_uuid(); result jsonb;
 BEGIN
- result:=public.stock_record_movement(movement,item,kind,CASE WHEN kind='ISSUE' THEN warehouse END,CASE WHEN kind='RECEIPT' THEN warehouse END,amount::text,lot,reason);
+ result:=public.stock_record_movement(movement,item,kind,CASE WHEN kind='ISSUE' THEN warehouse END,CASE WHEN kind='RECEIPT' THEN warehouse END,amount::text,lot,reason,expected_unit);
  -- Raising here rolls back the entire operation, including any earlier lines.
  IF result ? 'error' THEN RAISE EXCEPTION USING ERRCODE='P6100',MESSAGE=result->>'error'; END IF;
  RETURN movement;
@@ -189,7 +189,10 @@ BEGIN
       OR NOT pg_input_is_valid(item->>'warehouseId','uuid') OR jsonb_typeof(item->'lot') IS DISTINCT FROM 'string'
       OR length(btrim(item->>'lot'))>120 OR (item->>'lot') ~ '[[:cntrl:]]' THEN RETURN NULL; END IF;
      line:=line||jsonb_build_object('warehouseId',(item->>'warehouseId')::uuid,'lot',btrim(item->>'lot'));
-   ELSIF item-ARRAY['itemId','quantity']<>'{}'::jsonb OR result @> jsonb_build_array(jsonb_build_object('itemId',(item->>'itemId')::uuid)) THEN RETURN NULL;
+   ELSE
+     IF item-ARRAY['itemId','quantity','expectedUnit']<>'{}'::jsonb OR jsonb_typeof(item->'expectedUnit') IS DISTINCT FROM 'string'
+       OR NOT vetx_stock.label(item->>'expectedUnit',40) OR result @> jsonb_build_array(jsonb_build_object('itemId',(item->>'itemId')::uuid)) THEN RETURN NULL; END IF;
+     line:=line||jsonb_build_object('expectedUnit',item->>'expectedUnit');
    END IF;
    result:=result||jsonb_build_array(line);
  END LOOP;
@@ -217,13 +220,16 @@ BEGIN
  IF num_nonnulls(purchase,supplier,lines)<>3 THEN RETURN '{"error":"invalid"}'; END IF;
  SELECT * INTO o FROM public.purchase_orders WHERE (organization_id,clinic_id,id)=(org,clinic,purchase);
  IF FOUND THEN
-   SELECT jsonb_agg(jsonb_build_object('itemId',item_id,'quantity',quantity::text) ORDER BY line_no) INTO existing
+   SELECT jsonb_agg(jsonb_build_object('itemId',item_id,'quantity',quantity::text,'expectedUnit',unit) ORDER BY line_no) INTO existing
     FROM public.purchase_lines WHERE (organization_id,clinic_id,order_id)=(org,clinic,purchase);
    IF (o.supplier_id,o.actor_issuer,o.actor_subject,existing) IS DISTINCT FROM (supplier,issuer,subj,lines) THEN RETURN '{"error":"conflict"}'; END IF;
  ELSE
    SELECT name INTO supplier_name FROM public.trade_suppliers WHERE (organization_id,clinic_id,id)=(org,clinic,supplier);
    IF NOT FOUND OR EXISTS (SELECT FROM jsonb_array_elements(lines) l WHERE NOT EXISTS(SELECT FROM public.inventory_items i
      WHERE (i.organization_id,i.clinic_id,i.id)=(org,clinic,(l->>'itemId')::uuid))) THEN RETURN '{"error":"not_found"}'; END IF;
+   IF EXISTS(SELECT FROM jsonb_array_elements(lines) l JOIN public.inventory_items i
+     ON (i.organization_id,i.clinic_id,i.id)=(org,clinic,(l->>'itemId')::uuid)
+     WHERE i.unit IS DISTINCT FROM l->>'expectedUnit') THEN RETURN '{"error":"conflict"}'; END IF;
    INSERT INTO public.purchase_orders(organization_id,clinic_id,id,supplier_id,supplier_name,actor_issuer,actor_subject)
      VALUES(org,clinic,purchase,supplier,supplier_name,issuer,subj) RETURNING * INTO o;
    INSERT INTO public.purchase_lines(organization_id,clinic_id,order_id,item_id,line_no,item_name,unit,quantity)
@@ -240,7 +246,7 @@ CREATE FUNCTION vetx_trade.receipt(r public.purchase_receipts) RETURNS jsonb LAN
  WHERE (l.organization_id,l.clinic_id,l.receipt_id)=(r.organization_id,r.clinic_id,r.id)
 $$;
 CREATE FUNCTION public.trade_receive(purchase uuid,receipt uuid,raw jsonb) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,pg_temp AS $$
-DECLARE org uuid:=vetx_directory.organization_id(); clinic uuid:=vetx_registry.clinic_id(); r public.purchase_receipts; lines jsonb; existing jsonb; line jsonb;
+DECLARE org uuid:=vetx_directory.organization_id(); clinic uuid:=vetx_registry.clinic_id(); r public.purchase_receipts; lines jsonb; existing jsonb; line jsonb; ordered_unit text;
  issuer text:=current_setting('vetx.identity_issuer',true); subj text:=current_setting('vetx.identity_subject',true); n integer:=0; item uuid; missing boolean; excessive boolean; movement uuid;
 BEGIN
  IF NOT vetx_registry.clinic_access(true) THEN RETURN '{"error":"forbidden"}'; END IF;
@@ -264,9 +270,12 @@ BEGIN
  IF missing THEN RETURN '{"error":"not_found"}'; END IF;
  IF excessive THEN RETURN '{"error":"conflict"}'; END IF;
  INSERT INTO public.purchase_receipts(organization_id,clinic_id,id,order_id,actor_issuer,actor_subject) VALUES(org,clinic,receipt,purchase,issuer,subj) RETURNING * INTO r;
- FOR line IN SELECT value FROM jsonb_array_elements(lines) LOOP
+ FOR line,ordered_unit IN
+   SELECT l.v,o.unit FROM jsonb_array_elements(lines) WITH ORDINALITY l(v,n)
+   JOIN public.purchase_lines o ON (o.organization_id,o.clinic_id,o.order_id,o.item_id)=(org,clinic,purchase,(l.v->>'itemId')::uuid) ORDER BY l.n
+ LOOP
    n:=n+1; item:=(line->>'itemId')::uuid;
-   movement:=vetx_trade.stock(item,(line->>'warehouseId')::uuid,line->>'lot',(line->>'quantity')::numeric,'RECEIPT','Purchase receipt');
+   movement:=vetx_trade.stock(item,(line->>'warehouseId')::uuid,line->>'lot',(line->>'quantity')::numeric,'RECEIPT','Purchase receipt',ordered_unit);
    INSERT INTO public.purchase_receipt_lines VALUES(org,clinic,receipt,purchase,item,movement,n);
  END LOOP;
  RETURN vetx_trade.receipt(r);
@@ -282,7 +291,7 @@ $$;
 CREATE FUNCTION public.trade_return(purchase uuid,return_id uuid,received_move uuid,amount_input text,reason_input text) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,pg_temp AS $$
 DECLARE org uuid:=vetx_directory.organization_id(); clinic uuid:=vetx_registry.clinic_id(); r public.supplier_returns; m public.stock_movements;
  issuer text:=current_setting('vetx.identity_issuer',true); subj text:=current_setting('vetx.identity_subject',true);
- amount numeric:=vetx_trade.amount(amount_input); already numeric; movement uuid; output jsonb;
+ amount numeric:=vetx_trade.amount(amount_input); already numeric; movement uuid; output jsonb; ordered_unit text;
 BEGIN
  IF NOT vetx_registry.clinic_access(true) THEN RETURN '{"error":"forbidden"}'; END IF;
  IF num_nonnulls(purchase,return_id,received_move,amount)<>4 OR NOT vetx_stock.label(reason_input,250) THEN RETURN '{"error":"invalid"}'; END IF;
@@ -301,7 +310,8 @@ BEGIN
  ON (stock.organization_id,stock.clinic_id,stock.id)=(ret.organization_id,ret.clinic_id,ret.movement_id)
  WHERE (ret.organization_id,ret.clinic_id,ret.receipt_movement_id)=(org,clinic,received_move);
  IF amount+already>m.quantity THEN RETURN '{"error":"conflict"}'; END IF;
- movement:=vetx_trade.stock(m.item_id,m.to_warehouse_id,m.lot,amount,'ISSUE','Supplier return');
+ SELECT unit INTO STRICT ordered_unit FROM public.purchase_lines WHERE (organization_id,clinic_id,order_id,item_id)=(org,clinic,purchase,m.item_id);
+ movement:=vetx_trade.stock(m.item_id,m.to_warehouse_id,m.lot,amount,'ISSUE','Supplier return',ordered_unit);
  INSERT INTO public.supplier_returns(organization_id,clinic_id,id,receipt_movement_id,movement_id,reason,actor_issuer,actor_subject)
  VALUES(org,clinic,return_id,received_move,movement,reason_input,issuer,subj) RETURNING * INTO r;
  RETURN vetx_trade.return_entry(r);
@@ -380,23 +390,24 @@ CREATE FUNCTION vetx_trade.prescription(r public.patient_prescriptions) RETURNS 
  'unit',r.unit,'medication',r.medication,'instructions',r.instructions,'quantity',r.quantity::text,
  'dispensedQuantity',vetx_trade.dispensed(r.organization_id,r.clinic_id,r.id)::text,'sharing',vetx_trade.sharing(r.organization_id,r.clinic_id,r.patient_id,r.id))
 $$;
-CREATE FUNCTION public.pharmacy_prescribe(patient uuid,rx uuid,item uuid,med text,directions text,amount_input text)
+CREATE FUNCTION public.pharmacy_prescribe(patient uuid,rx uuid,item uuid,med text,directions text,amount_input text,expected_unit text)
 RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,pg_temp AS $$
 DECLARE org uuid:=vetx_directory.organization_id(); clinic uuid:=vetx_registry.clinic_id(); r public.patient_prescriptions; i public.inventory_items;
  issuer text:=current_setting('vetx.identity_issuer',true); subj text:=current_setting('vetx.identity_subject',true); amount numeric:=vetx_trade.amount(amount_input);
 BEGIN
  IF NOT vetx_registry.clinic_access(true) OR NOT vetx_trade.permitted(org,clinic,true) THEN RETURN '{"error":"forbidden"}'; END IF;
  directions:=vetx_care.clean(directions);
- IF num_nonnulls(patient,rx,item,amount,directions)<>5 OR NOT vetx_stock.label(med,250) OR length(directions) NOT BETWEEN 1 AND 8000 OR
+ IF num_nonnulls(patient,rx,item,amount,directions)<>5 OR NOT vetx_stock.label(expected_unit,40) OR NOT vetx_stock.label(med,250) OR length(directions) NOT BETWEEN 1 AND 8000 OR
  translate(directions,E'\t\n\r','') ~ '[[:cntrl:]]' THEN RETURN '{"error":"invalid"}'; END IF;
  med:=btrim(med);
  SELECT * INTO r FROM public.patient_prescriptions WHERE (organization_id,clinic_id,id)=(org,clinic,rx);
  IF FOUND THEN
-   IF (r.patient_id,r.item_id,r.medication,r.instructions,r.quantity,r.actor_issuer,r.actor_subject)
-    IS DISTINCT FROM (patient,item,med,directions,amount,issuer,subj) THEN RETURN '{"error":"conflict"}'; END IF;
+   IF (r.patient_id,r.item_id,r.unit,r.medication,r.instructions,r.quantity,r.actor_issuer,r.actor_subject)
+    IS DISTINCT FROM (patient,item,expected_unit,med,directions,amount,issuer,subj) THEN RETURN '{"error":"conflict"}'; END IF;
  ELSE
    SELECT * INTO i FROM public.inventory_items WHERE (organization_id,clinic_id,id)=(org,clinic,item);
    IF NOT FOUND OR NOT EXISTS(SELECT FROM public.patients WHERE (organization_id,clinic_id,id)=(org,clinic,patient)) THEN RETURN '{"error":"not_found"}'; END IF;
+   IF i.unit IS DISTINCT FROM expected_unit THEN RETURN '{"error":"conflict"}'; END IF;
    INSERT INTO public.patient_prescriptions(organization_id,clinic_id,id,patient_id,item_id,item_name,unit,medication,instructions,quantity,actor_issuer,actor_subject)
     VALUES(org,clinic,rx,patient,item,i.name,i.unit,med,directions,amount,issuer,subj) RETURNING * INTO r;
  END IF;
@@ -425,7 +436,7 @@ BEGIN
   RETURN output;
  END IF;
  IF amount+vetx_trade.dispensed(org,clinic,rx)>r.quantity THEN RETURN '{"error":"conflict"}'; END IF;
- movement:=vetx_trade.stock(r.item_id,warehouse,lot_input,amount,'ISSUE','Prescription dispensing');
+ movement:=vetx_trade.stock(r.item_id,warehouse,lot_input,amount,'ISSUE','Prescription dispensing',r.unit);
  INSERT INTO public.prescription_dispensings(organization_id,clinic_id,id,prescription_id,movement_id,actor_issuer,actor_subject)
  VALUES(org,clinic,request,rx,movement,issuer,subj) RETURNING * INTO d;
  RETURN vetx_trade.dispensing(d);
@@ -577,7 +588,7 @@ REVOKE ALL ON FUNCTION
  public.trade_return(uuid,uuid,uuid,text,text),
  public.pharmacy_me(),
  public.pharmacy_grant(text,boolean,boolean,integer),
- public.pharmacy_prescribe(uuid,uuid,uuid,text,text,text),
+ public.pharmacy_prescribe(uuid,uuid,uuid,text,text,text,text),
  public.pharmacy_dispense(uuid,uuid,uuid,uuid,text,text),
  public.pharmacy_share(uuid,uuid,uuid[],integer),
  public.trade_suppliers_list(integer),
@@ -596,7 +607,7 @@ GRANT EXECUTE ON FUNCTION
  public.trade_return(uuid,uuid,uuid,text,text),
  public.pharmacy_me(),
  public.pharmacy_grant(text,boolean,boolean,integer),
- public.pharmacy_prescribe(uuid,uuid,uuid,text,text,text),
+ public.pharmacy_prescribe(uuid,uuid,uuid,text,text,text,text),
  public.pharmacy_dispense(uuid,uuid,uuid,uuid,text,text),
  public.pharmacy_share(uuid,uuid,uuid[],integer),
  public.trade_suppliers_list(integer),
