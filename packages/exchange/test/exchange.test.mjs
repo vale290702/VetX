@@ -357,3 +357,26 @@ test("versioned records require complete lab provenance and keep legacy clinical
     }),
   );
 });
+
+test("episode exchange accepts only eligible summaries and requires revision provenance", () => {
+  for (const [kind, statuses] of [
+    ["hospitalization", ["DISCHARGED"]],
+    ["surgery", ["COMPLETED", "CANCELLED"]],
+  ]) {
+    for (const status of statuses) {
+      const good = {
+        ...record(kind, { status, summary: "Approved summary" }),
+        clinicalRevision: { recordId: randomUUID(), revision: 2 },
+      };
+      const read = (r) => exchange.validateVetpkgManifest({ ...manifest, records: [r] }).records[0];
+      assert.deepEqual(read(good), good);
+      for (const bad of [
+        { ...good, clinicalRevision: undefined },
+        { ...good, data: { ...good.data, ward: "Private ward" } },
+        { ...good, data: { ...good.data, status: "IN_PROGRESS" } },
+        { ...good, data: { status, summary: "" } },
+      ])
+        assert.throws(() => read(bad));
+    }
+  }
+});

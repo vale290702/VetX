@@ -60,6 +60,46 @@ test("staff clinical routes validate typed data before storage and bind revision
     assert.equal(result.headers.get("cache-control"), "no-store");
     assert.deepEqual(received.slice(0, 6), [staff, org, clinic, patient, id, req]);
     assert.deepEqual(JSON.parse(JSON.stringify(received[6])), good);
+    for (const [kind, data] of [
+      ["hospitalization", { status: "ADMITTED", ward: "Ward A", note: "Admission" }],
+      [
+        "surgery",
+        { status: "PLANNED", procedure: "Scheduled procedure", scheduledAt: good.occurredAt },
+      ],
+    ]) {
+      assert.equal((await call(path, { ...good, kind, data })).status, 200);
+      assert.equal(
+        (await call(path, { ...good, kind, data: { ...data, summary: "Unreleased text" } })).status,
+        400,
+      );
+    }
+    assert.equal(
+      (
+        await call(path, {
+          ...good,
+          kind: "hospitalization",
+          data: { status: "DISCHARGED", ward: "Ward", note: "Recorded" },
+        })
+      ).status,
+      400,
+    );
+    assert.equal(
+      (
+        await call(path, {
+          ...good,
+          kind: "surgery",
+          revision: 1,
+          changeReason: "Completed",
+          data: {
+            status: "COMPLETED",
+            procedure: "Procedure",
+            scheduledAt: good.occurredAt,
+            summary: "Complete",
+          },
+        })
+      ).status,
+      400,
+    );
   } finally {
     await app.close();
   }

@@ -100,6 +100,12 @@ const recordSchema = z.discriminatedUnion("kind", [
     referenceRange: label(250).optional(),
     specimen: label(250).optional(),
   }).extend({ clinicalRevision: resultProvenance.optional() }),
+  record("hospitalization", { status: z.literal("DISCHARGED"), summary: narrative }).extend({
+    clinicalRevision: clinicalProvenance,
+  }),
+  record("surgery", { status: z.enum(["COMPLETED", "CANCELLED"]), summary: narrative }).extend({
+    clinicalRevision: clinicalProvenance,
+  }),
   record("document", {
     ...attachment,
     mediaType: z.enum(["application/pdf", "image/jpeg", "image/png"]),
