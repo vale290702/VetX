@@ -5,6 +5,7 @@ import { getTranslations } from "next-intl/server";
 
 import { readStaffSession } from "../../../../../../../../auth/account.ts";
 import { isDirectoryId, readDirectoryPage } from "../../../../../../../../directory/forms.ts";
+import { ReferralLink } from "../../../../../../../../referrals/navigation";
 import { Link } from "../../../../../../../../i18n/routing";
 import { readRegistry } from "../../../../../../../../patients/api.ts";
 import { Guardians, PatientForm } from "../../../../../../../../patients/fields";
@@ -68,6 +69,7 @@ export default async function Patients({ params, searchParams }: Props) {
     getTranslations("care"),
   ]);
   const documents = await getTranslations("webDocuments");
+  const exchange = await getTranslations("webExchange");
   const notice = patientNotices.find((key) => key === query.notice);
   const context = {
     csrf: access.session.csrf,
@@ -121,6 +123,13 @@ export default async function Patients({ params, searchParams }: Props) {
                 <Link className="directory-back" href={carePath(scope, undefined, { timeZone })}>
                   {care("calendar")}
                 </Link>
+                <Link
+                  className="directory-back"
+                  href={`/organizations/${organizationId}/clinics/${clinicId}/exchange/import`}
+                >
+                  {exchange("importTitle")}
+                </Link>
+                <ReferralLink scope={scope} locale={locale} />
                 <PatientForm context={context} />
                 <form
                   className="directory-form registry-search"
@@ -207,6 +216,13 @@ export default async function Patients({ params, searchParams }: Props) {
                     >
                       {documents("title")}
                     </Link>
+                    <Link
+                      className="directory-back"
+                      href={`${registryPath(scope)}/${detail.patient.id}/imported-records`}
+                    >
+                      {exchange("history")}
+                    </Link>
+                    <ReferralLink scope={scope} locale={locale} patientId={detail.patient.id} />
                     <PatientForm context={context} patient={detail.patient} />
                   </section>
                   <Guardians context={context} record={detail} />

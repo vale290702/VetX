@@ -5,8 +5,12 @@ import type { NestExpressApplication } from "@nestjs/platform-express";
 import { SwaggerModule } from "@nestjs/swagger";
 import { type AccessDependencies, AccessModule } from "./access.js";
 import { DocumentModule, type DocumentDependencies } from "./documents/module.js";
+import { InventoryModule, type InventoryStore } from "./inventory/module.js";
+import { ClinicalExchangeModule } from "./exchange/module.js";
+import type { ExchangeDependencies } from "./exchange/service.js";
 import { IdentityModule } from "./identity-context.js";
 import { CareModule, type CareStore } from "./care/module.js";
+import { ReferralModule, type ReferralStore, type ReferralDirectory } from "./referrals/module.js";
 import { RegistryModule, type RegistryStore } from "./registry/module.js";
 import type { PetLinkConfig } from "@vetx/config";
 import { HealthModule, type ReadinessCheck } from "./health.js";
@@ -14,8 +18,12 @@ import { configureHttp } from "./http.js";
 import { createOpenApiDocument } from "./openapi.js";
 
 type Dependencies = AccessDependencies & {
+  inventory?: InventoryStore;
+  exchange?: ExchangeDependencies;
   documents?: DocumentDependencies;
   care?: CareStore;
+  referrals?: ReferralStore;
+  referralDirectory?: ReferralDirectory;
   registry?: RegistryStore;
   petLinks?: PetLinkConfig;
 };
@@ -31,7 +39,10 @@ class AppModule {
         AccessModule.register(access),
         RegistryModule.register(access.registry, access.petLinks),
         DocumentModule.register(access.documents),
+        InventoryModule.register(access.inventory),
+        ClinicalExchangeModule.register(access.exchange),
         CareModule.register(access.care),
+        ReferralModule.register(access.referrals, access.referralDirectory),
       ],
     };
   }

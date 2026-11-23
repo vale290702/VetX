@@ -2,6 +2,8 @@ import { Activity, useCallback, useEffect, useState } from "react";
 import { AppState, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
+import { PatientReferrals } from "./referrals";
+import { ImportedHistory } from "./imported-history";
 import { PatientDocuments } from "./medical-documents";
 import { Appointments } from "./appointments";
 import { PatientEncounters } from "./clinical-notes";
@@ -32,7 +34,9 @@ export function PatientDetail({
   const load = useCallback(() => client.detail(scope, patientId), [client, scope, patientId]);
   const { result, reload } = usePatientRead(load);
   const action = usePatientAction(account);
-  const [care, setCare] = useState<"notes" | "appointments" | "documents">();
+  const [care, setCare] = useState<
+    "notes" | "appointments" | "documents" | "imports" | "referrals"
+  >();
   const [edit, setEdit] = useState<Editor>();
   const [issued, setIssued] = useState<{
     guardianId: string;
@@ -99,7 +103,11 @@ export function PatientDetail({
             <Text accessibilityRole="header" style={styles.heading}>
               {record?.patient.name}
             </Text>
-            {care === "documents" ? (
+            {care === "referrals" ? (
+              <PatientReferrals {...props} patientId={patientId} back={backToPatient} />
+            ) : care === "imports" ? (
+              <ImportedHistory {...props} patientId={patientId} back={backToPatient} />
+            ) : care === "documents" ? (
               <PatientDocuments {...props} patientId={patientId} back={backToPatient} />
             ) : care === "notes" ? (
               <PatientEncounters
@@ -193,6 +201,22 @@ export function PatientDetail({
                   onPress={() => {
                     setIssued(undefined);
                     setCare("appointments");
+                  }}
+                />
+                <Action
+                  styles={styles}
+                  label={t("nativeReferrals.outbox")}
+                  onPress={() => {
+                    setIssued(undefined);
+                    setCare("referrals");
+                  }}
+                />
+                <Action
+                  styles={styles}
+                  label={t("nativeExchange.history")}
+                  onPress={() => {
+                    setIssued(undefined);
+                    setCare("imports");
                   }}
                 />
                 <Action

@@ -23,6 +23,7 @@ model Organization {
 }
 
 model Clinic {
+  exchangePackages ExchangePackage[]
   id             String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   organizationId String       @map("organization_id") @db.Uuid
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Cascade)
@@ -30,6 +31,9 @@ model Clinic {
   createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
 
   patients Patient[]
+  warehouses InventoryWarehouse[]
+  stockItems InventoryItem[]
+  incomingReferrals ReferralState[]
   ownerContacts OwnerContact[]
   grants         ClinicGrant[]
 
@@ -97,6 +101,8 @@ model DirectoryEvent {
 }
 
 model Patient {
+  exchangeMappings ExchangePatient[]
+  exports ExchangeExportEvent[]
   organizationId String          @map("organization_id") @db.Uuid
   clinicId       String          @map("clinic_id") @db.Uuid
   id             String          @db.Uuid
@@ -146,6 +152,7 @@ model Guardian {
   petId           String?      @map("pet_id") @db.Uuid
   claimRequestId  String?      @map("claim_request_id") @db.Uuid
   claimTarget     String?      @map("claim_target") @db.Uuid
+  referralStates  ReferralState[]
   releases        EncounterRecipient[]
   patient         Patient      @relation(fields: [organizationId, clinicId, patientId], references: [organizationId, clinicId, id], onUpdate: NoAction, onDelete: NoAction)
   contact         OwnerContact @relation(fields: [organizationId, clinicId, contactId], references: [organizationId, clinicId, id], onUpdate: NoAction, onDelete: NoAction)
@@ -269,6 +276,75 @@ model CareEvent {
   @@map("care_events")
 }
 
+model ReferralState {
+  id               String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  requestId        String @map("request_id") @db.Uuid
+  sourceOrg        String @map("source_org") @db.Uuid
+  sourceClinic     String @map("source_clinic") @db.Uuid
+  patientId        String @map("patient_id") @db.Uuid
+  guardianId       String @map("guardian_id") @db.Uuid
+  destinationOrg   String @map("destination_org") @db.Uuid
+  destinationClinic String @map("destination_clinic") @db.Uuid
+  ownerIssuer      String @map("owner_issuer")
+  ownerSubject     String @map("owner_subject")
+  petId            String @map("pet_id") @db.Uuid
+  linked           Boolean @default(true)
+  status           String @default("REQUESTED")
+  revision         Int @default(1)
+  guardian         Guardian @relation(fields: [sourceOrg, sourceClinic, patientId, guardianId], references: [organizationId, clinicId, patientId, id], onDelete: NoAction, onUpdate: NoAction)
+  destination      Clinic @relation(fields: [destinationOrg, destinationClinic], references: [organizationId, id], onDelete: NoAction, onUpdate: NoAction)
+  request          ReferralRequest?
+  response         ReferralResponse?
+  events           ReferralEvent[]
+
+  @@unique([sourceOrg, sourceClinic, requestId])
+  @@index([destinationOrg, destinationClinic, status], map: "referrals_destination")
+  @@index([sourceOrg, sourceClinic, patientId, guardianId], map: "referrals_guardian")
+  @@index([ownerIssuer, ownerSubject, petId], map: "referrals_owner")
+  @@map("referral_states")
+}
+
+model ReferralRequest {
+  id                          String @id @db.Uuid
+  sourceOrganizationName      String @map("source_organization_name")
+  sourceClinicName            String @map("source_clinic_name")
+  destinationOrganizationName String @map("destination_organization_name")
+  destinationClinicName       String @map("destination_clinic_name")
+  patientName                 String @map("patient_name")
+  species                     String
+  reason                      String
+  summary                     String
+  authorIssuer                String @map("author_issuer")
+  authorSubject               String @map("author_subject")
+  requestedAt                 DateTime @default(dbgenerated("clock_timestamp()")) @map("requested_at") @db.Timestamptz(3)
+  state                       ReferralState @relation(fields: [id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([requestedAt(sort: Desc), id], map: "referrals_chronology")
+  @@map("referral_requests")
+}
+
+model ReferralResponse {
+  id            String @id @db.Uuid
+  summary       String
+  authorIssuer  String @map("author_issuer")
+  authorSubject String @map("author_subject")
+  recordedAt    DateTime @default(dbgenerated("clock_timestamp()")) @map("recorded_at") @db.Timestamptz(3)
+  state         ReferralState @relation(fields: [id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  @@map("referral_responses")
+}
+
+model ReferralEvent {
+  referralId   String @map("referral_id") @db.Uuid
+  revision     Int
+  action       String
+  actorIssuer  String @map("actor_issuer")
+  actorSubject String @map("actor_subject")
+  recordedAt   DateTime @default(dbgenerated("clock_timestamp()")) @map("recorded_at") @db.Timestamptz(3)
+  state        ReferralState @relation(fields: [referralId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  @@id([referralId, revision])
+  @@map("referral_events")
+}
+
 model MedicalDocument {
   organizationId  String          @map("organization_id") @db.Uuid
   clinicId        String          @map("clinic_id") @db.Uuid
@@ -310,4 +386,196 @@ model DocumentEvent {
   document       MedicalDocument @relation(fields: [organizationId, clinicId, patientId, documentId], references: [organizationId, clinicId, patientId, id], onDelete: NoAction, onUpdate: NoAction)
 
   @@map("document_events")
+}
+
+model InventoryWarehouse {
+  organizationId String @map("organization_id") @db.Uuid
+  clinicId       String @map("clinic_id") @db.Uuid
+  id             String @db.Uuid
+  name           String
+  revision       Int
+  actorIssuer    String @map("actor_issuer")
+  actorSubject   String @map("actor_subject")
+  clinic         Clinic @relation(fields: [organizationId, clinicId], references: [organizationId, id], onDelete: NoAction, onUpdate: NoAction)
+  balances       StockBalance[]
+  outgoing       StockMovement[] @relation("MovementOrigin")
+  incoming       StockMovement[] @relation("MovementDestination")
+
+  @@id([organizationId, clinicId, id])
+  @@map("inventory_warehouses")
+}
+
+model InventoryItem {
+  organizationId String @map("organization_id") @db.Uuid
+  clinicId       String @map("clinic_id") @db.Uuid
+  id             String @db.Uuid
+  name           String
+  sku            String
+  unit           String
+  revision       Int
+  actorIssuer    String @map("actor_issuer")
+  actorSubject   String @map("actor_subject")
+  clinic         Clinic @relation(fields: [organizationId, clinicId], references: [organizationId, id], onDelete: NoAction, onUpdate: NoAction)
+  balances       StockBalance[]
+  movements      StockMovement[]
+
+  @@id([organizationId, clinicId, id])
+  @@map("inventory_items")
+}
+
+model StockBalance {
+  organizationId String @map("organization_id") @db.Uuid
+  clinicId       String @map("clinic_id") @db.Uuid
+  warehouseId    String @map("warehouse_id") @db.Uuid
+  itemId         String @map("item_id") @db.Uuid
+  lot            String
+  quantity       Decimal @db.Decimal(18,3)
+  warehouse      InventoryWarehouse @relation(fields: [organizationId, clinicId, warehouseId], references: [organizationId, clinicId, id], onDelete: NoAction, onUpdate: NoAction)
+  item           InventoryItem @relation(fields: [organizationId, clinicId, itemId], references: [organizationId, clinicId, id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@id([organizationId, clinicId, warehouseId, itemId, lot])
+  @@map("stock_balances")
+}
+
+model StockMovement {
+  ledgerSequence BigInt @default(autoincrement()) @map("ledger_sequence")
+  itemName String @map("item_name")
+  sku String
+  unit String
+  fromWarehouseName String? @map("from_warehouse_name")
+  toWarehouseName String? @map("to_warehouse_name")
+  organizationId String @map("organization_id") @db.Uuid
+  clinicId       String @map("clinic_id") @db.Uuid
+  id             String @db.Uuid
+  itemId         String @map("item_id") @db.Uuid
+  kind           String
+  fromWarehouseId String? @map("from_warehouse_id") @db.Uuid
+  toWarehouseId   String? @map("to_warehouse_id") @db.Uuid
+  lot            String
+  reason         String
+  quantity       Decimal @db.Decimal(18,3)
+  fromBalance    Decimal? @map("from_balance") @db.Decimal(18,3)
+  toBalance      Decimal? @map("to_balance") @db.Decimal(18,3)
+  recordedAt     DateTime @default(dbgenerated("clock_timestamp()")) @map("recorded_at") @db.Timestamptz(3)
+  actorIssuer    String @map("actor_issuer")
+  actorSubject   String @map("actor_subject")
+  origin         InventoryWarehouse? @relation("MovementOrigin", fields: [organizationId, clinicId, fromWarehouseId], references: [organizationId, clinicId, id], onDelete: NoAction, onUpdate: NoAction)
+  destination    InventoryWarehouse? @relation("MovementDestination", fields: [organizationId, clinicId, toWarehouseId], references: [organizationId, clinicId, id], onDelete: NoAction, onUpdate: NoAction)
+  item           InventoryItem @relation(fields: [organizationId, clinicId, itemId], references: [organizationId, clinicId, id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@id([organizationId, clinicId, id])
+  @@index([organizationId, clinicId, ledgerSequence(sort: Desc)], map: "stock_chronology")
+  @@index([organizationId, clinicId, itemId], map: "stock_item_history")
+  @@map("stock_movements")
+}
+
+model ExchangePackage {
+  organizationId       String @map("organization_id") @db.Uuid
+  clinicId             String @map("clinic_id") @db.Uuid
+  id                   String @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sourceOrganizationId String @map("source_organization_id") @db.Uuid
+  sourceClinicId       String @map("source_clinic_id") @db.Uuid
+  sourcePackageId      String @map("source_package_id") @db.Uuid
+  archiveSha256        String @map("archive_sha256")
+  byteLength           Int @map("byte_length")
+  manifest             Json @db.JsonB
+  recordDigests        Json @map("record_digests") @db.JsonB
+  clinic               Clinic @relation(fields: [organizationId, clinicId], references: [organizationId, id], onDelete: NoAction, onUpdate: NoAction)
+  receipts             ExchangeReceipt[]
+  import               ExchangeImport?
+
+  @@id([organizationId, clinicId, id])
+  @@unique([organizationId, clinicId, sourceOrganizationId, sourceClinicId, sourcePackageId], map: "exchange_package_source")
+  @@map("exchange_packages")
+}
+
+model ExchangeReceipt {
+  organizationId String @map("organization_id") @db.Uuid
+  clinicId       String @map("clinic_id") @db.Uuid
+  id             String @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  packageId      String @map("package_id") @db.Uuid
+  actorIssuer    String @map("actor_issuer")
+  actorSubject   String @map("actor_subject")
+  stagedAt       DateTime @default(dbgenerated("clock_timestamp()")) @map("staged_at") @db.Timestamptz(3)
+  package        ExchangePackage @relation(fields: [organizationId, clinicId, packageId], references: [organizationId, clinicId, id], onDelete: NoAction, onUpdate: NoAction)
+  imports        ExchangeImport[]
+
+  @@id([organizationId, clinicId, id])
+  @@unique([organizationId, clinicId, packageId, actorIssuer, actorSubject], map: "exchange_operator_receipt")
+  @@map("exchange_receipts")
+}
+
+model ExchangePatient {
+  organizationId       String @map("organization_id") @db.Uuid
+  clinicId             String @map("clinic_id") @db.Uuid
+  id                   String @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  patientId            String @map("patient_id") @db.Uuid
+  sourceOrganizationId String @map("source_organization_id") @db.Uuid
+  sourceClinicId       String @map("source_clinic_id") @db.Uuid
+  sourcePatientId      String @map("source_patient_id") @db.Uuid
+  patient              Patient @relation(fields: [organizationId, clinicId, patientId], references: [organizationId, clinicId, id], onDelete: NoAction, onUpdate: NoAction)
+  imports              ExchangeImport[]
+  records              ExchangeRecord[]
+
+  @@id([organizationId, clinicId, id])
+  @@unique([organizationId, clinicId, sourceOrganizationId, sourceClinicId, sourcePatientId], map: "exchange_source_patient")
+  @@index([organizationId, clinicId, patientId], map: "exchange_patients_local")
+  @@map("exchange_patients")
+}
+
+model ExchangeImport {
+  organizationId String @map("organization_id") @db.Uuid
+  clinicId       String @map("clinic_id") @db.Uuid
+  packageId      String @map("package_id") @db.Uuid
+  receiptId      String @map("receipt_id") @db.Uuid
+  mappingId      String @map("mapping_id") @db.Uuid
+  choice         String
+  insertedCount  Int @map("inserted_count")
+  skippedCount   Int @map("skipped_count")
+  importedAt     DateTime @default(dbgenerated("clock_timestamp()")) @map("imported_at") @db.Timestamptz(3)
+  package        ExchangePackage @relation(fields: [organizationId, clinicId, packageId], references: [organizationId, clinicId, id], onDelete: NoAction, onUpdate: NoAction)
+  receipt        ExchangeReceipt @relation(fields: [organizationId, clinicId, receiptId], references: [organizationId, clinicId, id], onDelete: NoAction, onUpdate: NoAction)
+  mapping        ExchangePatient @relation(fields: [organizationId, clinicId, mappingId], references: [organizationId, clinicId, id], onDelete: NoAction, onUpdate: NoAction)
+  records        ExchangeRecord[]
+
+  @@id([organizationId, clinicId, packageId])
+  @@map("exchange_imports")
+}
+
+model ExchangeRecord {
+  organizationId String @map("organization_id") @db.Uuid
+  clinicId       String @map("clinic_id") @db.Uuid
+  id             String @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  mappingId      String @map("mapping_id") @db.Uuid
+  packageId      String @map("package_id") @db.Uuid
+  sourceRecordId String @map("source_record_id") @db.Uuid
+  digest         String
+  occurredAt     DateTime @map("occurred_at") @db.Timestamptz(6)
+  record         Json @db.JsonB
+  mapping        ExchangePatient @relation(fields: [organizationId, clinicId, mappingId], references: [organizationId, clinicId, id], onDelete: NoAction, onUpdate: NoAction)
+  import         ExchangeImport @relation(fields: [organizationId, clinicId, packageId], references: [organizationId, clinicId, packageId], onDelete: NoAction, onUpdate: NoAction)
+
+  @@id([organizationId, clinicId, id])
+  @@unique([organizationId, clinicId, mappingId, sourceRecordId], map: "exchange_record_source")
+  @@index([organizationId, clinicId, mappingId, occurredAt(sort: Desc), id], map: "exchange_records_chronology")
+  @@map("exchange_records")
+}
+
+model ExchangeExportEvent {
+  patient                   Patient @relation(fields: [organizationId, clinicId, patientId], references: [organizationId, clinicId, id], onDelete: NoAction, onUpdate: NoAction)
+  packageId                 String @id @map("package_id") @db.Uuid
+  organizationId            String @map("organization_id") @db.Uuid
+  clinicId                  String @map("clinic_id") @db.Uuid
+  patientId                 String @map("patient_id") @db.Uuid
+  petId                     String @map("pet_id") @db.Uuid
+  destinationOrganizationId String @map("destination_organization_id") @db.Uuid
+  destinationClinicId       String @map("destination_clinic_id") @db.Uuid
+  encounterIds              String[] @map("encounter_ids") @db.Uuid
+  assetIds                  String[] @map("asset_ids") @db.Uuid
+  includeOwner              Boolean @map("include_owner")
+  actorIssuer               String @map("actor_issuer")
+  actorSubject              String @map("actor_subject")
+  recordedAt                DateTime @default(dbgenerated("clock_timestamp()")) @map("recorded_at") @db.Timestamptz(3)
+
+  @@map("exchange_export_events")
 }

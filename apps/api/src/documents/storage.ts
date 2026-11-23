@@ -5,19 +5,23 @@ import {
   S3Client,
   S3ServiceException,
 } from "@aws-sdk/client-s3";
-import type { FileIntegrity } from "./content.js";
+export interface StoredIntegrity {
+  mediaType: string;
+  byteLength: number;
+  sha256: string;
+}
 
 export interface DocumentStorage {
   close?(): void;
-  put(key: string, bytes: Buffer, integrity: FileIntegrity): Promise<void>;
-  read(key: string, integrity: FileIntegrity): Promise<Buffer>;
+  put(key: string, bytes: Buffer, integrity: StoredIntegrity): Promise<void>;
+  read(key: string, integrity: StoredIntegrity): Promise<Buffer>;
 }
 
 export class StoredFileIntegrityError extends Error {}
 export class StorageUnavailable extends Error {}
 export async function readVerified(
   stream: AsyncIterable<Uint8Array>,
-  integrity: FileIntegrity,
+  integrity: StoredIntegrity,
 ): Promise<Buffer> {
   const chunks: Uint8Array[] = [];
   const hash = createHash("sha256");
@@ -37,7 +41,7 @@ export class S3DocumentStorage implements DocumentStorage {
     private readonly client: S3Client,
     private readonly bucket: string,
   ) {}
-  async put(key: string, bytes: Buffer, integrity: FileIntegrity): Promise<void> {
+  async put(key: string, bytes: Buffer, integrity: StoredIntegrity): Promise<void> {
     try {
       await this.client.send(
         new PutObjectCommand({
@@ -58,7 +62,7 @@ export class S3DocumentStorage implements DocumentStorage {
       throw new StorageUnavailable();
     }
   }
-  async read(key: string, integrity: FileIntegrity): Promise<Buffer> {
+  async read(key: string, integrity: StoredIntegrity): Promise<Buffer> {
     try {
       const { Body, ContentLength } = await this.client.send(
         new GetObjectCommand({ Bucket: this.bucket, Key: key }),

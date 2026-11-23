@@ -1,0 +1,62 @@
+{
+  "inbox": "Referencias recibidas",
+  "outbox": "Referencias enviadas",
+  "petLink": "Referencias clínicas",
+  "forPet": "Referencias de {name}",
+  "refresh": "Actualizar referencias",
+  "pageFilter": "Filtrar esta página por paciente, clínica o motivo",
+  "emptyOwner": "No tienes referencias de esta mascota para revisar.",
+  "emptyInbox": "Esta clínica aún no ha recibido referencias autorizadas.",
+  "emptyOutbox": "Este paciente no tiene referencias enviadas.",
+  "noMatches": "Ninguna referencia en esta página coincide con tu búsqueda.",
+  "open": "Ver referencia por {reason}",
+  "hide": "Ocultar referencia por {reason}",
+  "patient": "{name} · {species}",
+  "source": "De {clinic}",
+  "recipient": "Para {clinic}",
+  "authored": "Registrado el {time} por {author}",
+  "summary": "Resumen clínico",
+  "counter": "Contrarreferencia",
+  "responseLabel": "Resumen de la contrarreferencia",
+  "responseHelp": "Tu respuesta estará disponible para {clinic} y para el tutor que autorizó esta referencia.",
+  "sendResponse": "Enviar contrarreferencia",
+  "backList": "Volver a las referencias del paciente",
+  "newRequest": "Solicitar una referencia",
+  "requestHelp": "Elige al tutor vinculado que puede autorizar esta referencia y la clínica que la recibirá.",
+  "guardian": "Tutor que autoriza el envío",
+  "noGuardian": "Vincula a un tutor con este paciente antes de solicitar una referencia.",
+  "destination": "Clínica de destino",
+  "noRoutes": "Esta clínica no tiene una clínica de destino disponible.",
+  "searchDestination": "Buscar clínicas de destino",
+  "noRouteMatch": "Ninguna clínica de destino coincide con tu búsqueda.",
+  "refreshOptions": "Actualizar tutores y clínicas",
+  "reason": "Motivo de la referencia",
+  "summaryLabel": "Resumen clínico (opcional)",
+  "reviewRequest": "Se pedirá a {guardian} que autorice el envío de esta referencia a {clinic}.",
+  "send": "Solicitar autorización del tutor",
+  "requested": "Se envió la referencia al tutor para su autorización.",
+  "saved": "Referencia actualizada.",
+  "changed": "La referencia o tu acceso han cambiado. Revisa la lista actualizada antes de continuar.",
+  "status": {
+    "REQUESTED": "Pendiente de autorización del tutor",
+    "APPROVED": "Autorizada",
+    "DECLINED": "Rechazada",
+    "WITHDRAWN": "Autorización retirada",
+    "RESPONDED": "Contrarreferencia recibida"
+  },
+  "action": {
+    "approve": "Autorizar referencia",
+    "decline": "Rechazar referencia",
+    "withdraw": "Retirar autorización"
+  },
+  "confirm": {
+    "approve": "Confirmar autorización",
+    "decline": "Confirmar rechazo",
+    "withdraw": "Confirmar retirada"
+  },
+  "confirmText": {
+    "approve": "¿Autorizas a {clinic} a consultar los datos de identificación de tu mascota, el motivo de la referencia y su resumen clínico, y a enviar una respuesta a la clínica de origen?",
+    "decline": "¿Quieres rechazar esta solicitud para compartir la referencia de tu mascota con {clinic}?",
+    "withdraw": "¿Quieres retirar el permiso para que {clinic} consulte esta referencia en VetX? Tu clínica de origen conserva la referencia y las respuestas que haya recibido."
+  }
+}
