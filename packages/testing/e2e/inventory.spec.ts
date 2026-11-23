@@ -177,7 +177,9 @@ test("an administrator maintains stock and assigned staff can retry, transfer an
     const edit = page.getByRole("form", { name: "Edit item" });
     await expect(edit.getByLabel("Base unit")).toHaveAttribute("readonly", "");
     await expect(
-      edit.getByText("The base unit is fixed because this item has stock history."),
+      edit.getByText(
+        "The base unit is fixed because this item has a movement, purchase order, or prescription.",
+      ),
     ).toBeVisible();
   } finally {
     await Promise.all([setup.close(), staffBrowser.close()]);
