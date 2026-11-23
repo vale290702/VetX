@@ -304,6 +304,7 @@ export class ExchangeService {
           sha256: file.sha256,
           byteLength: file.byteLength,
           content: bytes.toString("base64url"),
+          ...(file.mediaType === "application/dicom" ? file.imaging : {}),
         },
       });
     }

@@ -67,4 +67,32 @@ EXCEPTION WHEN invalid_text_representation OR numeric_value_out_of_range THEN RE
 END $$;
 REVOKE ALL ON FUNCTION public.document_finish_dicom(uuid,uuid,text,jsonb) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.document_finish_dicom(uuid,uuid,text,jsonb) TO vetx_runtime;
+CREATE OR REPLACE FUNCTION public.exchange_owner_source(pet uuid,org uuid,clinic uuid,patient uuid,notes uuid[],files uuid[],include_owner boolean)
+RETURNS jsonb LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path=pg_catalog,pg_temp AS $$
+DECLARE patient_info jsonb; owner_info jsonb; note_rows jsonb; file_rows jsonb;
+BEGIN
+ IF current_setting('vetx.client_kind',true) IS DISTINCT FROM 'owner' THEN RETURN '{"error":"forbidden"}'; END IF;
+ IF num_nonnulls(pet,org,clinic,patient,notes,files,include_owner)<>7 OR
+   cardinality(notes)<>(SELECT count(DISTINCT x) FROM unnest(notes) x) OR
+   cardinality(files)<>(SELECT count(DISTINCT x) FROM unnest(files) x) THEN RETURN '{"error":"invalid"}'; END IF;
+ SELECT jsonb_build_object('id',p.id,'name',p.name,'species',p.species,'birthDate',p.birth_date),
+   CASE WHEN include_owner THEN jsonb_build_object('name',c.name,'email',g.recipient_email) END
+ INTO patient_info,owner_info FROM public.guardians g JOIN public.patients p ON
+   (p.organization_id,p.clinic_id,p.id)=(g.organization_id,g.clinic_id,g.patient_id)
+ JOIN public.owner_contacts c ON (c.organization_id,c.clinic_id,c.id)=(g.organization_id,g.clinic_id,g.contact_id)
+ WHERE (g.organization_id,g.clinic_id,g.patient_id,g.pet_id)=(org,clinic,patient,pet) AND g.removed_at IS NULL AND vetx_registry.self(g.recipient_issuer,g.owner_subject)
+ ORDER BY g.id LIMIT 1;
+ IF NOT FOUND THEN RETURN '{"error":"not_found"}'; END IF;
+ SELECT coalesce(jsonb_agg(jsonb_build_object('id',e.id,'kind',CASE WHEN e.addendum_to IS NOT NULL THEN 'addendum' ELSE 'encounter' END,
+ 'occurredAt',vetx_care.utc(e.occurred_at),'recordedAt',vetx_care.utc(e.recorded_at),'author', jsonb_build_object('issuer',e.author_issuer,'subject',e.author_subject),
+ 'data',jsonb_build_object('reason',e.reason,'subjective',e.subjective,'objective',e.objective,'assessment',e.assessment,'plan',e.plan)||
+ CASE WHEN e.addendum_to IS NOT NULL THEN jsonb_build_object('addendumTo',e.addendum_to) ELSE '{}'::jsonb END)
+ ORDER BY e.id),'[]'::jsonb) INTO note_rows FROM public.clinical_encounters e
+ WHERE (e.organization_id,e.clinic_id,e.patient_id)=(org,clinic,patient) AND e.id=ANY(notes) AND vetx_care.released(org,clinic,patient,e.id,pet);
+ SELECT coalesce(jsonb_agg(jsonb_build_object('id',d.asset_id,'objectId',d.id,'title',d.title,'mediaType',d.media_type,'byteLength',d.byte_length,'sha256',d.sha256,
+ 'imaging',d.imaging - ARRAY['preview','frames','modality'],'recordedAt',vetx_care.utc(d.recorded_at),'author',jsonb_build_object('issuer',d.uploader_issuer,'subject',d.uploader_subject)) ORDER BY d.asset_id),'[]'::jsonb)
+ INTO file_rows FROM public.medical_documents d WHERE (d.organization_id,d.clinic_id,d.patient_id)=(org,clinic,patient) AND d.asset_id=ANY(files) AND vetx_documents.released(d,pet);
+ IF jsonb_array_length(note_rows)<>cardinality(notes) OR jsonb_array_length(file_rows)<>cardinality(files) THEN RETURN '{"error":"not_found"}'; END IF;
+ RETURN jsonb_build_object('patient',patient_info,'notes',note_rows,'files',file_rows)||CASE WHEN include_owner THEN jsonb_build_object('owner',owner_info) ELSE '{}'::jsonb END;
+END $$;
 COMMIT;

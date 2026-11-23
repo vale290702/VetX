@@ -37,6 +37,10 @@ export interface ExportNote {
   };
 }
 export interface ExportFile {
+  imaging?: Pick<
+    import("./documents.js").DicomMetadata,
+    "studyInstanceUid" | "seriesInstanceUid" | "sopInstanceUid"
+  > | null;
   id: string;
   objectId: string;
   title: string;

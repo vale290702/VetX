@@ -146,7 +146,22 @@ test(
         (await db.getOwnerDocument(owner, petId, original.assetId)).imaging,
         metadata,
       );
+      const selection = {
+        encounterIds: [],
+        documentAssetIds: [original.assetId],
+        includeOwner: false,
+      };
+      const source = { organizationId: org, clinicId: clinic, patientId: patient };
+      const snapshot = await db.ownerExportSource(owner, petId, source, selection);
+      assert.deepEqual(snapshot.files[0]?.imaging, {
+        studyInstanceUid: metadata.studyInstanceUid,
+        seriesInstanceUid: metadata.seriesInstanceUid,
+        sopInstanceUid: metadata.sopInstanceUid,
+      });
       await db.removeGuardian(staff, org, clinic, patient, guardian);
+      await assert.rejects(db.ownerExportSource(owner, petId, source, selection), {
+        code: "not_found",
+      });
       await assert.rejects(db.getOwnerDocument(owner, petId, original.assetId), {
         code: "not_found",
       });
