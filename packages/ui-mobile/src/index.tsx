@@ -88,7 +88,11 @@ const createStyles = (palette: Palette) =>
     },
     languageText: { color: palette.muted, fontSize: typography.caption, fontWeight: "600" },
     languageSelected: { backgroundColor: palette.control },
-    languageSelectedText: { color: palette.ink },
+    languageSelectedText: {
+      color: palette.ink,
+      textDecorationLine: "underline",
+      textDecorationColor: palette.focus,
+    },
     content: { flex: 1, justifyContent: "center", paddingVertical: space.block },
     folio: {
       backgroundColor: palette.paper,

@@ -19,7 +19,7 @@
       "refersTo": "locale-selected",
       "description": "Shows the current interface language.",
       "html": "<a class=\"ds-locale-selected\" href=\"#es\" lang=\"es\" aria-current=\"page\">Español</a>",
-      "css": ".ds-locale-selected { display: inline-flex; align-items: center; min-height: 48px; padding-inline: 12px; border-radius: 8px; background: var(--vetx-color-control, #cce7e1); color: var(--vetx-color-ink, #173c3e); box-shadow: 0 1px 3px #1026291a; font: 600 14px 'Instrument Sans Variable', sans-serif; text-decoration: none; } .ds-locale-selected:focus-visible { outline: 2px solid var(--vetx-color-focus, #25685f); outline-offset: 2px; }"
+      "css": ".ds-locale-selected { display: inline-flex; align-items: center; min-height: 48px; padding-inline: 12px; border-radius: 8px; background: var(--vetx-color-control, #cce7e1); color: var(--vetx-color-ink, #173c3e); box-shadow: 0 1px 3px #1026291a; font: 600 14px 'Instrument Sans Variable', sans-serif; text-decoration: underline 2px var(--vetx-color-focus, #25685f); text-underline-offset: 4px; } .ds-locale-selected:focus-visible { outline: 2px solid var(--vetx-color-focus, #25685f); outline-offset: 2px; }"
     },
     {
       "name": "Alternate language",

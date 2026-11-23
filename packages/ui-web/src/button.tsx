@@ -14,7 +14,8 @@ const buttonVariants = cva(
       variant: {
         primary: "bg-action text-action-ink hover:bg-action-hover",
         destructive: "bg-control text-error",
-        selected: "bg-control text-ink shadow-control",
+        selected:
+          "bg-control text-ink underline decoration-focus decoration-2 underline-offset-4 shadow-control",
         ghost: "text-muted hover:bg-control hover:text-ink",
       },
     },

@@ -86,7 +86,7 @@ A cool mist background and porcelain records frame the clinical workspace. The V
 
 ## Colors
 
-Spruce ink carries headings and body text. Sea glass marks selected controls. Eucalyptus fills primary actions in light mode. In dark mode, a pale eucalyptus action stands out on deep teal surfaces.
+Spruce ink carries headings and body text. Sea glass marks selected controls. The current language and active web tabs also have an underline. Eucalyptus fills primary actions in light mode. In dark mode, a pale eucalyptus action stands out on deep teal surfaces.
 
 Use the focus color for the keyboard outline. Pair amber warnings, clay-red errors, and green success states with localized labels.
 
