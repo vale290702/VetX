@@ -293,6 +293,8 @@
     "loadingImport": "Loading package import…",
     "loadingHistory": "Loading imported history…",
     "kinds": {
+      "hospitalization": "Hospital stay",
+      "surgery": "Surgery",
       "encounter": "Encounter",
       "addendum": "Addendum",
       "diagnosis": "Diagnosis",
@@ -307,6 +309,7 @@
       "counterReferral": "Counter-referral"
     },
     "fields": {
+      "status": "Status",
       "reason": "Reason",
       "subjective": "Subjective",
       "objective": "Objective",

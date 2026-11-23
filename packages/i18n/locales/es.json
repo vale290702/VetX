@@ -293,6 +293,8 @@
     "loadingImport": "Cargando la importación de paquetes…",
     "loadingHistory": "Cargando el historial importado…",
     "kinds": {
+      "hospitalization": "Hospitalización",
+      "surgery": "Cirugía",
       "encounter": "Consulta",
       "addendum": "Adenda",
       "diagnosis": "Diagnóstico",
@@ -307,6 +309,7 @@
       "counterReferral": "Contrarreferencia"
     },
     "fields": {
+      "status": "Estado",
       "reason": "Motivo",
       "subjective": "Subjetivo",
       "objective": "Objetivo",

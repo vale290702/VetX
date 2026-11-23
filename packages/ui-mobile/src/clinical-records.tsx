@@ -20,6 +20,7 @@ import {
   SubmitClinical,
   useClinicalWrite,
 } from "./clinical-record-controls";
+import { episodeActions, isEpisode } from "./inpatient-forms";
 import { ClinicalEditor } from "./clinical-record-editor";
 type Props = ClinicPatientProps & { patientId: string; back: () => void; openNotes: () => void };
 type Screen =
@@ -76,7 +77,15 @@ export function ClinicalRecords(props: Props) {
                     label={t("nativeClinical.openHistory")}
                     onPress={() => setScreen({ op: "history", current: r })}
                   />
-                  {(!status || status === "ORDERED") && (
+                  {episodeActions(r).map((op) => (
+                    <Action
+                      key={op}
+                      styles={styles}
+                      label={t(`nativeClinical.${op}`)}
+                      onPress={() => setScreen({ op, current: r })}
+                    />
+                  ))}
+                  {!isEpisode(r.kind) && (!status || status === "ORDERED") && (
                     <Action
                       styles={styles}
                       label={t(
@@ -113,7 +122,11 @@ export function ClinicalRecords(props: Props) {
                 </View>
                 <Text style={styles.support}>
                   {!canRelease(r)
-                    ? t("nativeClinical.labPrivate")
+                    ? t(
+                        isEpisode(r.kind)
+                          ? "nativeClinical.episodePrivate"
+                          : "nativeClinical.labPrivate",
+                      )
                     : r.sharing.guardianIds.length
                       ? t("nativeClinical.recipientCount", { count: r.sharing.guardianIds.length })
                       : t("nativeClinical.private")}
@@ -233,6 +246,9 @@ function ShareForm(
           <ClinicalEntry styles={styles} record={current} />
           {canRelease(current) ? (
             <>
+              {isEpisode(current.kind) && (
+                <Text style={styles.support}>{t("nativeClinical.episodeSharing")}</Text>
+              )}
               <Text style={styles.support}>{t("nativeClinical.sharingHint")}</Text>
               {!linked.length && (
                 <Text style={styles.support}>{t("nativeClinical.noGuardians")}</Text>
@@ -257,7 +273,13 @@ function ShareForm(
               ))}
             </>
           ) : (
-            <Text style={styles.support}>{t("nativeClinical.labPrivate")}</Text>
+            <Text style={styles.support}>
+              {t(
+                isEpisode(current.kind)
+                  ? "nativeClinical.episodePrivate"
+                  : "nativeClinical.labPrivate",
+              )}
+            </Text>
           )}
         </>
       )}
@@ -299,6 +321,7 @@ export function ReleasedClinical({
       [account, client, pet.id, page],
     ),
   );
+  const records = result && "value" in result ? result.value.records.filter(canRelease) : [];
   return (
     <View style={styles.section}>
       <Action styles={styles} label={t("nativeCare.backPets")} onPress={back} />
@@ -310,11 +333,11 @@ export function ReleasedClinical({
       ) : (
         <>
           <Action styles={styles} label={t("nativeClinical.refresh")} onPress={reload} />
-          {!result.value.records.length && (
+          {!records.length && (
             <Text style={styles.support}>{t("nativeClinical.noneReleased")}</Text>
           )}
-          {result.value.records.map((r) => (
-            <ClinicalEntry key={r.revisionId} record={r} styles={styles} />
+          {records.map((r) => (
+            <ClinicalEntry key={r.revisionId} record={r} styles={styles} owner />
           ))}
           <Pager styles={styles} page={page} next={result.value.hasNextPage} change={setPage} />
         </>

@@ -87,10 +87,14 @@ export default async function ImportedRecords({ params, searchParams }: Props) {
                     <h2>{kinds[record.kind] ?? record.kind}</h2>
                     <p>{stamp(record.occurredAt)}</p>
                     <dl className="patient-demographics exchange-data">
-                      {visibleRecordFields(record.data).map(([key, value]) => (
+                      {visibleRecordFields(record.data, record.kind).map(([key, value]) => (
                         <div key={key}>
                           <dt>
-                            {fieldNames[key] ?? (key === "specimen" ? clinical("specimen") : key)}
+                            {(record.kind === "hospitalization" || record.kind === "surgery") &&
+                            key === "summary"
+                              ? clinical("summary")
+                              : (fieldNames[key] ??
+                                (key === "specimen" ? clinical("specimen") : key))}
                           </dt>
                           <dd>
                             {value !== null &&
@@ -107,6 +111,11 @@ export default async function ImportedRecords({ params, searchParams }: Props) {
                                   <dd>{String(value.clinicId)}</dd>
                                 </div>
                               </dl>
+                            ) : key === "status" &&
+                              (value === "DISCHARGED" ||
+                                value === "COMPLETED" ||
+                                value === "CANCELLED") ? (
+                              clinical(value)
                             ) : (
                               fieldValue(value)
                             )}

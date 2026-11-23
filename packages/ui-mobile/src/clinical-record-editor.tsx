@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { Action, Field } from "./controls";
 import { Pager, PatientReadState, usePatientRead } from "./patient-controls";
 import type { ClinicPatientProps } from "./patient-form";
+import { episodeActionLabel, initialClinicalValues, isEpisode } from "./inpatient-forms";
 import { localMinute, minuteInstant } from "./care-time";
 import {
   buildClinical,
@@ -34,9 +35,15 @@ export function ClinicalEditor(props: Props) {
     { client, scope, patientId, account, styles, current, op, back } = props;
   const [recordId] = useState(() => current?.id ?? globalThis.expo.uuidv4()),
     [kind, setKind] = useState<Kind>(current?.kind ?? "diagnosis"),
-    [values, setValues] = useState<Values>(current?.data ?? {}),
+    [values, setValues] = useState<Values>(() => initialClinicalValues(current, op)),
     [when, setWhen] = useState(() =>
-      localMinute(current ? new Date(current.occurredAt) : new Date()),
+      localMinute(
+        current && isEpisode(current.kind) && op !== "amend"
+          ? new Date(Math.max(Date.now(), Date.parse(current.occurredAt)))
+          : current
+            ? new Date(current.occurredAt)
+            : new Date(),
+      ),
     ),
     [reason, setReason] = useState("");
   const [encounter, setEncounter] = useState<{ id: string; reason: string }>(),
@@ -53,15 +60,8 @@ export function ClinicalEditor(props: Props) {
     (id, b) => client.clinical.save(scope, patientId, recordId, id, b),
     back,
   );
-  const body = buildClinical(
-      kind,
-      op,
-      encounter?.id ?? "",
-      minuteInstant(when, current?.occurredAt),
-      values,
-      reason,
-      current,
-    ),
+  const eventTime = minuteInstant(when, current?.occurredAt);
+  const body = buildClinical(kind, op, encounter?.id ?? "", eventTime, values, reason, current),
     locked = send.pending;
   if (choose) {
     const r = encounters.result;
@@ -113,15 +113,17 @@ export function ClinicalEditor(props: Props) {
       <Action styles={styles} label={t("nativeClinical.all")} disabled={locked} onPress={back} />
       <ClinicalHeading styles={styles}>
         {t(
-          op === "new"
-            ? "nativeClinical.new"
-            : op === "review"
-              ? "nativeClinical.review"
-              : op === "result"
-                ? current && "status" in current.data && current.data.status !== "ORDERED"
-                  ? "nativeClinical.correctResult"
-                  : "nativeClinical.enterResult"
-                : "nativeClinical.correct",
+          isEpisode(kind) && op !== "new"
+            ? `nativeClinical.${episodeActionLabel(kind, op)}`
+            : op === "new"
+              ? "nativeClinical.new"
+              : op === "review"
+                ? "nativeClinical.review"
+                : op === "result"
+                  ? current && "status" in current.data && current.data.status !== "ORDERED"
+                    ? "nativeClinical.correctResult"
+                    : "nativeClinical.enterResult"
+                  : "nativeClinical.correct",
         )}
       </ClinicalHeading>
       {send.issue !== "denied" && (
@@ -166,11 +168,15 @@ export function ClinicalEditor(props: Props) {
               </View>
             </>
           )}
+          {kind === "hospitalization" && op === "new" && (
+            <Text style={styles.support}>{t("nativeClinical.activeAdmission")}</Text>
+          )}
+          {isEpisode(kind) && <Text style={styles.support}>{t("nativeClinical.signature")}</Text>}
           {op !== "review" && (
             <>
               <Field
                 styles={styles}
-                disabled={locked}
+                disabled={locked || op === "amend"}
                 identifier
                 label={t("nativeClinical.occurredAt", {
                   zone: Intl.DateTimeFormat().resolvedOptions().timeZone,
@@ -184,14 +190,29 @@ export function ClinicalEditor(props: Props) {
                   zone: Intl.DateTimeFormat().resolvedOptions().timeZone,
                 })}
               </Text>
-              {clinicalFields(kind, op).map((k) => (
+              {isEpisode(kind) &&
+                op !== "amend" &&
+                current &&
+                eventTime &&
+                Date.parse(eventTime) < Date.parse(current.occurredAt) && (
+                  <Text accessibilityRole="alert" style={styles.error}>
+                    {t("nativeClinical.eventOrder")}
+                  </Text>
+                )}
+              {clinicalFields(kind, op, current).map((k) => (
                 <Field
                   key={k}
                   styles={styles}
-                  label={t(`nativeClinical.${k}`) + (k === "nextDueDate" ? " (YYYY-MM-DD)" : "")}
+                  label={
+                    t(
+                      `nativeClinical.${kind === "surgery" && k === "notes" ? "surgeryNotes" : k}`,
+                    ) + (k === "nextDueDate" ? " (YYYY-MM-DD)" : "")
+                  }
                   disabled={locked}
                   maxLength={limits[k]}
-                  identifier={k === "nextDueDate" || k === "code" || k === "lotNumber"}
+                  identifier={
+                    k === "scheduledAt" || k === "nextDueDate" || k === "code" || k === "lotNumber"
+                  }
                   multiline={limits[k] === 8000}
                   value={values[k] ?? ""}
                   onChange={(v) => setValues((prev) => ({ ...prev, [k]: v }))}
@@ -216,11 +237,13 @@ export function ClinicalEditor(props: Props) {
         state={send}
         valid={!!body}
         label={t(
-          op === "review"
-            ? "nativeClinical.reviewConfirm"
-            : current
-              ? "nativeClinical.saveVersion"
-              : "nativeClinical.save",
+          isEpisode(kind)
+            ? `nativeClinical.${episodeActionLabel(kind, op)}`
+            : op === "review"
+              ? "nativeClinical.reviewConfirm"
+              : current
+                ? "nativeClinical.saveVersion"
+                : "nativeClinical.save",
         )}
         submit={() => send.submit(body)}
         refresh={back}
