@@ -3,6 +3,9 @@ import { test } from "node:test";
 import en from "../locales/native-exchange.en.json" with { type: "json" };
 import es from "../locales/native-exchange.es.json" with { type: "json" };
 
+import enReferrals from "../locales/native-referrals.en.json" with { type: "json" };
+import esReferrals from "../locales/native-referrals.es.json" with { type: "json" };
+
 function compare(en, es, path) {
   if (typeof en === "object") {
     assert.deepEqual(Object.keys(en).sort(), Object.keys(es).sort(), path);
@@ -14,3 +17,6 @@ function compare(en, es, path) {
 }
 test("native exchange messages, clinical fields and placeholders match in both languages", () =>
   compare(en, es, "exchange"));
+
+test("native referral consent, statuses, actions and placeholders match in both languages", () =>
+  compare(enReferrals, esReferrals, "referrals"));

@@ -9,6 +9,7 @@ import { ClinicalExchangeModule } from "./exchange/module.js";
 import type { ExchangeDependencies } from "./exchange/service.js";
 import { IdentityModule } from "./identity-context.js";
 import { CareModule, type CareStore } from "./care/module.js";
+import { ReferralModule, type ReferralStore, type ReferralDirectory } from "./referrals/module.js";
 import { RegistryModule, type RegistryStore } from "./registry/module.js";
 import type { PetLinkConfig } from "@vetx/config";
 import { HealthModule, type ReadinessCheck } from "./health.js";
@@ -19,6 +20,8 @@ type Dependencies = AccessDependencies & {
   exchange?: ExchangeDependencies;
   documents?: DocumentDependencies;
   care?: CareStore;
+  referrals?: ReferralStore;
+  referralDirectory?: ReferralDirectory;
   registry?: RegistryStore;
   petLinks?: PetLinkConfig;
 };
@@ -36,6 +39,7 @@ class AppModule {
         DocumentModule.register(access.documents),
         ClinicalExchangeModule.register(access.exchange),
         CareModule.register(access.care),
+        ReferralModule.register(access.referrals, access.referralDirectory),
       ],
     };
   }

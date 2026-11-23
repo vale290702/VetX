@@ -20,6 +20,7 @@ async function main(): Promise<void> {
   const oidc = loadOidcConfig();
   const database = new PrismaDatabase(config.databaseUrl);
   const settings = loadExchangeConfig();
+  const keys = settings && ExchangeKeyDirectory.read(settings.keyDirectoryPath);
   const files = loadDocumentConfig();
   const storage =
     files &&
@@ -39,10 +40,12 @@ async function main(): Promise<void> {
     exchange: {
       database,
       ...(files && storage ? { storage, documentMaxBytes: files.maxBytes } : {}),
-      ...(settings ? { settings, keys: ExchangeKeyDirectory.read(settings.keyDirectoryPath) } : {}),
+      ...(settings && keys ? { settings, keys } : {}),
     },
     documents: { database, ...(files && storage ? { config: files, storage } : {}) },
     care: database,
+    referrals: database,
+    referralDirectory: keys,
     petLinks: loadPetLinkConfig(),
     tokenVerifier: oidc && new KeycloakTokenVerifier(oidc),
   });

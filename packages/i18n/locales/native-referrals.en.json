@@ -1,0 +1,62 @@
+{
+  "inbox": "Incoming referrals",
+  "outbox": "Outgoing referrals",
+  "petLink": "Clinic referrals",
+  "forPet": "Referrals for {name}",
+  "refresh": "Refresh referrals",
+  "pageFilter": "Filter this page by patient, clinic or reason",
+  "emptyOwner": "There are no referrals for you to review for this pet.",
+  "emptyInbox": "No approved referrals have been received by this clinic.",
+  "emptyOutbox": "This patient has no outgoing referrals.",
+  "noMatches": "No referrals on this page match your search.",
+  "open": "View referral for {reason}",
+  "hide": "Hide referral for {reason}",
+  "patient": "{name} · {species}",
+  "source": "From {clinic}",
+  "recipient": "To {clinic}",
+  "authored": "Recorded {time} by {author}",
+  "summary": "Clinical summary",
+  "counter": "Counter-referral",
+  "responseLabel": "Counter-referral summary",
+  "responseHelp": "Your response will be available to {clinic} and the guardian who approved this referral.",
+  "sendResponse": "Send counter-referral",
+  "backList": "Back to patient referrals",
+  "newRequest": "Request a referral",
+  "requestHelp": "Choose the linked guardian who can authorize this referral and the clinic that will receive it.",
+  "guardian": "Guardian to authorize sharing",
+  "noGuardian": "Link a guardian to this patient before requesting a referral.",
+  "destination": "Receiving clinic",
+  "noRoutes": "No receiving clinic is available for this clinic.",
+  "searchDestination": "Search receiving clinics",
+  "noRouteMatch": "No receiving clinic matches your search.",
+  "refreshOptions": "Refresh guardians and clinics",
+  "reason": "Reason for referral",
+  "summaryLabel": "Clinical summary (optional)",
+  "reviewRequest": "{guardian} will be asked to approve sharing this referral with {clinic}.",
+  "send": "Request guardian approval",
+  "requested": "Referral sent for guardian approval.",
+  "saved": "Referral updated.",
+  "changed": "The referral or your access changed. Review the refreshed list before continuing.",
+  "status": {
+    "REQUESTED": "Awaiting guardian approval",
+    "APPROVED": "Approved",
+    "DECLINED": "Declined",
+    "WITHDRAWN": "Consent withdrawn",
+    "RESPONDED": "Counter-referral received"
+  },
+  "action": {
+    "approve": "Approve referral",
+    "decline": "Decline referral",
+    "withdraw": "Withdraw consent"
+  },
+  "confirm": {
+    "approve": "Confirm approval",
+    "decline": "Confirm decline",
+    "withdraw": "Confirm withdrawal"
+  },
+  "confirmText": {
+    "approve": "Allow {clinic} to read your pet’s identifying details, the reason for referral and the clinical summary, and to send a response to the referring clinic?",
+    "decline": "Decline this request to share your pet’s referral with {clinic}?",
+    "withdraw": "Withdraw permission for {clinic} to open this referral in VetX? Your referring clinic keeps the referral and any response it has received."
+  }
+}
