@@ -71,6 +71,7 @@
     "code": "Code",
     "treatment": "Treatment",
     "notes": "Notes",
+    "quantity": "Prescribed quantity",
     "medication": "Medication",
     "instructions": "Instructions",
     "vaccine": "Vaccine",

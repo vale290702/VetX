@@ -79,7 +79,15 @@ const recordSchema = z.discriminatedUnion("kind", [
   record("treatment", { treatment: narrative, notes: section.optional() }).extend({
     clinicalRevision: clinicalProvenance.optional(),
   }),
-  record("prescription", { medication: label(250), instructions: narrative }),
+  record("prescription", {
+    medication: label(250),
+    instructions: narrative,
+    quantity: z
+      .string()
+      .regex(/^(?!0[.]000$)(?:0|[1-9][0-9]{0,14})[.][0-9]{3}$/)
+      .optional(),
+    unit: label(80).optional(),
+  }).refine(({ data }) => (data.quantity === undefined) === (data.unit === undefined)),
   record("vaccination", {
     vaccine: label(250),
     lotNumber: label(128).optional(),

@@ -41,6 +41,9 @@ export function exportBody(
     ...(records.some((r) => r.kind === "clinical")
       ? { clinicalRevisionIds: records.filter((r) => r.kind === "clinical").map((r) => r.id) }
       : {}),
+    ...(records.some((r) => r.kind === "prescription")
+      ? { prescriptionIds: records.filter((r) => r.kind === "prescription").map((r) => r.id) }
+      : {}),
     includeOwner,
   };
 }

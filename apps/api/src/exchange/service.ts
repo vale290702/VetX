@@ -74,10 +74,14 @@ function archiveKey(scope: ExchangeClinicId, sha256: string) {
 }
 // A source-scoped exchange ID lets an addendum refer to a withheld parent
 // without exposing the parent's internal clinic record identifier.
-function portableEncounterId(scope: ExportLocation, id: string): string {
+function portableRecordId(
+  scope: ExportLocation,
+  id: string,
+  kind: "encounter" | "prescription",
+): string {
   const bytes = createHash("sha256")
     .update(
-      ["VetX/encounter/v1", scope.organizationId, scope.clinicId, scope.patientId, id]
+      ["VetX/" + kind + "/v1", scope.organizationId, scope.clinicId, scope.patientId, id]
         .map((value) => value.toLowerCase())
         .join("\0"),
     )
@@ -270,7 +274,8 @@ export class ExchangeService {
     if (
       selection.encounterIds.length +
         selection.documentAssetIds.length +
-        (selection.clinicalRevisionIds?.length ?? 0) >
+        (selection.clinicalRevisionIds?.length ?? 0) +
+        (selection.prescriptionIds?.length ?? 0) >
       limits.maxRecords
     )
       throw new PayloadTooLargeException();
@@ -314,11 +319,11 @@ export class ExchangeService {
     }
     const notes = snapshot.notes.map((note) => ({
       ...note,
-      id: portableEncounterId(source, note.id),
+      id: portableRecordId(source, note.id, "encounter"),
       data: {
         ...note.data,
         ...(note.data.addendumTo
-          ? { addendumTo: portableEncounterId(source, note.data.addendumTo) }
+          ? { addendumTo: portableRecordId(source, note.data.addendumTo, "encounter") }
           : {}),
       },
     }));
@@ -334,7 +339,15 @@ export class ExchangeService {
           destination: { organizationId: key.organizationId, clinicId: key.clinicId },
           patient: snapshot.patient,
           ...(snapshot.owner ? { owner: snapshot.owner } : {}),
-          records: [...notes, ...files, ...(snapshot.clinical ?? [])],
+          records: [
+            ...notes,
+            ...files,
+            ...(snapshot.clinical ?? []),
+            ...(snapshot.prescriptions ?? []).map((rx) => ({
+              ...rx,
+              id: portableRecordId(source, rx.id, "prescription"),
+            })),
+          ],
         },
         limits,
       );

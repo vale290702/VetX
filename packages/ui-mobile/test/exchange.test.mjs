@@ -57,6 +57,15 @@ test("export selections span pages, separate IDs by record kind, and require opt
     includeOwner: false,
   });
   assert.equal(exportBody(source, dest, selected, true).includeOwner, true);
+  assert.deepEqual(
+    exportBody(
+      source,
+      dest,
+      toggleExportRecord(selected, { id: "same", kind: "prescription" }),
+      false,
+    ).prescriptionIds,
+    ["same"],
+  );
   assert.equal(
     exportBody(source, { organizationId: "wrong", clinicId: "dest" }, selected, false),
     undefined,
