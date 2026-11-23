@@ -49,7 +49,7 @@ BEGIN
  UNION ALL
  SELECT r.revision_id,'clinical',vetx_clinical.choice_title(r),r.occurred_at
  FROM public.clinical_record_heads h JOIN public.clinical_record_revisions r USING(organization_id,clinic_id,patient_id,record_id,revision)
- WHERE (h.organization_id,h.clinic_id,h.patient_id)=(org,clinic,patient) AND vetx_clinical.guardian(h,pet)
+ WHERE (h.organization_id,h.clinic_id,h.patient_id)=(org,clinic,patient) AND vetx_clinical.guardian(h,pet) AND vetx_clinical.releasable(r.kind,r.data)
  UNION ALL
  SELECT r.id,'prescription',r.medication,r.recorded_at FROM public.patient_prescriptions r
  WHERE (r.organization_id,r.clinic_id,r.patient_id)=(org,clinic,patient) AND vetx_trade.released(org,clinic,patient,r.id,pet)
