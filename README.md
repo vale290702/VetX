@@ -111,6 +111,10 @@ pnpm compose --profile integrations down
 
 PostgreSQL, Redis, Keycloak and Mailpit start by default. The optional profile adds storage and Orthanc. Run `pnpm compose down` to stop the default services and retain local data.
 
+Staff can attach a DICOM Part 10 image to a patient's medical documents. VetX retains the original file in private storage, verifies it against Orthanc, and records its study, series, modality, instance and frame count. Supported images also have a first-frame PNG preview. Open the original in a DICOM viewer for other frames and diagnostic interpretation. A guardian needs a current explicit release to retrieve either file.
+
+For local imaging, start the integrations profile above, initialize the document bucket with `pnpm --filter @vetx/api storage:init`, and run `pnpm --filter @vetx/api test:imaging` against a disposable archive. Configure `ORTHANC_API_URL`, `ORTHANC_API_USERNAME`, `ORTHANC_API_PASSWORD`, `ORTHANC_TIMEOUT_MS`, `ORTHANC_METADATA_BYTES` and `ORTHANC_PREVIEW_BYTES` together. Existing installations can add these entries from `.env.example`. Remote servers require HTTPS, restricted network access and an archive account kept on the API server. Keep Orthanc's instance overwrite setting disabled. [Orthanc REST API](https://orthanc.uclouvain.be/book/users/rest.html) [DICOM file format](https://dicom.nema.org/medical/dicom/current/output/chtml/part10/chapter_7.html)
+
 ## Checks
 
 ```sh

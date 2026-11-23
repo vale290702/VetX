@@ -1,3 +1,4 @@
+import { OrthancArchive } from "./imaging/orthanc.js";
 import { ConsoleLogger } from "@nestjs/common";
 import { ExchangeKeyDirectory } from "./exchange/keyring.js";
 import { S3Client } from "@aws-sdk/client-s3";
@@ -7,6 +8,7 @@ import {
   ConfigurationError,
   loadApiConfig,
   loadDocumentConfig,
+  loadOrthancConfig,
   loadExchangeConfig,
   loadOidcConfig,
   loadPetLinkConfig,
@@ -22,6 +24,7 @@ async function main(): Promise<void> {
   const settings = loadExchangeConfig();
   const keys = settings && ExchangeKeyDirectory.read(settings.keyDirectoryPath);
   const files = loadDocumentConfig();
+  const orthanc = loadOrthancConfig();
   const storage =
     files &&
     new S3DocumentStorage(
@@ -42,7 +45,11 @@ async function main(): Promise<void> {
       ...(files && storage ? { storage, documentMaxBytes: files.maxBytes } : {}),
       ...(settings && keys ? { settings, keys } : {}),
     },
-    documents: { database, ...(files && storage ? { config: files, storage } : {}) },
+    documents: {
+      database,
+      ...(orthanc ? { imaging: new OrthancArchive(orthanc) } : {}),
+      ...(files && storage ? { config: files, storage } : {}),
+    },
     care: database,
     inventory: database,
     procurement: database,

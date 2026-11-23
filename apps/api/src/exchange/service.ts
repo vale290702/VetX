@@ -294,7 +294,7 @@ export class ExchangeService {
       );
       files.push({
         id: file.id,
-        kind: "document",
+        kind: file.mediaType === "application/dicom" ? "dicom" : "document",
         occurredAt: file.recordedAt,
         recordedAt: file.recordedAt,
         author: file.author,

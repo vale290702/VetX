@@ -95,6 +95,7 @@ export * from "./exchange.js";
 
 export * from "./documents.js";
 import type {
+  DicomMetadata,
   DocumentInput,
   DocumentSharing,
   DocumentPage,
@@ -647,6 +648,22 @@ export class PrismaDatabase {
       org,
       clinic,
       Prisma.sql`SELECT public.document_reserve(${patient}::uuid,${id}::uuid,${input.title},${input.mediaType},${input.byteLength}::int,${input.sha256}) AS result`,
+    );
+  }
+  finishDicomDocument(
+    actor: StaffPrincipal,
+    org: string,
+    clinic: string,
+    patient: string,
+    id: string,
+    digest: string,
+    imaging: DicomMetadata,
+  ): Promise<StaffDocument> {
+    return this.registryQuery(
+      actor,
+      org,
+      clinic,
+      Prisma.sql`SELECT public.document_finish_dicom(${patient}::uuid,${id}::uuid,${digest},${JSON.stringify(imaging)}::jsonb) AS result`,
     );
   }
   finishDocument(

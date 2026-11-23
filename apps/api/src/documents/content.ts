@@ -1,6 +1,11 @@
 import { createHash } from "node:crypto";
 
-export const documentTypes = ["application/pdf", "image/jpeg", "image/png"] as const;
+export const documentTypes = [
+  "application/pdf",
+  "image/jpeg",
+  "image/png",
+  "application/dicom",
+] as const;
 export type DocumentMediaType = (typeof documentTypes)[number];
 export interface FileIntegrity {
   mediaType: DocumentMediaType;
@@ -31,6 +36,8 @@ function identify(bytes: Buffer): DocumentMediaType | undefined {
     /%%EOF[\t\r\n ]*$/.test(bytes.subarray(-1024).toString("latin1"))
   )
     return "application/pdf";
+  if (bytes.length > 144 && bytes.toString("ascii", 128, 132) === "DICM")
+    return "application/dicom";
   return undefined;
 }
 export function inspectDocument(

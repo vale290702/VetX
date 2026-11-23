@@ -284,6 +284,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/organizations/{organizationId}/clinics/{clinicId}/patients/{patientId}/documents/{documentId}/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["previewStaffDicom"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/organizations/{organizationId}/clinics/{clinicId}/patients/{patientId}/documents/{documentId}/content": {
         parameters: {
             query?: never;
@@ -308,6 +324,22 @@ export interface paths {
             cookie?: never;
         };
         get: operations["listOwnerDocuments"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/owner/pets/{petId}/documents/{assetId}/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["previewOwnerDicom"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1157,11 +1189,24 @@ export interface components {
             /** Format: uuid */
             petId: string;
         };
+        DicomPreviewDto: {
+            byteLength: number;
+            sha256: string;
+        };
+        DicomMetadataDto: {
+            studyInstanceUid: string;
+            seriesInstanceUid: string;
+            sopInstanceUid: string;
+            modality: string;
+            frames: number;
+            preview?: components["schemas"]["DicomPreviewDto"];
+        };
         DocumentSharingDto: {
             guardianIds: string[];
             revision: number;
         };
         StaffDocumentDto: {
+            imaging?: components["schemas"]["DicomMetadataDto"];
             /** Format: uuid */
             id: string;
             /** Format: uuid */
@@ -1174,7 +1219,7 @@ export interface components {
             patientId: string;
             title: string;
             /** @enum {string} */
-            mediaType: "application/pdf" | "image/jpeg" | "image/png";
+            mediaType: "application/pdf" | "image/jpeg" | "image/png" | "application/dicom";
             byteLength: number;
             sha256: string;
             /** Format: date-time */
@@ -1188,6 +1233,7 @@ export interface components {
             documents: components["schemas"]["StaffDocumentDto"][];
         };
         OwnerDocumentDto: {
+            imaging?: components["schemas"]["DicomMetadataDto"];
             /** Format: uuid */
             id: string;
             /** Format: uuid */
@@ -1200,7 +1246,7 @@ export interface components {
             patientId: string;
             title: string;
             /** @enum {string} */
-            mediaType: "application/pdf" | "image/jpeg" | "image/png";
+            mediaType: "application/pdf" | "image/jpeg" | "image/png" | "application/dicom";
             byteLength: number;
             sha256: string;
             /** Format: date-time */
@@ -3046,6 +3092,70 @@ export interface operations {
             };
         };
     };
+    previewStaffDicom: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationId: string;
+                clinicId: string;
+                patientId: string;
+                documentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "image/png": string;
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+        };
+    };
     downloadPatientDocument: {
         parameters: {
             query?: never;
@@ -3129,6 +3239,68 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OwnerDocumentsDto"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+        };
+    };
+    previewOwnerDicom: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                petId: string;
+                assetId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "image/png": string;
                 };
             };
             400: {

@@ -1,4 +1,4 @@
-import { ApiProperty } from "@nestjs/swagger";
+import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import {
   ArrayUnique,
   IsArray,
@@ -31,7 +31,20 @@ export class DocumentSharingDto {
   @Max(2147483647)
   readonly revision!: number;
 }
+class DicomPreviewDto {
+  @ApiProperty({ type: "integer", minimum: 1 }) readonly byteLength!: number;
+  @ApiProperty({ pattern: "^[a-f0-9]{64}$" }) readonly sha256!: string;
+}
+class DicomMetadataDto {
+  @ApiProperty({ maxLength: 64 }) readonly studyInstanceUid!: string;
+  @ApiProperty({ maxLength: 64 }) readonly seriesInstanceUid!: string;
+  @ApiProperty({ maxLength: 64 }) readonly sopInstanceUid!: string;
+  @ApiProperty({ maxLength: 16 }) readonly modality!: string;
+  @ApiProperty({ type: "integer", minimum: 1 }) readonly frames!: number;
+  @ApiPropertyOptional({ type: DicomPreviewDto }) readonly preview?: DicomPreviewDto;
+}
 class MedicalDocumentDto {
+  @ApiPropertyOptional({ type: DicomMetadataDto }) readonly imaging?: DicomMetadataDto;
   @ApiProperty({ format: "uuid" }) readonly id!: string;
   @ApiProperty({ format: "uuid" }) readonly assetId!: string;
   @ApiProperty({ format: "uuid" }) readonly organizationId!: string;

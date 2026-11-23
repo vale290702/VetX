@@ -10,6 +10,7 @@
     "start": "node dist/main.js",
     "openapi:generate": "node dist/generate-openapi.js",
     "storage:init": "node scripts/init-document-bucket.mjs",
+    "test:imaging": "node --test integration/imaging.test.mjs",
     "test:storage": "node --test integration/storage.test.mjs"
   },
   "dependencies": {

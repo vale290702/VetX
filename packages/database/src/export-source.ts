@@ -40,7 +40,7 @@ export interface ExportFile {
   id: string;
   objectId: string;
   title: string;
-  mediaType: "application/pdf" | "image/png" | "image/jpeg";
+  mediaType: "application/pdf" | "image/png" | "image/jpeg" | "application/dicom";
   byteLength: number;
   sha256: string;
   recordedAt: string;

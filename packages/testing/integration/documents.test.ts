@@ -112,13 +112,50 @@ test(
         guardianIds: [guardian],
         revision: 2,
       });
+      const scan = randomUUID();
+      const raw = { ...input, mediaType: "application/dicom" as const };
+      const original = await db.reserveDocument(staff, org, clinic, patient, scan, raw);
+      const metadata = {
+        studyInstanceUid: "2.25.1",
+        seriesInstanceUid: "2.25.2",
+        sopInstanceUid: "2.25.3",
+        modality: "DX",
+        frames: 2,
+        preview: { byteLength: 123, sha256: "1".repeat(64) },
+      };
+      const finalize = (m: typeof metadata) =>
+        db.finishDicomDocument(staff, org, clinic, patient, scan, raw.sha256, m);
+      await assert.rejects(db.finishDocument(staff, org, clinic, patient, scan, raw.sha256), {
+        code: "conflict",
+      });
+      await assert.rejects(finalize({ ...metadata, frames: 0 }), { code: "invalid" });
+      await assert.rejects(finalize({ ...metadata, seriesInstanceUid: "invalid" }), {
+        code: "invalid",
+      });
+      assert.deepEqual((await finalize(metadata)).imaging, metadata);
+      assert.deepEqual((await finalize(metadata)).imaging, metadata);
+      await assert.rejects(finalize({ ...metadata, modality: "MR" }), { code: "conflict" });
+      await assert.rejects(db.getOwnerDocument(owner, petId, original.assetId), {
+        code: "not_found",
+      });
+      await db.shareDocument(staff, org, clinic, patient, scan, {
+        guardianIds: [guardian],
+        revision: 0,
+      });
+      assert.deepEqual(
+        (await db.getOwnerDocument(owner, petId, original.assetId)).imaging,
+        metadata,
+      );
       await db.removeGuardian(staff, org, clinic, patient, guardian);
+      await assert.rejects(db.getOwnerDocument(owner, petId, original.assetId), {
+        code: "not_found",
+      });
       await assert.rejects(db.getOwnerDocument(owner, petId, pending.assetId), {
         code: "not_found",
       });
       assert.equal(
         (await sql.query("SELECT count(*)::int AS count FROM document_events")).rows[0].count,
-        4,
+        6,
       );
     } finally {
       await db.onApplicationShutdown();
