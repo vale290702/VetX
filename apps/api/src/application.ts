@@ -6,6 +6,7 @@ import { SwaggerModule } from "@nestjs/swagger";
 import { type AccessDependencies, AccessModule } from "./access.js";
 import { DocumentModule, type DocumentDependencies } from "./documents/module.js";
 import { InventoryModule, type InventoryStore } from "./inventory/module.js";
+import { BillingModule, type BillingStore } from "./billing/module.js";
 import { IdentityModule } from "./identity-context.js";
 import { CareModule, type CareStore } from "./care/module.js";
 import { RegistryModule, type RegistryStore } from "./registry/module.js";
@@ -15,6 +16,7 @@ import { configureHttp } from "./http.js";
 import { createOpenApiDocument } from "./openapi.js";
 
 type Dependencies = AccessDependencies & {
+  billing?: BillingStore;
   inventory?: InventoryStore;
   documents?: DocumentDependencies;
   care?: CareStore;
@@ -33,6 +35,7 @@ class AppModule {
         AccessModule.register(access),
         RegistryModule.register(access.registry, access.petLinks),
         DocumentModule.register(access.documents),
+        BillingModule.register(access.billing),
         InventoryModule.register(access.inventory),
         CareModule.register(access.care),
       ],
