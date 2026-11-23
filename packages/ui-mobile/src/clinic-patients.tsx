@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { Action, Field } from "./controls";
 import { PatientReadState, usePatientRead } from "./patient-controls";
 import { PatientForm, type ClinicPatientProps } from "./patient-form";
+import { ClinicInventory } from "./inventory";
 import { ClinicReferrals } from "./referrals";
 import { StaffExchange } from "./staff-exchange";
 import { Appointments } from "./appointments";
@@ -13,12 +14,14 @@ import { PatientDetail } from "./patient-detail";
 export function ClinicPatients({
   account,
   organizationId,
+  admin,
   clinic,
   client,
   styles,
   back,
 }: Omit<ClinicPatientProps, "scope"> & {
   organizationId: string;
+  admin: boolean | undefined;
   clinic: { id: string; name: string };
   back: () => void;
 }) {
@@ -26,7 +29,9 @@ export function ClinicPatients({
   const [filter, setFilter] = useState("");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
-  const [clinicScreen, setClinicScreen] = useState<"calendar" | "import" | "referrals">();
+  const [clinicScreen, setClinicScreen] = useState<
+    "calendar" | "import" | "referrals" | "inventory"
+  >();
   const [selected, setSelected] = useState<{ id: string; create?: boolean }>();
   const scope = useMemo(
     () => ({ subject: account.subject, organizationId, clinicId: clinic.id }),
@@ -39,6 +44,15 @@ export function ClinicPatients({
     setSelected(undefined);
     reload();
   }
+  if (clinicScreen === "inventory")
+    return (
+      <View style={styles.section}>
+        <Text accessibilityRole="header" style={styles.heading}>
+          {clinic.name}
+        </Text>
+        <ClinicInventory {...props} admin={admin} back={() => setClinicScreen(undefined)} />
+      </View>
+    );
   if (clinicScreen === "referrals")
     return (
       <View style={styles.section}>
@@ -93,6 +107,11 @@ export function ClinicPatients({
     <View style={styles.section}>
       <View style={styles.actions}>
         <Action styles={styles} label={t("nativePatients.backClinics")} onPress={back} />
+        <Action
+          styles={styles}
+          label={t("nativeInventory.title")}
+          onPress={() => setClinicScreen("inventory")}
+        />
         <Action
           styles={styles}
           label={t("nativeReferrals.inbox")}

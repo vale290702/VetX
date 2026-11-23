@@ -222,6 +222,7 @@ function OrganizationDirectory({
         <Activity mode={currentClinic ? "visible" : "hidden"}>
           <ClinicPatients
             key={selectedClinic.id}
+            admin={result && "view" in result ? result.view.kind === "admin" : undefined}
             account={account}
             client={patients}
             styles={styles}

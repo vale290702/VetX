@@ -1,6 +1,8 @@
 import { createInstance } from "i18next";
 import ICU from "i18next-icu";
 
+import enInventory from "../locales/native-inventory.en.json";
+import esInventory from "../locales/native-inventory.es.json";
 import enReferrals from "../locales/native-referrals.en.json";
 import esReferrals from "../locales/native-referrals.es.json";
 import enExchange from "../locales/native-exchange.en.json";
@@ -18,6 +20,10 @@ import esPatients from "../locales/native-patients.es.json";
 
 import { defaultLocale, locales, messages, type Locale, type Messages } from "./index";
 
+const nativeInventory = { en: enInventory, es: esInventory } satisfies Record<
+  Locale,
+  typeof esInventory
+>;
 const nativeReferrals = { en: enReferrals, es: esReferrals } satisfies Record<
   Locale,
   typeof esReferrals
@@ -42,6 +48,7 @@ declare module "i18next" {
   interface CustomTypeOptions {
     resources: {
       translation: Messages & {
+        nativeInventory: typeof esInventory;
         nativeReferrals: typeof esReferrals;
         nativeExchange: typeof esExchange;
         nativeDocuments: typeof esDocuments;
@@ -65,6 +72,7 @@ export async function createNativeI18n(locale: Locale) {
         translation: {
           ...messages.es,
           nativeAuth: nativeAuth.es,
+          nativeInventory: nativeInventory.es,
           nativeReferrals: nativeReferrals.es,
           nativeExchange: nativeExchange.es,
           nativeDocuments: nativeDocuments.es,
@@ -77,6 +85,7 @@ export async function createNativeI18n(locale: Locale) {
         translation: {
           ...messages.en,
           nativeAuth: nativeAuth.en,
+          nativeInventory: nativeInventory.en,
           nativeReferrals: nativeReferrals.en,
           nativeExchange: nativeExchange.en,
           nativeDocuments: nativeDocuments.en,

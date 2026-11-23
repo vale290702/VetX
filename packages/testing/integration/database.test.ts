@@ -47,6 +47,8 @@ test(
           "exchange_receipts",
           "exchange_records",
           "guardians",
+          "inventory_items",
+          "inventory_warehouses",
           "medical_documents",
           "organization_memberships",
           "organizations",
@@ -58,6 +60,8 @@ test(
           "referral_responses",
           "referral_states",
           "registry_events",
+          "stock_balances",
+          "stock_movements",
           "users",
         ],
       );

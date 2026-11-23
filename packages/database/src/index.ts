@@ -40,6 +40,18 @@ import {
   type OwnerEncounter,
   type StaffEncounter,
 } from "./care.js";
+import type {
+  WarehouseInput,
+  Warehouse,
+  WarehousePage,
+  StockItemInput,
+  StockItem,
+  StockItemPage,
+  StockMovementInput,
+  StockMovement,
+  StockMovementPage,
+  StockBalancePage,
+} from "./inventory.js";
 import {
   ReferralError,
   type ReferralErrorCode,
@@ -75,6 +87,7 @@ export {
 
 export * from "./registry.js";
 export * from "./care.js";
+export * from "./inventory.js";
 export * from "./referrals.js";
 export * from "./exchange.js";
 
@@ -133,7 +146,7 @@ export class PrismaDatabase {
                     public.organization_memberships, public.clinic_grants
       LIMIT 0
     `;
-    await transaction.$queryRaw`SELECT public.registry_lock_tables() AS registry_locked, public.care_lock_tables() AS care_locked, public.document_lock_tables() AS documents_locked, public.exchange_lock_tables() AS exchange_locked, public.export_lock_tables() AS exports_locked, public.referral_lock_tables() AS referrals_locked`;
+    await transaction.$queryRaw`SELECT public.registry_lock_tables() AS registry_locked, public.care_lock_tables() AS care_locked, public.document_lock_tables() AS documents_locked, public.exchange_lock_tables() AS exchange_locked, public.export_lock_tables() AS exports_locked, public.referral_lock_tables() AS referrals_locked, public.stock_lock_tables() AS stock_locked`;
     const [result] = await transaction.$queryRaw<{ active: boolean }[]>`
       SELECT current_setting('row_security') = 'on'
         AND NOT EXISTS (
@@ -149,7 +162,7 @@ export class PrismaDatabase {
                         'public.encounter_sharing', 'public.encounter_recipients', 'public.appointments', 'public.care_events',
                         'public.referral_states','public.referral_requests','public.referral_responses','public.referral_events',
                         'public.exchange_packages','public.exchange_receipts','public.exchange_patients',
-                        'public.exchange_imports','public.exchange_records','public.medical_documents','public.document_events','public.exchange_export_events']::regclass[]) AS tables(relation)
+                        'public.exchange_imports','public.exchange_records','public.medical_documents','public.document_events','public.exchange_export_events','public.inventory_warehouses','public.inventory_items','public.stock_balances','public.stock_movements']::regclass[]) AS tables(relation)
       JOIN pg_catalog.pg_class ON pg_class.oid = relation
     `;
     if (!result?.active) throw new Error("Database row security is inactive");
@@ -710,6 +723,104 @@ export class PrismaDatabase {
       "",
       "",
       Prisma.sql`SELECT public.document_owner_read(${pet}::uuid,NULL,${page}::int) AS result`,
+    );
+  }
+
+  saveWarehouse(
+    staff: StaffPrincipal,
+    org: string,
+    clinic: string,
+    id: string,
+    input: WarehouseInput,
+  ): Promise<Warehouse> {
+    return this.registryQuery(
+      staff,
+      org,
+      clinic,
+      Prisma.sql`SELECT public.stock_save_warehouse(${id}::uuid,${input.name},${input.revision}::int) AS result`,
+    );
+  }
+  listWarehouses(
+    staff: StaffPrincipal,
+    org: string,
+    clinic: string,
+    page: number,
+  ): Promise<WarehousePage> {
+    return this.registryQuery(
+      staff,
+      org,
+      clinic,
+      Prisma.sql`SELECT public.stock_list_warehouses(${page}::int) AS result`,
+    );
+  }
+  saveStockItem(
+    staff: StaffPrincipal,
+    org: string,
+    clinic: string,
+    id: string,
+    input: StockItemInput,
+  ): Promise<StockItem> {
+    return this.registryQuery(
+      staff,
+      org,
+      clinic,
+      Prisma.sql`SELECT public.stock_save_item(${id}::uuid,${input.name},${input.sku},${input.unit},${input.revision}::int) AS result`,
+    );
+  }
+  listStockItems(
+    staff: StaffPrincipal,
+    org: string,
+    clinic: string,
+    query: string,
+    page: number,
+  ): Promise<StockItemPage> {
+    return this.registryQuery(
+      staff,
+      org,
+      clinic,
+      Prisma.sql`SELECT public.stock_list_items(${query},${page}::int) AS result`,
+    );
+  }
+  recordStockMovement(
+    staff: StaffPrincipal,
+    org: string,
+    clinic: string,
+    id: string,
+    input: StockMovementInput,
+  ): Promise<StockMovement> {
+    return this.registryQuery(
+      staff,
+      org,
+      clinic,
+      Prisma.sql`SELECT public.stock_record_movement(${id}::uuid,${input.itemId}::uuid,${input.kind},
+      ${input.fromWarehouseId}::uuid,${input.toWarehouseId}::uuid,${input.quantity},${input.lot},${input.reason},${input.unit}) AS result`,
+    );
+  }
+  listStockBalances(
+    staff: StaffPrincipal,
+    org: string,
+    clinic: string,
+    warehouseId: string | null,
+    page: number,
+  ): Promise<StockBalancePage> {
+    return this.registryQuery(
+      staff,
+      org,
+      clinic,
+      Prisma.sql`SELECT public.stock_list_balances(${warehouseId}::uuid,${page}::int) AS result`,
+    );
+  }
+  listStockMovements(
+    staff: StaffPrincipal,
+    org: string,
+    clinic: string,
+    page: number,
+  ): Promise<StockMovementPage> {
+    return this.registryQuery(
+      staff,
+      org,
+      clinic,
+      Prisma.sql`SELECT public.stock_list_movements(${page}::int) AS result`,
     );
   }
 
