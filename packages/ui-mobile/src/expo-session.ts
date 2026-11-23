@@ -199,7 +199,7 @@ export function createExpoAuth(
         ) {
           throw new Error("Invalid account verification response");
         }
-        return data;
+        return { ...data, issuer };
       });
     },
     async revoke(token) {

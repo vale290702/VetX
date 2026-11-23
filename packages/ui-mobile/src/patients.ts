@@ -1,6 +1,7 @@
 import type { paths } from "@vetx/api-client";
 import type { fetch as expoFetch } from "expo/fetch";
 
+import { createBilling } from "./billing-client.ts";
 import { createTrade } from "./trade-client.ts";
 import { createInventory } from "./inventory-client.ts";
 import { createReferrals } from "./referral-client.ts";
@@ -26,6 +27,7 @@ type GuardianInput = paths[typeof guardian]["put"]["requestBody"]["content"]["ap
 type Redemption = paths[typeof redeemPath]["post"]["requestBody"]["content"]["application/json"];
 export function patientFailure(error: unknown, action: "read" | "write" | "redeem") {
   if (error instanceof PatientError) {
+    if (error.code === "BILLING_UNAVAILABLE") return "billingUnavailable";
     if (error.code === "TRADE_UNAVAILABLE") return "tradeUnavailable";
     if (error.code === "INVENTORY_UNAVAILABLE") return "inventoryUnavailable";
     if (error.code === "REFERRALS_UNAVAILABLE") return "referralsUnavailable";
@@ -61,6 +63,7 @@ export function createPatients(
   const transport = createPatientTransport(session, origin, fetcher);
   const { api, staff, owner } = transport;
   return {
+    billing: createBilling(transport),
     trade: createTrade(transport),
     inventory: createInventory(transport),
     referrals: createReferrals(transport),

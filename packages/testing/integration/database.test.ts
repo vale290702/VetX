@@ -32,7 +32,12 @@ test(
         protections.rows.map((row) => row.relname),
         [
           "appointments",
+          "billing_payments",
+          "billing_price_events",
+          "billing_prices",
+          "billing_sales",
           "care_events",
+          "cash_shifts",
           "clinic_grants",
           "clinical_encounters",
           "clinics",

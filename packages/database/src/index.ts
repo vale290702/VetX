@@ -1,4 +1,16 @@
 import type {
+  BillingPage,
+  PriceInput,
+  PriceEntry,
+  SaleInput,
+  Sale,
+  ShiftInput,
+  CashShift,
+  PaymentInput,
+  Payment,
+} from "./billing.js";
+export * from "./billing.js";
+import type {
   ExportChoice,
   ExportLocation,
   ExportSelection,
@@ -149,7 +161,7 @@ export class PrismaDatabase {
                     public.organization_memberships, public.clinic_grants
       LIMIT 0
     `;
-    await transaction.$queryRaw`SELECT public.registry_lock_tables() AS registry_locked, public.care_lock_tables() AS care_locked, public.document_lock_tables() AS documents_locked, public.exchange_lock_tables() AS exchange_locked, public.export_lock_tables() AS exports_locked, public.referral_lock_tables() AS referrals_locked, public.stock_lock_tables() AS stock_locked, public.trade_lock_tables() AS trade_locked`;
+    await transaction.$queryRaw`SELECT public.registry_lock_tables() AS registry_locked, public.care_lock_tables() AS care_locked, public.document_lock_tables() AS documents_locked, public.exchange_lock_tables() AS exchange_locked, public.export_lock_tables() AS exports_locked, public.referral_lock_tables() AS referrals_locked, public.stock_lock_tables() AS stock_locked, public.trade_lock_tables() AS trade_locked,public.billing_lock_tables() AS billing_locked`;
     const [result] = await transaction.$queryRaw<{ active: boolean }[]>`
       SELECT current_setting('row_security') = 'on'
         AND NOT EXISTS (
@@ -165,7 +177,7 @@ export class PrismaDatabase {
                         'public.encounter_sharing', 'public.encounter_recipients', 'public.appointments', 'public.care_events',
                         'public.referral_states','public.referral_requests','public.referral_responses','public.referral_events',
                         'public.exchange_packages','public.exchange_receipts','public.exchange_patients',
-                        'public.exchange_imports','public.exchange_records','public.medical_documents','public.document_events','public.exchange_export_events','public.inventory_warehouses','public.inventory_items','public.stock_balances','public.stock_movements','public.trade_suppliers','public.purchase_orders','public.purchase_lines','public.purchase_receipts','public.purchase_receipt_lines','public.supplier_returns','public.pharmacy_capabilities','public.patient_prescriptions','public.prescription_dispensings','public.prescription_sharing','public.pharmacy_events']::regclass[]) AS tables(relation)
+                        'public.exchange_imports','public.exchange_records','public.medical_documents','public.document_events','public.exchange_export_events','public.inventory_warehouses','public.inventory_items','public.stock_balances','public.stock_movements','public.trade_suppliers','public.purchase_orders','public.purchase_lines','public.purchase_receipts','public.purchase_receipt_lines','public.supplier_returns','public.pharmacy_capabilities','public.patient_prescriptions','public.prescription_dispensings','public.prescription_sharing','public.pharmacy_events','public.billing_prices','public.billing_price_events','public.billing_sales','public.cash_shifts','public.billing_payments']::regclass[]) AS tables(relation)
       JOIN pg_catalog.pg_class ON pg_class.oid = relation
     `;
     if (!result?.active) throw new Error("Database row security is inactive");
@@ -1102,6 +1114,141 @@ export class PrismaDatabase {
     );
   }
 
+  saveBillingPrice(
+    staff: StaffPrincipal,
+    org: string,
+    clinic: string,
+    id: string,
+    input: PriceInput,
+  ): Promise<PriceEntry> {
+    return this.registryQuery(
+      staff,
+      org,
+      clinic,
+      Prisma.sql`SELECT public.billing_save_price(${id}::uuid,${input.name},${input.currency},${input.unitPrice},${input.taxRate},${input.cabys},${input.stockItemId}::uuid,${input.unit},${input.revision}::int) AS result`,
+    );
+  }
+  createSale(
+    staff: StaffPrincipal,
+    org: string,
+    clinic: string,
+    id: string,
+    input: SaleInput,
+  ): Promise<Sale> {
+    return this.registryQuery(
+      staff,
+      org,
+      clinic,
+      Prisma.sql`SELECT public.billing_create_sale(${id}::uuid,${input.currency},${input.patientId}::uuid,${JSON.stringify(input.lines)}::jsonb) AS result`,
+      "",
+      this.bulkClient,
+    );
+  }
+  getSale(staff: StaffPrincipal, org: string, clinic: string, id: string): Promise<Sale> {
+    return this.registryQuery(
+      staff,
+      org,
+      clinic,
+      Prisma.sql`SELECT public.billing_get_sale(${id}::uuid) AS result`,
+    );
+  }
+  openShift(
+    staff: StaffPrincipal,
+    org: string,
+    clinic: string,
+    id: string,
+    input: ShiftInput,
+  ): Promise<CashShift> {
+    return this.registryQuery(
+      staff,
+      org,
+      clinic,
+      Prisma.sql`SELECT public.billing_open_shift(${id}::uuid,${input.label},${input.currency},${input.openingFloat}) AS result`,
+    );
+  }
+  closeShift(
+    staff: StaffPrincipal,
+    org: string,
+    clinic: string,
+    id: string,
+    counted: string,
+  ): Promise<CashShift> {
+    return this.registryQuery(
+      staff,
+      org,
+      clinic,
+      Prisma.sql`SELECT public.billing_close_shift(${id}::uuid,${counted}) AS result`,
+    );
+  }
+  takePayment(
+    staff: StaffPrincipal,
+    org: string,
+    clinic: string,
+    sale: string,
+    id: string,
+    input: PaymentInput,
+  ): Promise<Payment> {
+    return this.registryQuery(
+      staff,
+      org,
+      clinic,
+      Prisma.sql`SELECT public.billing_take_payment(${sale}::uuid,${id}::uuid,${input.method},${input.amount},${input.reference},${input.shiftId}::uuid) AS result`,
+    );
+  }
+  listBillingPrices(
+    staff: StaffPrincipal,
+    org: string,
+    clinic: string,
+    term: string,
+    page: number,
+  ): Promise<BillingPage & { prices: PriceEntry[] }> {
+    return this.registryQuery(
+      staff,
+      org,
+      clinic,
+      Prisma.sql`SELECT public.billing_list('prices',${page}::int,NULL,${term}) AS result`,
+    );
+  }
+  listSales(
+    staff: StaffPrincipal,
+    org: string,
+    clinic: string,
+    page: number,
+  ): Promise<BillingPage & { sales: Sale[] }> {
+    return this.registryQuery(
+      staff,
+      org,
+      clinic,
+      Prisma.sql`SELECT public.billing_list('sales',${page}::int,NULL,'') AS result`,
+    );
+  }
+  listShifts(
+    staff: StaffPrincipal,
+    org: string,
+    clinic: string,
+    page: number,
+  ): Promise<BillingPage & { shifts: CashShift[] }> {
+    return this.registryQuery(
+      staff,
+      org,
+      clinic,
+      Prisma.sql`SELECT public.billing_list('shifts',${page}::int,NULL,'') AS result`,
+    );
+  }
+  listPayments(
+    staff: StaffPrincipal,
+    org: string,
+    clinic: string,
+    sale: string,
+    page: number,
+  ): Promise<BillingPage & { payments: Payment[] }> {
+    return this.registryQuery(
+      staff,
+      org,
+      clinic,
+      Prisma.sql`SELECT public.billing_list('payments',${page}::int,${sale}::uuid,'') AS result`,
+    );
+  }
   stageExchange(
     staff: StaffPrincipal,
     org: string,
