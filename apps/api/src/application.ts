@@ -6,6 +6,7 @@ import type { NestExpressApplication } from "@nestjs/platform-express";
 import { SwaggerModule } from "@nestjs/swagger";
 import { type AccessDependencies, AccessModule } from "./access.js";
 import { DocumentModule, type DocumentDependencies } from "./documents/module.js";
+import { ProcurementModule, type ProcurementStore } from "./procurement/module.js";
 import { InventoryModule, type InventoryStore } from "./inventory/module.js";
 import { BillingModule, type BillingStore } from "./billing/module.js";
 import { ClinicalExchangeModule } from "./exchange/module.js";
@@ -22,6 +23,7 @@ import { createOpenApiDocument } from "./openapi.js";
 type Dependencies = AccessDependencies & {
   billing?: BillingStore;
   inventory?: InventoryStore;
+  procurement?: ProcurementStore;
   exchange?: ExchangeDependencies;
   documents?: DocumentDependencies;
   care?: CareStore;
@@ -44,6 +46,7 @@ class AppModule {
         DocumentModule.register(access.documents),
         BillingModule.register(access.billing),
         InventoryModule.register(access.inventory),
+        ProcurementModule.register(access.procurement),
         ClinicalExchangeModule.register(access.exchange),
         CareModule.register(access.care),
         ReferralModule.register(access.referrals, access.referralDirectory),

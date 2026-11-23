@@ -21,6 +21,10 @@
     "test": {
       "outputs": []
     },
+    "@vetx/fiscal-cr#test": {
+      "dependsOn": ["build"],
+      "outputs": []
+    },
     "@vetx/api#test": {
       "dependsOn": ["build"],
       "outputs": []

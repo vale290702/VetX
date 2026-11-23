@@ -6,6 +6,7 @@ import { readStaffSession } from "../../../../auth/account.ts";
 import { AdminPanel } from "../../../../directory/admin-panel";
 import { loadDirectory } from "../../../../directory/api.ts";
 import { directoryNotices, isDirectoryId, readDirectoryPage } from "../../../../directory/forms.ts";
+import { TradeLink } from "../../../../trade/nav";
 import { InventoryLink } from "../../../../inventory/navigation";
 import { BillingLink } from "../../../../billing/navigation";
 import { ReferralLink } from "../../../../referrals/navigation";
@@ -94,6 +95,11 @@ export default async function OrganizationDirectory({ params, searchParams }: Pr
                         >
                           {exchange("importTitle")}
                         </Link>
+                        <TradeLink
+                          locale={locale}
+                          scope={{ organizationId, clinicId: clinic.id }}
+                          clinic={clinic.name}
+                        />
                         <InventoryLink
                           locale={locale}
                           scope={{ organizationId, clinicId: clinic.id }}
