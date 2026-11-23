@@ -1,3 +1,4 @@
+import type { DicomMetadata } from "./documents.js";
 import type { ExchangeClinic, ExchangePatient } from "./exchange.js";
 export interface ExportLocation extends ExchangeClinic {
   patientId: string;
@@ -37,10 +38,7 @@ export interface ExportNote {
   };
 }
 export interface ExportFile {
-  imaging?: Pick<
-    import("./documents.js").DicomMetadata,
-    "studyInstanceUid" | "seriesInstanceUid" | "sopInstanceUid"
-  > | null;
+  imaging?: Pick<DicomMetadata, "studyInstanceUid" | "seriesInstanceUid" | "sopInstanceUid"> | null;
   id: string;
   objectId: string;
   title: string;

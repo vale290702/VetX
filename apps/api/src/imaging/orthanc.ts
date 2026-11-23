@@ -11,7 +11,7 @@ import { inspectDocument } from "../documents/content.js";
 export interface ClinicalImagingArchive {
   ingest(bytes: Buffer, sha256: string): Promise<{ metadata: DicomMetadata; preview?: Buffer }>;
 }
-async function bounded(response: Response, max: number) {
+async function bounded(response: Response, max: number, exactLength: boolean) {
   const reader = response.body?.getReader();
   if (!reader) throw new ServiceUnavailableException();
   const chunks: Uint8Array[] = [];
@@ -23,10 +23,12 @@ async function bounded(response: Response, max: number) {
       size += value.length;
       if (size > max) {
         await reader.cancel();
+        if (exactLength) throw new ConflictException();
         throw new ServiceUnavailableException();
       }
       chunks.push(value);
     }
+    if (exactLength && size !== max) throw new ConflictException();
     return Buffer.concat(chunks, size);
   } finally {
     reader.releaseLock();
@@ -58,6 +60,7 @@ export class OrthancArchive implements ClinicalImagingArchive {
     method: "GET" | "POST",
     max: number,
     data?: Buffer,
+    exactLength = false,
   ): Promise<{ code: number; bytes: Buffer; type: string }> {
     try {
       const response = await fetch(this.config.endpoint + route, {
@@ -78,9 +81,10 @@ export class OrthancArchive implements ClinicalImagingArchive {
       return {
         code: response.status,
         type: response.headers.get("content-type")?.split(";")[0]?.trim() ?? "",
-        bytes: await bounded(response, max),
+        bytes: await bounded(response, max, exactLength),
       };
-    } catch {
+    } catch (error) {
+      if (error instanceof ConflictException) throw error;
       throw new ServiceUnavailableException();
     }
   }
@@ -98,7 +102,7 @@ export class OrthancArchive implements ClinicalImagingArchive {
       throw new ServiceUnavailableException();
     const instance = "/instances/" + id;
     const checkOriginal = async () => {
-      const original = await this.request(instance + "/file", "GET", bytes.length);
+      const original = await this.request(instance + "/file", "GET", bytes.length, undefined, true);
       if (original.code !== 200) throw new ServiceUnavailableException();
       if (createHash("sha256").update(original.bytes).digest("hex") !== sha256)
         throw new ConflictException();
