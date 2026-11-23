@@ -5,6 +5,7 @@ import { type Locale } from "@vetx/i18n";
 import { Button } from "@vetx/ui-web";
 import { getTranslations } from "next-intl/server";
 
+import { ReferralLink } from "../referrals/navigation";
 import { Link } from "../i18n/routing";
 import { MemberFields, type Clinic, type Member } from "./member-fields";
 
@@ -119,6 +120,11 @@ export async function AdminPanel({ csrf, locale, organizationId, directory }: Pr
                 >
                   {exchange("importTitle")}
                 </Link>
+                <ReferralLink
+                  scope={{ organizationId, clinicId: clinic.id }}
+                  locale={locale}
+                  clinicName={clinic.name}
+                />
                 <details className="directory-disclosure">
                   <summary>{t("rename")}</summary>
                   {clinicForm(clinic)}

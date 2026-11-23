@@ -48,6 +48,18 @@ export async function createDirectoryFixture(organizationId: string = randomUUID
         );
       }
       await db.query("BEGIN");
+      const routeFilter = "source_org=$1 OR destination_org=$1";
+      for (const [table, id] of [
+        ["referral_events", "referral_id"],
+        ["referral_responses", "id"],
+        ["referral_requests", "id"],
+      ]) {
+        await db.query(
+          `DELETE FROM ${table} WHERE ${id} IN (SELECT id FROM referral_states WHERE ${routeFilter})`,
+          [organizationId],
+        );
+      }
+      await db.query(`DELETE FROM referral_states WHERE ${routeFilter}`, [organizationId]);
       for (const table of [
         "document_events",
         "medical_documents",
