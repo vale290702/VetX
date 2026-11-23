@@ -133,6 +133,6 @@ test("signed client fixture validates offline against the pinned Hacienda XSD an
       signer,
       5000,
     ),
-    /validation failed/,
+    /Invalid fiscal invoice/,
   );
 });

@@ -1,3 +1,4 @@
+import unitCodes from "./unit-codes.v4.4.json" with { type: "json" };
 import vatTariffs from "./vat-tariffs.v4.4.json" with { type: "json" };
 import { DOMImplementation, XMLSerializer, type Element } from "@xmldom/xmldom";
 import type { FiscalIdentity, FiscalEnvelope } from "./index.js";
@@ -126,7 +127,7 @@ export function buildFiscalInvoice(input: FiscalInvoice): { key: string; xml: st
       tax = scaled(line.tax),
       rate = scaled(line.taxRate);
     // Half-up decimal rounding follows the stored per-line sale calculation.
-    requireValue(quantity > 0n);
+    requireValue(quantity > 0n && unitCodes.includes(line.unitCode));
     const tariff = Object.entries(vatTariffs).find(([code]) => code === line.vatTariffCode);
     requireValue(tariff && rate === scaled(tariff[1]));
     requireValue(net === (scaled(line.unitPrice) * quantity + 500n) / 1000n);
