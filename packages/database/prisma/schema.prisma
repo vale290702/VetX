@@ -30,6 +30,8 @@ model Clinic {
   createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
 
   patients Patient[]
+  warehouses InventoryWarehouse[]
+  stockItems InventoryItem[]
   ownerContacts OwnerContact[]
   grants         ClinicGrant[]
 
@@ -310,4 +312,79 @@ model DocumentEvent {
   document       MedicalDocument @relation(fields: [organizationId, clinicId, patientId, documentId], references: [organizationId, clinicId, patientId, id], onDelete: NoAction, onUpdate: NoAction)
 
   @@map("document_events")
+}
+
+model InventoryWarehouse {
+  organizationId String @map("organization_id") @db.Uuid
+  clinicId       String @map("clinic_id") @db.Uuid
+  id             String @db.Uuid
+  name           String
+  revision       Int
+  actorIssuer    String @map("actor_issuer")
+  actorSubject   String @map("actor_subject")
+  clinic         Clinic @relation(fields: [organizationId, clinicId], references: [organizationId, id], onDelete: NoAction, onUpdate: NoAction)
+  balances       StockBalance[]
+  outgoing       StockMovement[] @relation("MovementOrigin")
+  incoming       StockMovement[] @relation("MovementDestination")
+
+  @@id([organizationId, clinicId, id])
+  @@map("inventory_warehouses")
+}
+
+model InventoryItem {
+  organizationId String @map("organization_id") @db.Uuid
+  clinicId       String @map("clinic_id") @db.Uuid
+  id             String @db.Uuid
+  name           String
+  sku            String
+  unit           String
+  revision       Int
+  actorIssuer    String @map("actor_issuer")
+  actorSubject   String @map("actor_subject")
+  clinic         Clinic @relation(fields: [organizationId, clinicId], references: [organizationId, id], onDelete: NoAction, onUpdate: NoAction)
+  balances       StockBalance[]
+  movements      StockMovement[]
+
+  @@id([organizationId, clinicId, id])
+  @@map("inventory_items")
+}
+
+model StockBalance {
+  organizationId String @map("organization_id") @db.Uuid
+  clinicId       String @map("clinic_id") @db.Uuid
+  warehouseId    String @map("warehouse_id") @db.Uuid
+  itemId         String @map("item_id") @db.Uuid
+  lot            String
+  quantity       Decimal @db.Decimal(18,3)
+  warehouse      InventoryWarehouse @relation(fields: [organizationId, clinicId, warehouseId], references: [organizationId, clinicId, id], onDelete: NoAction, onUpdate: NoAction)
+  item           InventoryItem @relation(fields: [organizationId, clinicId, itemId], references: [organizationId, clinicId, id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@id([organizationId, clinicId, warehouseId, itemId, lot])
+  @@map("stock_balances")
+}
+
+model StockMovement {
+  organizationId String @map("organization_id") @db.Uuid
+  clinicId       String @map("clinic_id") @db.Uuid
+  id             String @db.Uuid
+  itemId         String @map("item_id") @db.Uuid
+  kind           String
+  fromWarehouseId String? @map("from_warehouse_id") @db.Uuid
+  toWarehouseId   String? @map("to_warehouse_id") @db.Uuid
+  lot            String
+  reason         String
+  quantity       Decimal @db.Decimal(18,3)
+  fromBalance    Decimal? @map("from_balance") @db.Decimal(18,3)
+  toBalance      Decimal? @map("to_balance") @db.Decimal(18,3)
+  recordedAt     DateTime @default(dbgenerated("clock_timestamp()")) @map("recorded_at") @db.Timestamptz(3)
+  actorIssuer    String @map("actor_issuer")
+  actorSubject   String @map("actor_subject")
+  origin         InventoryWarehouse? @relation("MovementOrigin", fields: [organizationId, clinicId, fromWarehouseId], references: [organizationId, clinicId, id], onDelete: NoAction, onUpdate: NoAction)
+  destination    InventoryWarehouse? @relation("MovementDestination", fields: [organizationId, clinicId, toWarehouseId], references: [organizationId, clinicId, id], onDelete: NoAction, onUpdate: NoAction)
+  item           InventoryItem @relation(fields: [organizationId, clinicId, itemId], references: [organizationId, clinicId, id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@id([organizationId, clinicId, id])
+  @@index([organizationId, clinicId, recordedAt(sort: Desc), id], map: "stock_chronology")
+  @@index([organizationId, clinicId, itemId], map: "stock_item_history")
+  @@map("stock_movements")
 }

@@ -35,6 +35,7 @@ async function main(): Promise<void> {
     registry: database,
     documents: { database, ...(files && storage ? { config: files, storage } : {}) },
     care: database,
+    inventory: database,
     petLinks: loadPetLinkConfig(),
     tokenVerifier: oidc && new KeycloakTokenVerifier(oidc),
   });

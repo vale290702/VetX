@@ -41,6 +41,8 @@ test(
           "encounter_recipients",
           "encounter_sharing",
           "guardians",
+          "inventory_items",
+          "inventory_warehouses",
           "medical_documents",
           "organization_memberships",
           "organizations",
@@ -48,6 +50,8 @@ test(
           "patients",
           "pet_link_attempts",
           "registry_events",
+          "stock_balances",
+          "stock_movements",
           "users",
         ],
       );
