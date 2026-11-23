@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { Activity, useCallback, useState } from "react";
 import { Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { Action, Field } from "./controls";
@@ -65,7 +65,7 @@ export function Invoices(
 export function Invoice(props: ClinicPatientProps & { id: string; back: () => void }) {
   const { t, i18n } = useTranslation(),
     { styles, scope, client, id, back } = props,
-    [pay, setPay] = useState(false);
+    [paymentSale, setPaymentSale] = useState<Sale>();
   const { result, reload } = usePatientRead(
     useCallback(() => client.billing.sale(scope, id), [client, scope, id]),
   );
@@ -76,25 +76,34 @@ export function Invoice(props: ClinicPatientProps & { id: string; back: () => vo
     },
     [scope, client, id],
   );
-  if (!result || "error" in result)
+  const verifiedSale = result && "value" in result ? result.value : undefined;
+  const error = result && "error" in result ? result.error : undefined;
+  if (paymentSale && error === "denied") setPaymentSale(undefined);
+  if (paymentSale && error !== "denied") {
+    return (
+      <>
+        {!verifiedSale && <PatientReadState styles={styles} error={error} retry={reload} />}
+        <Activity mode={verifiedSale ? "visible" : "hidden"}>
+          <PaymentForm
+            {...props}
+            sale={verifiedSale ?? paymentSale}
+            back={() => {
+              setPaymentSale(undefined);
+              reload();
+            }}
+          />
+        </Activity>
+      </>
+    );
+  }
+  if (!verifiedSale)
     return (
       <View style={styles.section}>
         <GoBack styles={styles} onPress={back} />
-        <PatientReadState styles={styles} error={result?.error} retry={reload} />
+        <PatientReadState styles={styles} error={error} retry={reload} />
       </View>
     );
-  const sale = result.value;
-  if (pay)
-    return (
-      <PaymentForm
-        {...props}
-        sale={sale}
-        back={() => {
-          setPay(false);
-          reload();
-        }}
-      />
-    );
+  const sale = verifiedSale;
   return (
     <View style={styles.section}>
       <GoBack styles={styles} onPress={back} />
@@ -146,7 +155,7 @@ export function Invoice(props: ClinicPatientProps & { id: string; back: () => vo
           styles={styles}
           primary
           label={t("nativeBilling.addPayment")}
-          onPress={() => setPay(true)}
+          onPress={() => setPaymentSale(sale)}
         />
       )}
       <Heading styles={styles}>{t("nativeBilling.payments")}</Heading>
