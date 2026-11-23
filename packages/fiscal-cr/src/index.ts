@@ -270,7 +270,7 @@ export class HaciendaClient implements FiscalReception {
     // Reconcile the existing key before the outbox decides whether to retry.
     const existing = await this.status(envelope.key);
     if (existing) return { key: envelope.key, status: "known", state: existing.state };
-    throw new HaciendaError(response?.status === 400 ? "invalid_submission" : "unconfirmed");
+    throw new HaciendaError("unconfirmed");
   }
 }
 
