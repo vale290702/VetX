@@ -30,6 +30,7 @@ model Clinic {
   createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
 
   patients Patient[]
+  incomingReferrals ReferralState[]
   ownerContacts OwnerContact[]
   grants         ClinicGrant[]
 
@@ -145,6 +146,7 @@ model Guardian {
   petId           String?      @map("pet_id") @db.Uuid
   claimRequestId  String?      @map("claim_request_id") @db.Uuid
   claimTarget     String?      @map("claim_target") @db.Uuid
+  referralStates  ReferralState[]
   releases        EncounterRecipient[]
   patient         Patient      @relation(fields: [organizationId, clinicId, patientId], references: [organizationId, clinicId, id], onUpdate: NoAction, onDelete: NoAction)
   contact         OwnerContact @relation(fields: [organizationId, clinicId, contactId], references: [organizationId, clinicId, id], onUpdate: NoAction, onDelete: NoAction)
@@ -266,4 +268,73 @@ model CareEvent {
   patient        Patient @relation(fields: [organizationId, clinicId, patientId], references: [organizationId, clinicId, id], onUpdate: NoAction, onDelete: NoAction)
 
   @@map("care_events")
+}
+
+model ReferralState {
+  id               String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  requestId        String @map("request_id") @db.Uuid
+  sourceOrg        String @map("source_org") @db.Uuid
+  sourceClinic     String @map("source_clinic") @db.Uuid
+  patientId        String @map("patient_id") @db.Uuid
+  guardianId       String @map("guardian_id") @db.Uuid
+  destinationOrg   String @map("destination_org") @db.Uuid
+  destinationClinic String @map("destination_clinic") @db.Uuid
+  ownerIssuer      String @map("owner_issuer")
+  ownerSubject     String @map("owner_subject")
+  petId            String @map("pet_id") @db.Uuid
+  linked           Boolean @default(true)
+  status           String @default("REQUESTED")
+  revision         Int @default(1)
+  guardian         Guardian @relation(fields: [sourceOrg, sourceClinic, patientId, guardianId], references: [organizationId, clinicId, patientId, id], onDelete: NoAction, onUpdate: NoAction)
+  destination      Clinic @relation(fields: [destinationOrg, destinationClinic], references: [organizationId, id], onDelete: NoAction, onUpdate: NoAction)
+  request          ReferralRequest?
+  response         ReferralResponse?
+  events           ReferralEvent[]
+
+  @@unique([sourceOrg, sourceClinic, requestId])
+  @@index([destinationOrg, destinationClinic, status], map: "referrals_destination")
+  @@index([sourceOrg, sourceClinic, patientId, guardianId], map: "referrals_guardian")
+  @@index([ownerIssuer, ownerSubject, petId], map: "referrals_owner")
+  @@map("referral_states")
+}
+
+model ReferralRequest {
+  id                          String @id @db.Uuid
+  sourceOrganizationName      String @map("source_organization_name")
+  sourceClinicName            String @map("source_clinic_name")
+  destinationOrganizationName String @map("destination_organization_name")
+  destinationClinicName       String @map("destination_clinic_name")
+  patientName                 String @map("patient_name")
+  species                     String
+  reason                      String
+  summary                     String
+  authorIssuer                String @map("author_issuer")
+  authorSubject               String @map("author_subject")
+  requestedAt                 DateTime @default(dbgenerated("clock_timestamp()")) @map("requested_at") @db.Timestamptz(3)
+  state                       ReferralState @relation(fields: [id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([requestedAt(sort: Desc), id], map: "referrals_chronology")
+  @@map("referral_requests")
+}
+
+model ReferralResponse {
+  id            String @id @db.Uuid
+  summary       String
+  authorIssuer  String @map("author_issuer")
+  authorSubject String @map("author_subject")
+  recordedAt    DateTime @default(dbgenerated("clock_timestamp()")) @map("recorded_at") @db.Timestamptz(3)
+  state         ReferralState @relation(fields: [id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  @@map("referral_responses")
+}
+
+model ReferralEvent {
+  referralId   String @map("referral_id") @db.Uuid
+  revision     Int
+  action       String
+  actorIssuer  String @map("actor_issuer")
+  actorSubject String @map("actor_subject")
+  recordedAt   DateTime @default(dbgenerated("clock_timestamp()")) @map("recorded_at") @db.Timestamptz(3)
+  state        ReferralState @relation(fields: [referralId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  @@id([referralId, revision])
+  @@map("referral_events")
 }

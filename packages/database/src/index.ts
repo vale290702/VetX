@@ -32,6 +32,17 @@ import {
   type OwnerEncounter,
   type StaffEncounter,
 } from "./care.js";
+import {
+  ReferralError,
+  type ReferralErrorCode,
+  type ReferralClinic,
+  type Referral,
+  type ReferralRequestInput,
+  type ReferralResponseInput,
+  type ReferralDecision,
+  type StaffReferralFilter,
+  type ReferralPage,
+} from "./referrals.js";
 import { Prisma, PrismaClient } from "./generated/client.js";
 
 export {
@@ -44,6 +55,7 @@ export {
 
 export * from "./registry.js";
 export * from "./care.js";
+export * from "./referrals.js";
 
 const probeTimeoutMs = 1_000;
 
@@ -77,7 +89,7 @@ export class PrismaDatabase {
                     public.organization_memberships, public.clinic_grants
       LIMIT 0
     `;
-    await transaction.$queryRaw`SELECT public.registry_lock_tables() AS registry_locked, public.care_lock_tables() AS care_locked`;
+    await transaction.$queryRaw`SELECT public.registry_lock_tables() AS registry_locked, public.care_lock_tables() AS care_locked, public.referral_lock_tables() AS referrals_locked`;
     const [result] = await transaction.$queryRaw<{ active: boolean }[]>`
       SELECT current_setting('row_security') = 'on'
         AND NOT EXISTS (
@@ -90,7 +102,8 @@ export class PrismaDatabase {
                         'public.organizations', 'public.clinics', 'public.directory_events',
                         'public.patients', 'public.owner_contacts', 'public.guardians',
                         'public.registry_events', 'public.pet_link_attempts', 'public.clinical_encounters',
-                        'public.encounter_sharing', 'public.encounter_recipients', 'public.appointments', 'public.care_events']::regclass[]) AS tables(relation)
+                        'public.encounter_sharing', 'public.encounter_recipients', 'public.appointments', 'public.care_events',
+                        'public.referral_states','public.referral_requests','public.referral_responses','public.referral_events']::regclass[]) AS tables(relation)
       JOIN pg_catalog.pg_class ON pg_class.oid = relation
     `;
     if (!result?.active) throw new Error("Database row security is inactive");
@@ -383,6 +396,124 @@ export class PrismaDatabase {
       Prisma.sql`SELECT public.care_save_appointment(${id}::uuid, ${input.patientId}::uuid,
       ${input.startAt}, ${input.endAt}, ${input.reason}, ${input.status}, ${input.revision}::int) AS result`,
     );
+  }
+
+  requestReferral(
+    staff: StaffPrincipal,
+    org: string,
+    clinic: string,
+    patient: string,
+    requestId: string,
+    input: ReferralRequestInput,
+  ): Promise<Referral> {
+    return this.referralQuery(
+      staff,
+      org,
+      clinic,
+      Prisma.sql`SELECT public.referral_request(
+      ${patient}::uuid,${requestId}::uuid,${input.guardianId}::uuid,${input.destination.organizationId}::uuid,
+      ${input.destination.clinicId}::uuid,${input.reason},${input.summary}) AS result`,
+    );
+  }
+
+  referralClinicContext(
+    staff: StaffPrincipal,
+    org: string,
+    clinic: string,
+    incoming: boolean,
+  ): Promise<{ sources: ReferralClinic[] }> {
+    return this.referralQuery(
+      staff,
+      org,
+      clinic,
+      Prisma.sql`SELECT public.referral_clinic_context(${incoming}::boolean) AS result`,
+    );
+  }
+
+  referralRoute(
+    principal: AccessPrincipal,
+    org: string,
+    clinic: string,
+    referral: string,
+    pet: string | null,
+  ): Promise<{ source: ReferralClinic; destination: ReferralClinic }> {
+    return this.referralQuery(
+      principal,
+      org,
+      clinic,
+      Prisma.sql`SELECT public.referral_route(${referral}::uuid,${pet}::uuid) AS result`,
+    );
+  }
+
+  listStaffReferrals(
+    staff: StaffPrincipal,
+    org: string,
+    clinic: string,
+    filter: StaffReferralFilter,
+    permittedSources?: ReferralClinic[],
+  ): Promise<ReferralPage> {
+    return this.referralQuery(
+      staff,
+      org,
+      clinic,
+      Prisma.sql`SELECT public.referral_list(
+      ${filter.direction},${filter.page}::int,${filter.patientId ?? null}::uuid,NULL::uuid,${permittedSources ? JSON.stringify(permittedSources) : null}::jsonb) AS result`,
+    );
+  }
+
+  listOwnerReferrals(owner: OwnerPrincipal, pet: string, page: number): Promise<ReferralPage> {
+    return this.referralQuery(
+      owner,
+      "",
+      "",
+      Prisma.sql`SELECT public.referral_list(
+      'owner',${page}::int,NULL::uuid,${pet}::uuid) AS result`,
+    );
+  }
+
+  decideReferral(
+    owner: OwnerPrincipal,
+    pet: string,
+    referral: string,
+    input: ReferralDecision,
+  ): Promise<Referral> {
+    return this.referralQuery(
+      owner,
+      "",
+      "",
+      Prisma.sql`SELECT public.referral_decide(
+      ${pet}::uuid,${referral}::uuid,${input.action},${input.revision}::int) AS result`,
+    );
+  }
+
+  respondReferral(
+    staff: StaffPrincipal,
+    org: string,
+    clinic: string,
+    referral: string,
+    input: ReferralResponseInput,
+  ): Promise<Referral> {
+    return this.referralQuery(
+      staff,
+      org,
+      clinic,
+      Prisma.sql`SELECT public.referral_respond(
+      ${referral}::uuid,${input.summary},${input.revision}::int) AS result`,
+    );
+  }
+
+  private async referralQuery<T>(
+    principal: AccessPrincipal,
+    org: string,
+    clinic: string,
+    query: Prisma.Sql,
+  ): Promise<T> {
+    const [row] = await this.scopedRows<T, ReferralErrorCode>(principal, org, clinic, query, "");
+    const result = row?.result;
+    if (!result || typeof result !== "object")
+      throw new Error("Database returned no referral result");
+    if ("error" in result) throw new ReferralError(result.error);
+    return result;
   }
 
   private async careQuery<T>(

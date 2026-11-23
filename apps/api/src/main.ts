@@ -14,6 +14,7 @@ async function main(): Promise<void> {
     directory: database,
     registry: database,
     care: database,
+    referrals: database,
     petLinks: loadPetLinkConfig(),
     tokenVerifier: oidc && new KeycloakTokenVerifier(oidc),
   });
