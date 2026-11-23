@@ -14,6 +14,8 @@ import {
   registryPath,
   type ClinicScope,
 } from "../../../../../../../../patients/forms.ts";
+import { clinicalMessages } from "../../../../../../../../clinical/messages.ts";
+import { clinicalPath } from "../../../../../../../../clinical/forms.ts";
 import { ClinicalHistory } from "../../../../../../../../care/encounters";
 import { carePath, careNotices } from "../../../../../../../../care/forms.ts";
 import { operatorZone } from "../../../../../../../../care/time.ts";
@@ -221,6 +223,14 @@ export default async function Patients({ params, searchParams }: Props) {
                       href={`${registryPath(scope)}/${detail.patient.id}/imported-records`}
                     >
                       {exchange("history")}
+                    </Link>
+                    <Link
+                      className="directory-back"
+                      href={clinicalPath(registryPath(scope) + "/" + detail.patient.id, {
+                        timeZone,
+                      })}
+                    >
+                      {clinicalMessages(locale)("title")}
                     </Link>
                     <ReferralLink scope={scope} locale={locale} patientId={detail.patient.id} />
                     <PatientForm context={context} patient={detail.patient} />

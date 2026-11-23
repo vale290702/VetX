@@ -77,6 +77,8 @@ export async function createDirectoryFixture(organizationId: string = randomUUID
         "encounter_recipients",
         "encounter_sharing",
         "appointments",
+        "clinical_record_heads",
+        "clinical_record_revisions",
         "clinical_encounters",
         "registry_events",
         "guardians",

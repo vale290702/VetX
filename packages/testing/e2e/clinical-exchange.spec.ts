@@ -22,6 +22,7 @@ test("staff verify a signed package, explicitly match a clinic patient, and read
   const base = `/organizations/${f.organizationId}/clinics/${clinic}`;
   const patientId = randomUUID(),
     sourceId = randomUUID(),
+    labSourceId = randomUUID(),
     packageId = randomUUID(),
     pdf = Buffer.from("%PDF-1.4\n1 0 obj <<>> endobj\n%%EOF\n");
   const archive = await sealFixturePackage(route, {
@@ -38,6 +39,20 @@ test("staff verify a signed package, explicitly match a clinic patient, and read
         recordedAt: "2026-03-31T11:05:00Z",
         author: { issuer: "https://issuer.example", subject: "referring-vet" },
         data: { diagnosis: "Seguimiento renal" },
+      },
+      {
+        id: randomUUID(),
+        kind: "labResult",
+        occurredAt: "2026-03-31T11:00:00Z",
+        recordedAt: "2026-03-31T11:55:00Z",
+        author: { issuer: "https://issuer.example", subject: "reviewing-vet" },
+        data: { test: "Specimen evaluation", specimen: "Slide", result: "Reviewed observation" },
+        clinicalRevision: {
+          recordId: labSourceId,
+          revision: 3,
+          resultAuthor: { issuer: "https://issuer.example", subject: "lab-author" },
+          resultRecordedAt: "2026-03-31T11:45:00Z",
+        },
       },
       {
         id: randomUUID(),
@@ -122,7 +137,7 @@ test("staff verify a signed package, explicitly match a clinic patient, and read
     await expect(page.getByRole("main").getByRole("alert")).toContainText("Try again");
     await expect(matched).toBeChecked();
     await button.click();
-    await expect(page.getByText("2 records imported. 0 existing records skipped.")).toBeVisible();
+    await expect(page.getByText("3 records imported. 0 existing records skipped.")).toBeVisible();
     await page.getByRole("link", { name: "Imported clinical history" }).click();
     await expect(page.getByText("Seguimiento renal")).toBeVisible();
     const diagnosis = page
@@ -131,6 +146,21 @@ test("staff verify a signed package, explicitly match a clinic patient, and read
     await diagnosis.getByText("Source and import details").click();
     await expect(diagnosis.getByText("referring-vet")).toBeVisible();
     await expect(diagnosis.getByText(sourceId)).toBeVisible();
+    const lab = page
+      .getByRole("listitem")
+      .filter({ has: page.getByText("Reviewed observation", { exact: true }) });
+    await expect(lab.getByText("Slide", { exact: true })).toBeVisible();
+    await lab.getByText("Source and import details").click();
+    for (const value of [
+      labSourceId,
+      "Source version",
+      "Result recorded by",
+      "Result recorded on",
+      "lab-author",
+      "reviewing-vet",
+    ]) {
+      await expect(lab.getByText(value, { exact: true })).toBeVisible();
+    }
     const [download] = await Promise.all([
       page.waitForEvent("download"),
       page.getByRole("link", { name: "Download file" }).click(),
