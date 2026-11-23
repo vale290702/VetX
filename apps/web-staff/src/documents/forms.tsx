@@ -98,7 +98,7 @@ export function DocumentUpload({ endpoint, csrf, firstPage }: Props & { firstPag
           />
         </label>
         <small id="document-types">{t("fileHint")}</small>
-        <Button type="submit" variant="selected">
+        <Button type="submit" variant="primary">
           {t(pending ? "uploading" : "upload")}
         </Button>
       </fieldset>
@@ -163,7 +163,7 @@ export function DocumentSharing({ endpoint, csrf, guardians, sharing }: SharingP
             </span>
           </label>
         ))}
-        <Button type="submit" variant="selected">
+        <Button type="submit" variant="primary">
           {t(pending ? "saving" : "share")}
         </Button>
       </fieldset>

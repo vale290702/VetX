@@ -130,7 +130,7 @@ const createStyles = (palette: Palette) =>
       borderColor: palette.muted,
     },
     languageError: {
-      color: palette.warning,
+      color: palette.error,
       fontSize: typography.caption,
       marginTop: space.compact,
     },

@@ -93,7 +93,7 @@ function SaveForm({
     >
       <fieldset className="directory-form" disabled={busy || uncertain}>
         {children}
-        <Button variant="selected" type="submit">
+        <Button variant="primary" type="submit">
           {t(busy ? "busy" : label)}
         </Button>
       </fieldset>

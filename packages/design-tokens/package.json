@@ -9,7 +9,7 @@
   },
   "scripts": {
     "sync-css": "node scripts/theme.mjs",
-    "test": "node scripts/theme.mjs --check",
+    "test": "node scripts/theme.mjs --check && node --test test/*.test.mjs",
     "typecheck": "tsc --noEmit"
   }
 }

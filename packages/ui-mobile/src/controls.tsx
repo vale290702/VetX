@@ -17,13 +17,21 @@ export const createStyles = (palette: Palette) =>
       paddingVertical: space.compact,
       backgroundColor: palette.control,
     },
-    actionPrimary: { backgroundColor: palette.folio },
-    actionPressed: { opacity: 0.8 },
+    choice: { backgroundColor: palette.paper, borderWidth: 1, borderColor: palette.muted },
+    choiceSelected: {
+      backgroundColor: palette.control,
+      borderWidth: 2,
+      borderColor: palette.focus,
+    },
+    actionPrimary: { backgroundColor: palette.action },
+    primaryPressed: { backgroundColor: palette.actionHover },
+    secondaryPressed: { outlineColor: palette.focus, outlineWidth: 2, outlineOffset: -2 },
+    actionDisabled: { opacity: 0.8 },
     actionText: { color: palette.ink, fontSize: typography.caption, fontWeight: "600" },
-    actionPrimaryText: { color: palette.folioInk },
+    actionPrimaryText: { color: palette.actionInk },
     pending: { flexDirection: "row", alignItems: "center", gap: space.compact },
     support: { flexShrink: 1, color: palette.muted, fontSize: typography.caption },
-    error: { color: palette.warning, fontSize: typography.caption },
+    error: { color: palette.error, fontSize: typography.caption },
     heading: { color: palette.ink, fontSize: typography.body, fontWeight: "600" },
     row: {
       gap: space.compact,
@@ -45,6 +53,7 @@ export const createStyles = (palette: Palette) =>
     focus: { borderColor: palette.focus, borderWidth: 2 },
     actionFocus: { outlineColor: palette.focus, outlineWidth: 2, outlineOffset: 2 },
     warning: { color: palette.warning },
+    destructive: { color: palette.error },
   });
 
 export type AccessStyles = ReturnType<typeof createStyles>;
@@ -91,16 +100,19 @@ export function Action({
       onPress={onPress}
       style={({ pressed }) => [
         styles.action,
-        (primary || selected) && styles.actionPrimary,
+        selected !== undefined && styles.choice,
+        selected && styles.choiceSelected,
+        primary && styles.actionPrimary,
+        pressed && (primary ? styles.primaryPressed : styles.secondaryPressed),
         focused && styles.actionFocus,
-        (pressed || busy || disabled) && styles.actionPressed,
+        (busy || disabled) && styles.actionDisabled,
       ]}
     >
       <Text
         style={[
           styles.actionText,
-          (primary || selected) && styles.actionPrimaryText,
-          destructive && styles.warning,
+          primary && styles.actionPrimaryText,
+          destructive && styles.destructive,
         ]}
       >
         {role === "checkbox" && selected ? "✓ " : ""}

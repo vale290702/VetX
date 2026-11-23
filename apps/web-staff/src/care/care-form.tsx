@@ -72,7 +72,7 @@ export function CareForm({
           {labels[error]}
         </p>
       )}
-      <Button variant="selected" type="submit" disabled={pending}>
+      <Button variant="primary" type="submit" disabled={pending}>
         {labels[pending ? "saving" : "submit"]}
       </Button>
     </form>

@@ -13,9 +13,7 @@ function SignOutForm({ locale, csrf, label }: { locale: Locale; csrf: string; la
     <form action="/auth/logout" method="post">
       <input type="hidden" name="locale" value={locale} />
       <input type="hidden" name="csrf" value={csrf} />
-      <Button type="submit" variant="selected">
-        {label}
-      </Button>
+      <Button type="submit">{label}</Button>
     </form>
   );
 }
@@ -44,7 +42,7 @@ export async function StaffAccount({ locale, notice }: Props) {
         )}
         <form action="/auth/login" method="post">
           <input type="hidden" name="locale" value={locale} />
-          <Button className="auth-primary" type="submit" variant="selected">
+          <Button className="auth-primary" type="submit" variant="primary">
             {t("signIn")}
           </Button>
         </form>

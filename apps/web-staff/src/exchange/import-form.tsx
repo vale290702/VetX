@@ -94,7 +94,7 @@ export function ImportForm(props: Props) {
             />
           </label>
           <small id="package-help">{t("previewHelp")}</small>
-          <Button variant="selected" type="submit">
+          <Button variant="primary" type="submit">
             {t(busy ? "verifying" : "preview")}
           </Button>
         </fieldset>
@@ -352,7 +352,7 @@ function Review({
                     {t("createPatient", { name: preview.patient.name })}
                   </label>
                 )}
-                <Button variant="selected" type="submit" disabled={!choice || committing}>
+                <Button variant="primary" type="submit" disabled={!choice || committing}>
                   {t(committing ? "committing" : "confirm")}
                 </Button>
               </fieldset>

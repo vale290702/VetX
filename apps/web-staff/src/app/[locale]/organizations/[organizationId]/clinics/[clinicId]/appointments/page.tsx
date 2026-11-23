@@ -76,7 +76,7 @@ export default async function Calendar({ params, searchParams }: Props) {
               <input name="day" type="date" required defaultValue={dates.day} />
             </label>
             <ZoneField timeZone={timeZone} />
-            <Button variant="selected" type="submit">
+            <Button variant="primary" type="submit">
               {t("showDay")}
             </Button>
           </form>

@@ -144,7 +144,7 @@ export default async function Patients({ params, searchParams }: Props) {
                     {t("search")}
                     <input type="search" name="search" defaultValue={search} maxLength={120} />
                   </label>
-                  <Button variant="selected" type="submit">
+                  <Button variant="primary" type="submit">
                     {t("searchButton")}
                   </Button>
                   {search && (

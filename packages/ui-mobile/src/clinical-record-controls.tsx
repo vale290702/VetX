@@ -133,7 +133,12 @@ export function ClinicalEntry({
   return (
     <View style={styles.row}>
       <ClinicalHeading styles={styles}>
-        {t(`nativeClinical.${record.kind}`) + (status ? " · " + t(`nativeClinical.${status}`) : "")}
+        {t(`nativeClinical.${record.kind}`)}
+        {status && (
+          <Text style={status === "RESULTED" ? styles.warning : undefined}>
+            {" · " + t(`nativeClinical.${status}`)}
+          </Text>
+        )}
       </ClinicalHeading>
       <Text style={styles.support}>
         {t("nativeClinical.version", { n: record.revision }) + " · " + local(record.occurredAt)}

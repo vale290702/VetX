@@ -96,7 +96,7 @@ export function Write({
       <fieldset key={draftVersion} className="directory-form" disabled={pending || retry !== null}>
         {children}
       </fieldset>
-      <Button type="submit" variant="selected" disabled={pending}>
+      <Button type="submit" variant="primary" disabled={pending}>
         {pending ? t("pending") : retry ? t("retry") : label}
       </Button>
       {status !== undefined && (
