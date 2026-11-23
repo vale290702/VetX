@@ -61,6 +61,10 @@ export async function createDirectoryFixture(organizationId: string = randomUUID
       }
       await db.query(`DELETE FROM referral_states WHERE ${routeFilter}`, [organizationId]);
       for (const table of [
+        "stock_movements",
+        "stock_balances",
+        "inventory_items",
+        "inventory_warehouses",
         "document_events",
         "medical_documents",
         "exchange_export_events",
