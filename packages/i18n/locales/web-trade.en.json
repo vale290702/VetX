@@ -51,6 +51,7 @@
   "share": "Save guardian access",
   "private": "Private to the clinic",
   "guardians": "Guardians with access",
+  "refreshGuardians": "Refresh the guardian list to review everyone who currently has access.",
   "noGuardians": "No linked guardian accounts.",
   "pending": "Saving…",
   "saved": "Changes saved.",

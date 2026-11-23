@@ -51,6 +51,7 @@
   "share": "Guardar acceso de responsables",
   "private": "Privado para la clínica",
   "guardians": "Responsables con acceso",
+  "refreshGuardians": "Actualiza la lista de responsables para ver a todas las personas que ya tienen acceso.",
   "noGuardians": "No hay cuentas de responsables vinculadas.",
   "pending": "Guardando…",
   "saved": "Cambios guardados.",

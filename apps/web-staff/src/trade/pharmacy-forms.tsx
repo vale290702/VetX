@@ -1,5 +1,6 @@
 "use client";
-import { Write, Disclosure, Picker, Quantity, type Context } from "./controls";
+import { sharingOptions } from "../care/forms.ts";
+import { Write, Disclosure, Picker, Quantity, Refresh, type Context } from "./controls";
 import { tradeMessages } from "./messages.ts";
 import type { Schema, Choices } from "./forms.ts";
 export function GrantForm({ ctx, grant }: { ctx: Context; grant: Schema["CapabilityDto"] }) {
@@ -134,7 +135,14 @@ export function Share({
   guardians: Schema["GuardianDto"][];
 }) {
   const t = tradeMessages(ctx.locale),
-    linked = guardians.filter((g) => g.linked);
+    linked = sharingOptions(guardians, rx.sharing.guardianIds);
+  if (!linked)
+    return (
+      <Disclosure label={t("sharing")}>
+        <p>{t("refreshGuardians")}</p>
+        <Refresh locale={ctx.locale} />
+      </Disclosure>
+    );
   return (
     <Disclosure label={t("sharing")}>
       <Write
