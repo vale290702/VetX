@@ -114,7 +114,37 @@ test(
       });
       const scan = randomUUID();
       const raw = { ...input, mediaType: "application/dicom" as const };
+      const preflight = (candidate = raw) =>
+        db.preflightDocument(staff, org, clinic, patient, scan, candidate);
+      const rejectedRaw = { ...raw, sha256: "0".repeat(64) };
+      assert.equal(await preflight(rejectedRaw), null);
+      assert.equal(
+        (await sql.query("SELECT id FROM medical_documents WHERE id=$1", [scan])).rowCount,
+        0,
+      );
+      await assert.rejects(db.preflightDocument(staff, org, randomUUID(), patient, scan, raw), {
+        code: "forbidden",
+      });
+      await assert.rejects(db.preflightDocument(staff, org, clinic, randomUUID(), scan, raw), {
+        code: "not_found",
+      });
+      await assert.rejects(preflight({ ...raw, title: "bad\u001btitle" }), { code: "invalid" });
       const original = await db.reserveDocument(staff, org, clinic, patient, scan, raw);
+      assert.deepEqual(await preflight(), original);
+      await assert.rejects(preflight(rejectedRaw), { code: "conflict" });
+      await assert.rejects(preflight({ ...raw, title: "Different title" }), { code: "conflict" });
+      const otherStaff = { ...staff, subject: "peer" };
+      const otherUser = await sql.query(
+        "INSERT INTO users(identity_issuer,identity_subject) VALUES($1,$2) RETURNING id",
+        [otherStaff.issuer, otherStaff.subject],
+      );
+      await sql.query(
+        "INSERT INTO organization_memberships(organization_id,user_id,role) VALUES($1,$2,'ADMIN')",
+        [org, otherUser.rows[0].id],
+      );
+      await assert.rejects(db.preflightDocument(otherStaff, org, clinic, patient, scan, raw), {
+        code: "conflict",
+      });
       const metadata = {
         studyInstanceUid: "2.25.1",
         seriesInstanceUid: "2.25.2",
@@ -133,7 +163,9 @@ test(
         code: "invalid",
       });
       assert.deepEqual((await finalize(metadata)).imaging, metadata);
-      assert.deepEqual((await finalize(metadata)).imaging, metadata);
+      const readyScan = await finalize(metadata);
+      assert.deepEqual(readyScan.imaging, metadata);
+      assert.deepEqual(await preflight(), readyScan);
       await assert.rejects(finalize({ ...metadata, modality: "MR" }), { code: "conflict" });
       await assert.rejects(db.getOwnerDocument(owner, petId, original.assetId), {
         code: "not_found",

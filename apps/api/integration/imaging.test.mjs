@@ -14,6 +14,9 @@ test("Orthanc indexes a synthetic DICOM, returns a PNG first frame and rejects c
   const archive = new OrthancArchive(config);
   const bytes = dicomFixture();
   const digest = (body) => createHash("sha256").update(body).digest("hex");
+  const malformed = Buffer.alloc(148);
+  malformed.write("DICM", 128);
+  await assert.rejects(archive.ingest(malformed, digest(malformed)), (e) => e.getStatus() === 400);
   const result = await archive.ingest(bytes, digest(bytes));
   assert.equal(result.metadata.modality, "OT");
   assert.equal(result.metadata.frames, 1);

@@ -66,6 +66,7 @@ import {
 export type DocumentStore = Pick<
   PrismaDatabase,
   | "getPatient"
+  | "preflightDocument"
   | "reserveDocument"
   | "finishDocument"
   | "finishDicomDocument"
@@ -128,17 +129,21 @@ class Documents {
       if (error instanceof InvalidDocument) throw new BadRequestException();
       throw error;
     }
-    if (integrity.mediaType === "application/dicom" && !this.deps.imaging)
-      throw new ServiceUnavailableException();
-    const doc = await this.db.reserveDocument(actor, org, clinic, patient, id, {
-      title: title.trim(),
-      ...integrity,
-    });
+    const input = { title: title.trim(), ...integrity };
+    let scan: Awaited<ReturnType<ClinicalImagingArchive["ingest"]>> | undefined;
+    if (integrity.mediaType === "application/dicom") {
+      const existing = await this.db.preflightDocument(actor, org, clinic, patient, id, input);
+      if (existing?.ready) return existing;
+      if (!this.deps.imaging) throw new ServiceUnavailableException();
+      scan = await this.deps.imaging.ingest(file.buffer, integrity.sha256);
+    }
+    // Recheck the write grant and matching request after any archive work.
+    const doc = await this.db.reserveDocument(actor, org, clinic, patient, id, input);
     if (doc.ready) return doc;
     const key = documentKey(org, clinic, patient, id, doc.sha256);
     await this.storage.put(key, file.buffer, integrity);
-    if (integrity.mediaType === "application/dicom") {
-      const { metadata, preview } = await this.deps.imaging!.ingest(file.buffer, doc.sha256);
+    if (scan) {
+      const { metadata, preview } = scan;
       if (preview) {
         const checksum = {
           sha256: createHash("sha256").update(preview).digest("hex"),
