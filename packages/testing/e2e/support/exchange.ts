@@ -3,7 +3,7 @@ import { sealVetpkg, type VetpkgManifest, type ExchangeKeyBinding } from "@vetx/
 import { exchangeKeyringPath } from "./exchange-run.ts";
 
 type Scope = VetpkgManifest["source"];
-type Lane = "api" | "web-desktop" | "web-mobile-dark";
+type Lane = "api" | "web-desktop" | "web-mobile-dark" | "referral-desktop" | "referral-mobile-dark";
 type Route = { source: Scope; destination: Scope };
 type Clinic = Scope & {
   name: string;

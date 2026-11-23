@@ -5,6 +5,7 @@ import { getTranslations } from "next-intl/server";
 
 import { readStaffSession } from "../../../../../../../../auth/account.ts";
 import { isDirectoryId, readDirectoryPage } from "../../../../../../../../directory/forms.ts";
+import { ReferralLink } from "../../../../../../../../referrals/navigation";
 import { Link } from "../../../../../../../../i18n/routing";
 import { readRegistry } from "../../../../../../../../patients/api.ts";
 import { Guardians, PatientForm } from "../../../../../../../../patients/fields";
@@ -128,6 +129,7 @@ export default async function Patients({ params, searchParams }: Props) {
                 >
                   {exchange("importTitle")}
                 </Link>
+                <ReferralLink scope={scope} locale={locale} />
                 <PatientForm context={context} />
                 <form
                   className="directory-form registry-search"
@@ -220,6 +222,7 @@ export default async function Patients({ params, searchParams }: Props) {
                     >
                       {exchange("history")}
                     </Link>
+                    <ReferralLink scope={scope} locale={locale} patientId={detail.patient.id} />
                     <PatientForm context={context} patient={detail.patient} />
                   </section>
                   <Guardians context={context} record={detail} />

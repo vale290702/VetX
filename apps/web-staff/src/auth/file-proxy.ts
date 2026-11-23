@@ -29,11 +29,11 @@ function limitedBody(body: ReadableStream<Uint8Array>, limit: number) {
   return { stream, tooLarge: () => size > limit };
 }
 
-export async function smallJson(request: Request) {
+export async function smallJson(request: Request, maxBytes = 4096) {
   if (!request.body || request.headers.get("content-type")?.split(";")[0] !== "application/json")
     return null;
   try {
-    return (await new Response(limitedBody(request.body, 4096).stream).json()) as unknown;
+    return (await new Response(limitedBody(request.body, maxBytes).stream).json()) as unknown;
   } catch {
     return null;
   }

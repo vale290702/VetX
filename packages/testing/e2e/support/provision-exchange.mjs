@@ -8,7 +8,13 @@ await mkdir(directory, { mode: 0o700 });
 try {
   const clinics = [],
     routes = [];
-  for (const lane of ["api", "web-desktop", "web-mobile-dark"]) {
+  for (const lane of [
+    "api",
+    "web-desktop",
+    "web-mobile-dark",
+    "referral-desktop",
+    "referral-mobile-dark",
+  ]) {
     const scopes = [];
     for (const role of ["source", "destination"]) {
       const scope = { organizationId: randomUUID(), clinicId: randomUUID() };
