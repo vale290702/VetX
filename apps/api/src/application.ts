@@ -69,6 +69,8 @@ export async function createApplication(
     "/organizations/:organizationId/clinics/:clinicId/billing/sales/:saleId",
     json({ limit: "768kb" }),
   );
+  // Nest detects any installed JSON parser by name, including a route-scoped one.
+  app.useBodyParser("json");
   configureHttp(app);
   SwaggerModule.setup("openapi", app, () => createOpenApiDocument(app), {
     ui: false,
