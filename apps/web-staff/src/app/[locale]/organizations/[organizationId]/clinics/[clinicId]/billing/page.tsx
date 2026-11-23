@@ -26,6 +26,7 @@ export default async function Billing({
     notFound();
   const access = await readStaffSession();
   if (access.kind !== "active") redirect("/" + locale);
+  const environment = q.environment === "production" ? "production" : "sandbox";
   const scope = { organizationId, clinicId },
     t = billingMessages(locale),
     saleId = q.sale as string | undefined;
@@ -53,7 +54,7 @@ export default async function Billing({
   };
   return (
     <div className="entry-layout">
-      <Masthead locale={locale} href={billingPath(scope, view, page, query, saleId)} />
+      <Masthead locale={locale} href={billingPath(scope, view, page, query, saleId, environment)} />
       <main className="directory-main">
         <header className="directory-header">
           <Link className="directory-back" href={"/organizations/" + organizationId}>
@@ -82,6 +83,7 @@ export default async function Billing({
                 query={query}
                 page={page}
                 saleId={saleId}
+                environment={environment}
               />
             </section>
           </>

@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef } from "react";
-import { DocumentFileError, openPrivateFile } from "./document-files";
+import type { PrivateFileFormat } from "./document-files";
 import { packageType } from "./exchange-forms";
 import { PatientError } from "./patient-transport";
 import { usePatientAction } from "./patient-controls";
@@ -15,14 +15,11 @@ export function useExchangeHandoff(account: MobileAccount) {
     },
     [account],
   );
-  function open(
-    format: { extension: string; mimeType: string; uti?: string },
-    download: () => Promise<Uint8Array>,
-    title: string,
-  ) {
+  function open(format: PrivateFileFormat, download: () => Promise<Uint8Array>, title: string) {
     const current = generation.current;
     void action.run(
       async () => {
+        const { DocumentFileError, openPrivateFile } = await import("./document-files");
         try {
           await openPrivateFile(format, download, () => generation.current === current, title);
         } catch (error) {

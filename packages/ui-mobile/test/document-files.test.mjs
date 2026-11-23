@@ -218,3 +218,54 @@ test("the first-frame cache is private, released on close, and never written aft
   opened.close();
   assert.equal(files.has(opened.uri), false);
 });
+
+test("retained fiscal XML downloads with a session token and reaches the device as a private temporary file", async () => {
+  const { xmlFormat } = await import("../src/fiscal-forms.ts");
+  const { createFiscal } = await import("../src/fiscal-client.ts"),
+    { createPatientTransport } = await import("../src/patient-transport.ts");
+  const scope = { subject: "staff", organizationId: "org", clinicId: "c" },
+    signal = new AbortController().signal,
+    opened = [];
+  const api = createFiscal(
+    createPatientTransport(
+      {
+        forOrganization: (subject, org, work) => {
+          assert.equal(subject, "staff");
+          assert.equal(org, "org");
+          return work("private-token", signal);
+        },
+      },
+      "https://vet.test",
+      async (url, init) => {
+        const req = new Request(url, init);
+        assert.equal(req.headers.get("Authorization"), "Bearer private-token");
+        assert.equal(req.headers.get("Cache-Control"), "no-store");
+        assert.equal(init.signal, signal);
+        return new Response(
+          new URL(url).pathname.endsWith("receipt") ? "<receipt/>" : "<signed/>",
+          { headers: { "Content-Type": "application/xml" } },
+        );
+      },
+    ),
+  );
+  globalThis.documentDevice.share = async (uri, options) => {
+    assert.match(uri, /^file:\/\/\/cache\/vetx-handoff\/1{50}-(?:invoice|receipt)-.+\.xml$/);
+    assert.equal(options.UTI, "public.xml");
+    assert.equal(options.mimeType, "application/xml");
+    opened.push(new TextDecoder().decode(files.get(uri)));
+    assert.ok(!uri.includes("private-token"));
+  };
+  for (const kind of ["invoice", "receipt"]) {
+    await openPrivateFile(
+      xmlFormat(kind, "1".repeat(50)),
+      () => api.artifact(scope, "sale", "production", kind),
+      () => true,
+      "Open XML",
+    );
+    assert.equal(
+      [...files.keys()].some((uri) => uri.endsWith(".xml")),
+      false,
+    );
+  }
+  assert.deepEqual(opened, ["<signed/>", "<receipt/>"]);
+});

@@ -19,10 +19,12 @@ export function BillingForm({
   onSaved,
   children,
   submitLabel,
+  errors,
 }: {
   ctx: Context;
   label: string;
   submitLabel?: string;
+  errors?: Partial<Record<ReturnType<typeof failure>, string>>;
   resource: string;
   id?: string;
   prepare: (form: FormData) => object | null;
@@ -91,7 +93,7 @@ export function BillingForm({
       </fieldset>
       {!!status && (
         <p role="alert" className="directory-notice">
-          {t(uncertain ? "uncertain" : failure(status))}
+          {errors?.[failure(status)] ?? t(uncertain ? "uncertain" : failure(status))}
         </p>
       )}
       <Button type="submit" variant="selected" disabled={pending}>

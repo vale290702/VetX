@@ -5,6 +5,7 @@ import { Window } from "happy-dom";
 import { act, createElement as h } from "react";
 import { createInstance } from "i18next";
 import { I18nextProvider } from "react-i18next";
+import enFiscal from "../../../i18n/locales/native-fiscal.en.json" with { type: "json" };
 import enBilling from "../../../i18n/locales/native-billing.en.json" with { type: "json" };
 
 const window = new Window();
@@ -47,7 +48,7 @@ registerHooks({
 const i18n = createInstance();
 await i18n.init({
   lng: "en",
-  resources: { en: { translation: { nativeBilling: enBilling } } },
+  resources: { en: { translation: { nativeFiscal: enFiscal, nativeBilling: enBilling } } },
   interpolation: { prefix: "{", suffix: "}" },
 });
 export function screen(t, component) {
@@ -69,6 +70,10 @@ export function screen(t, component) {
     render: (props) =>
       act(async () => root.render(h(I18nextProvider, { i18n }, h(component, props)))),
     button,
+    hasText: (value) =>
+      [...host.querySelectorAll("span")].some(
+        (element) => visible(element) && element.textContent === value,
+      ),
     press: async (label) => {
       const target = button(label);
       if (!target || target.disabled) throw Error("Action unavailable: " + label);

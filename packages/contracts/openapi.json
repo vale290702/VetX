@@ -3670,6 +3670,535 @@
         ]
       }
     },
+    "/organizations/{organizationId}/clinics/{clinicId}/billing/sales/{saleId}/fiscal/{environment}": {
+      "get": {
+        "operationId": "getFiscalInvoiceStatus",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "clinicId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "saleId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "environment",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "enum": [
+                "sandbox",
+                "production"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FiscalStatusDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "clinic fiscal invoices"
+        ]
+      },
+      "put": {
+        "operationId": "issueFiscalInvoice",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "clinicId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "saleId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "environment",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "enum": [
+                "sandbox",
+                "production"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FiscalDraftDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FiscalRecordDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "clinic fiscal invoices"
+        ]
+      }
+    },
+    "/organizations/{organizationId}/clinics/{clinicId}/billing/sales/{saleId}/fiscal/{environment}/artifacts/{kind}": {
+      "get": {
+        "operationId": "downloadFiscalArtifact",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "clinicId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "saleId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "environment",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "enum": [
+                "sandbox",
+                "production"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "kind",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "enum": [
+                "invoice",
+                "receipt"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/xml": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "clinic fiscal invoices"
+        ]
+      }
+    },
+    "/organizations/{organizationId}/clinics/{clinicId}/billing/sales/{saleId}/fiscal/{environment}/retry": {
+      "put": {
+        "operationId": "retryFiscalInvoice",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "clinicId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "saleId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "environment",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "enum": [
+                "sandbox",
+                "production"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FiscalRecordDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "clinic fiscal invoices"
+        ]
+      }
+    },
     "/organizations/{organizationId}/clinics/{clinicId}/inventory/warehouses": {
       "get": {
         "operationId": "listWarehouses",
@@ -10370,6 +10899,343 @@
         },
         "required": [
           "counted"
+        ]
+      },
+      "FiscalRecordDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "saleId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "environment": {
+            "type": "string",
+            "enum": [
+              "sandbox",
+              "production"
+            ]
+          },
+          "key": {
+            "type": "string",
+            "pattern": "^[0-9]{50}$"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "signed",
+              "sending",
+              "submitted",
+              "processing",
+              "accepted",
+              "rejected",
+              "invalid",
+              "blocked"
+            ]
+          },
+          "issue": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "hasSignedXml": {
+            "type": "boolean"
+          },
+          "hasReceipt": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "saleId",
+          "environment",
+          "key",
+          "state",
+          "issue",
+          "createdAt",
+          "hasSignedXml",
+          "hasReceipt"
+        ]
+      },
+      "FiscalStatusDto": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "invoice": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/FiscalRecordDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "enabled",
+          "invoice"
+        ]
+      },
+      "RecipientIdentityDto": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "01",
+              "02",
+              "03",
+              "04",
+              "05",
+              "06"
+            ]
+          },
+          "number": {
+            "type": "string",
+            "pattern": "^[0-9]{1,12}$"
+          }
+        },
+        "required": [
+          "type",
+          "number"
+        ]
+      },
+      "RecipientDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 100
+          },
+          "identity": {
+            "$ref": "#/components/schemas/RecipientIdentityDto"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 160
+          }
+        },
+        "required": [
+          "name",
+          "identity"
+        ]
+      },
+      "TermsDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "enum": [
+              "01",
+              "02"
+            ]
+          },
+          "days": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 99999
+          }
+        },
+        "required": [
+          "code"
+        ]
+      },
+      "MedicineDto": {
+        "type": "object",
+        "properties": {
+          "registration": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "form": {
+            "type": "string",
+            "maxLength": 3
+          }
+        },
+        "required": [
+          "registration",
+          "form"
+        ]
+      },
+      "FiscalClassDto": {
+        "type": "object",
+        "properties": {
+          "unitCode": {
+            "type": "string",
+            "enum": [
+              "1",
+              "´",
+              "´´",
+              "°C",
+              "1/m",
+              "A",
+              "A/m",
+              "A/m²",
+              "Acv",
+              "Al",
+              "Alc",
+              "B",
+              "Bq",
+              "C",
+              "C/kg",
+              "C/m²",
+              "C/m³",
+              "Cc",
+              "Cd",
+              "cd/m²",
+              "Cm",
+              "cm",
+              "Cu",
+              "D",
+              "eV",
+              "F",
+              "F/m",
+              "Fa",
+              "G",
+              "Gal",
+              "Gy",
+              "Gy/s",
+              "h",
+              "H",
+              "H/m",
+              "Hz",
+              "I",
+              "J",
+              "J/(kg·K)",
+              "J/(mol·K)",
+              "J/K",
+              "J/kg",
+              "J/m³",
+              "J/mol",
+              "K",
+              "Kat",
+              "kat/m³",
+              "Kg",
+              "kg/m³",
+              "Km",
+              "Kw",
+              "kWh",
+              "L",
+              "Lm",
+              "Ln",
+              "Lx",
+              "M",
+              "m/s",
+              "m/s²",
+              "m²",
+              "m³",
+              "Min",
+              "mL",
+              "Mm",
+              "Mol",
+              "mol/m³",
+              "N",
+              "N/m",
+              "N·m",
+              "Np",
+              "º",
+              "Os",
+              "Otros",
+              "Oz",
+              "Pa",
+              "Pa·s",
+              "Qq",
+              "Rad",
+              "rad/s",
+              "rad/s²",
+              "S",
+              "s",
+              "Sp",
+              "Spe",
+              "Sr",
+              "St",
+              "Sv",
+              "t",
+              "T",
+              "U",
+              "Ua",
+              "Unid",
+              "V",
+              "V/m",
+              "W",
+              "W/(m·K)",
+              "W/(m²·sr)",
+              "W/m²",
+              "W/sr",
+              "Wb",
+              "Ω"
+            ]
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "goods",
+              "service"
+            ]
+          },
+          "vatTariffCode": {
+            "type": "string",
+            "enum": [
+              "02",
+              "03",
+              "04",
+              "06",
+              "07",
+              "08",
+              "09"
+            ]
+          },
+          "medicine": {
+            "$ref": "#/components/schemas/MedicineDto"
+          }
+        },
+        "required": [
+          "unitCode",
+          "category",
+          "vatTariffCode"
+        ]
+      },
+      "FiscalDraftDto": {
+        "type": "object",
+        "properties": {
+          "recipient": {
+            "$ref": "#/components/schemas/RecipientDto"
+          },
+          "recipientActivity": {
+            "type": "string",
+            "pattern": "^[0-9]{6}$"
+          },
+          "terms": {
+            "$ref": "#/components/schemas/TermsDto"
+          },
+          "exchangeRate": {
+            "type": "string"
+          },
+          "lines": {
+            "minItems": 1,
+            "maxItems": 1000,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FiscalClassDto"
+            }
+          }
+        },
+        "required": [
+          "recipient",
+          "terms",
+          "exchangeRate",
+          "lines"
         ]
       },
       "WarehouseDto": {

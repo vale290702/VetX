@@ -1,6 +1,7 @@
 import type { paths } from "@vetx/api-client";
 import type { fetch as expoFetch } from "expo/fetch";
 
+import { createFiscal } from "./fiscal-client.ts";
 import { createBilling } from "./billing-client.ts";
 import { createTrade } from "./trade-client.ts";
 import { createInventory } from "./inventory-client.ts";
@@ -63,6 +64,7 @@ export function createPatients(
   const transport = createPatientTransport(session, origin, fetcher);
   const { api, staff, owner } = transport;
   return {
+    fiscal: createFiscal(transport),
     billing: createBilling(transport),
     trade: createTrade(transport),
     inventory: createInventory(transport),
