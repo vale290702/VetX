@@ -6,6 +6,10 @@
   --color-ink: var(--vetx-color-ink);
   --color-muted: var(--vetx-color-muted);
   --color-control: var(--vetx-color-control);
+  --color-action: var(--vetx-color-action);
+  --color-action-ink: var(--vetx-color-action-ink);
+  --color-action-hover: var(--vetx-color-action-hover);
+  --color-error: var(--vetx-color-error);
   --color-focus: var(--vetx-color-focus);
   --spacing-touch: var(--vetx-size-touch);
   --spacing-control: var(--vetx-space-inline);
@@ -219,7 +223,7 @@ body {
 
 .auth-section .auth-notice,
 .entry-heading .auth-notice {
-  color: var(--vetx-color-warning);
+  color: var(--vetx-color-error);
   font-size: var(--vetx-type-caption);
 }
 
@@ -236,12 +240,6 @@ body {
 
 .auth-primary {
   padding-inline: var(--vetx-space-inset);
-  background: var(--vetx-color-folio);
-  color: var(--vetx-color-folio-ink);
-}
-
-.auth-primary:hover {
-  background: color-mix(in srgb, var(--vetx-color-folio) 86%, var(--vetx-color-folio-ink));
 }
 
 .organization-list {
@@ -388,6 +386,12 @@ body {
   padding-block-start: var(--vetx-space-compact);
 }
 .directory-notice {
+  color: var(--vetx-color-warning);
+}
+.directory-main [role="alert"] {
+  color: var(--vetx-color-error);
+}
+.clinical-entry .awaiting-review {
   color: var(--vetx-color-warning);
 }
 .directory-notice[role="status"] {
@@ -542,9 +546,6 @@ body {
 }
 .medical-document .clinic-check small {
   display: block;
-}
-.medical-document .directory-notice[role="alert"] {
-  color: var(--vetx-color-warning);
 }
 .directory-form input[type="file"] {
   padding-block: var(--vetx-space-compact);

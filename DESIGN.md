@@ -2,30 +2,38 @@
 name: VetX
 description: A quiet clinical workspace with clear type and paper-like surfaces.
 colors:
-  canvas: "#eef1eb"
-  paper: "#fafbf7"
-  ink: "#182f29"
-  muted: "#4b6159"
-  line: "#cdd8cf"
-  control: "#e3eae2"
-  focus: "#266750"
-  folio: "#193b32"
-  folio-line: "#6f9688"
-  folio-ink: "#dceada"
-  positive: "#236148"
-  warning: "#8a521d"
-  dark-canvas: "#101b18"
-  dark-paper: "#192722"
-  dark-ink: "#edf3ea"
-  dark-muted: "#bdcec1"
-  dark-line: "#435b51"
-  dark-control: "#2d433a"
-  dark-focus: "#a9d9bd"
-  dark-folio: "#203e34"
-  dark-folio-line: "#709988"
-  dark-folio-ink: "#e0efdf"
-  dark-positive: "#a2d8b6"
-  dark-warning: "#efbc88"
+  canvas: "#ebf3f3"
+  paper: "#fcfefe"
+  ink: "#173c3e"
+  muted: "#4b6467"
+  line: "#c7dadb"
+  control: "#cce7e1"
+  focus: "#25685f"
+  action: "#25685f"
+  action-ink: "#ffffff"
+  action-hover: "#205b53"
+  folio: "#205550"
+  folio-line: "#85bdb0"
+  folio-ink: "#ddf3ed"
+  positive: "#286245"
+  warning: "#86500f"
+  error: "#a13d30"
+  dark-canvas: "#102629"
+  dark-paper: "#193638"
+  dark-ink: "#e6f4f2"
+  dark-muted: "#b6cccd"
+  dark-line: "#3a5557"
+  dark-control: "#294849"
+  dark-focus: "#9ddbcf"
+  dark-action: "#9ddbcf"
+  dark-action-ink: "#102629"
+  dark-action-hover: "#b4e8dd"
+  dark-folio: "#204844"
+  dark-folio-line: "#79b4a6"
+  dark-folio-ink: "#daf2ec"
+  dark-positive: "#a2d7ad"
+  dark-warning: "#efbd7d"
+  dark-error: "#ffb2a2"
 typography:
   display:
     fontFamily: "Instrument Serif, Georgia, serif"
@@ -74,13 +82,13 @@ components:
 
 ## Overview
 
-The clinical folder is the visual reference. Soft paper tones make text easy to find and read. A single deep-green field carries the crossed-stroke VetX mark.
+A cool mist background and porcelain records frame the clinical workspace. The VetX mark sits on a deep eucalyptus field.
 
 ## Colors
 
-Canvas surrounds the paper surface. Ink carries headings and muted green carries secondary text. A fine line defines edges and separates related information. The two palettes respond to the system color scheme.
+Spruce ink carries headings and body text. Sea glass marks selected controls. The current language and active web tabs also have an underline. Eucalyptus fills primary actions in light mode. In dark mode, a pale eucalyptus action stands out on deep teal surfaces.
 
-Use the focus color for the keyboard outline. Pair readiness colors with a localized label so color can reinforce the message.
+Use the focus color for the keyboard outline. Pair amber warnings, clay-red errors, and green success states with localized labels.
 
 ## Typography
 

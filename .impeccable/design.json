@@ -6,7 +6,7 @@
     "shadows": [
       {
         "name": "control",
-        "value": "0 1px 3px #0d24171a",
+        "value": "0 1px 3px #1026291a",
         "purpose": "Distinguishes the selected language on web."
       }
     ],
@@ -19,7 +19,7 @@
       "refersTo": "locale-selected",
       "description": "Shows the current interface language.",
       "html": "<a class=\"ds-locale-selected\" href=\"#es\" lang=\"es\" aria-current=\"page\">Español</a>",
-      "css": ".ds-locale-selected { display: inline-flex; align-items: center; min-height: 48px; padding-inline: 12px; border-radius: 8px; background: var(--vetx-color-control, #e3eae2); color: var(--vetx-color-ink, #182f29); box-shadow: 0 1px 3px #0d24171a; font: 600 14px 'Instrument Sans Variable', sans-serif; text-decoration: none; } .ds-locale-selected:focus-visible { outline: 2px solid var(--vetx-color-focus, #266750); outline-offset: 2px; }"
+      "css": ".ds-locale-selected { display: inline-flex; align-items: center; min-height: 48px; padding-inline: 12px; border-radius: 8px; background: var(--vetx-color-control, #cce7e1); color: var(--vetx-color-ink, #173c3e); box-shadow: 0 1px 3px #1026291a; font: 600 14px 'Instrument Sans Variable', sans-serif; text-decoration: underline 2px var(--vetx-color-focus, #25685f); text-underline-offset: 4px; } .ds-locale-selected:focus-visible { outline: 2px solid var(--vetx-color-focus, #25685f); outline-offset: 2px; }"
     },
     {
       "name": "Alternate language",
@@ -27,18 +27,18 @@
       "refersTo": "locale-ghost",
       "description": "Switches the interface language.",
       "html": "<a class=\"ds-locale-ghost\" href=\"#en\" lang=\"en\">English</a>",
-      "css": ".ds-locale-ghost { display: inline-flex; align-items: center; min-height: 48px; padding-inline: 12px; border-radius: 8px; color: var(--vetx-color-muted, #4b6159); font: 600 14px 'Instrument Sans Variable', sans-serif; text-decoration: none; } .ds-locale-ghost:hover { background: var(--vetx-color-control, #e3eae2); color: var(--vetx-color-ink, #182f29); } .ds-locale-ghost:focus-visible { outline: 2px solid var(--vetx-color-focus, #266750); outline-offset: 2px; }"
+      "css": ".ds-locale-ghost { display: inline-flex; align-items: center; min-height: 48px; padding-inline: 12px; border-radius: 8px; color: var(--vetx-color-muted, #4b6467); font: 600 14px 'Instrument Sans Variable', sans-serif; text-decoration: none; } .ds-locale-ghost:hover { background: var(--vetx-color-control, #cce7e1); color: var(--vetx-color-ink, #173c3e); } .ds-locale-ghost:focus-visible { outline: 2px solid var(--vetx-color-focus, #25685f); outline-offset: 2px; }"
     },
     {
       "name": "Service readiness",
       "kind": "custom",
       "description": "Pairs a state color with a localized service status.",
       "html": "<p class=\"ds-service-status\" role=\"status\"><span class=\"ds-service-dot\" aria-hidden=\"true\"></span>Servicio disponible</p>",
-      "css": ".ds-service-status { display: flex; align-items: baseline; gap: 8px; color: var(--vetx-color-muted, #4b6159); font: 400 14px 'Instrument Sans Variable', sans-serif; } .ds-service-dot { flex: 0 0 8px; height: 8px; border-radius: 999px; background: var(--vetx-color-positive, #236148); }"
+      "css": ".ds-service-status { display: flex; align-items: baseline; gap: 8px; color: var(--vetx-color-muted, #4b6467); font: 400 14px 'Instrument Sans Variable', sans-serif; } .ds-service-dot { flex: 0 0 8px; height: 8px; border-radius: 999px; background: var(--vetx-color-positive, #286245); }"
     }
   ],
   "narrative": {
     "northStar": "The clinical folder",
-    "overview": "The clinical folder is the visual reference. Soft paper tones make text easy to find and read. A single deep-green field carries the crossed-stroke VetX mark."
+    "overview": "A cool mist background and porcelain records frame the clinical workspace. The VetX mark sits on a deep eucalyptus field."
   }
 }

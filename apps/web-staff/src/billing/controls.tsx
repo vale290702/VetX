@@ -96,7 +96,7 @@ export function BillingForm({
           {errors?.[failure(status)] ?? t(uncertain ? "uncertain" : failure(status))}
         </p>
       )}
-      <Button type="submit" variant="selected" disabled={pending}>
+      <Button type="submit" variant="primary" disabled={pending}>
         {pending ? t("saving") : uncertain ? t("retry") : (submitLabel ?? label)}
       </Button>
     </form>

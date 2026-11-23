@@ -185,7 +185,7 @@ export async function ClinicalHistory({
                               ))}
                             </fieldset>
                             <small>{t("revokeHelp")}</small>
-                            <Button type="submit" variant="selected">
+                            <Button type="submit" variant="primary">
                               {t("saveSharing")}
                             </Button>
                           </form>

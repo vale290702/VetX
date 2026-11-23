@@ -137,7 +137,7 @@ export async function AgendaRow({
                 <ViewedAppointment appointment={a} context={context} />
                 <p>{t("statusHint")}</p>
                 <div className="auth-actions">
-                  <Button variant="selected" type="submit" name="action" value="complete">
+                  <Button variant="primary" type="submit" name="action" value="complete">
                     {t("complete")}
                   </Button>
                   <Button type="submit" name="action" value="cancel">

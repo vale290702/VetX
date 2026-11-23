@@ -59,7 +59,7 @@ export async function PatientForm({
             defaultValue={patient?.birthDate ?? ""}
           />
         </label>
-        <Button variant="selected" type="submit">
+        <Button variant="primary" type="submit">
           {t(patient ? "savePatient" : "createPatient")}
         </Button>
       </form>
@@ -96,7 +96,7 @@ export async function Guardians({ context, record }: { context: FormContext; rec
             />
           </label>
           <small id="guardian-email-help">{t("emailHelp")}</small>
-          <Button variant="selected" type="submit">
+          <Button variant="primary" type="submit">
             {t("saveGuardian")}
           </Button>
         </form>
@@ -140,7 +140,7 @@ export async function Guardians({ context, record }: { context: FormContext; rec
                   <input type="hidden" name="action" value="revoke" />
                   <input type="hidden" name="guardianId" value={guardian.id} />
                   <p>{t("confirm", { name: guardian.name })}</p>
-                  <Button type="submit" variant="selected">
+                  <Button type="submit" variant="destructive">
                     {t("confirmRevoke")}
                   </Button>
                 </form>

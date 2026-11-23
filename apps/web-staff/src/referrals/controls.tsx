@@ -131,7 +131,7 @@ export function ReferralRequestForm({
           <textarea className={styles.textarea} name="summary" maxLength={8000} rows={4} />
         </label>
         <small>{t("note")}</small>
-        <Button type="submit" variant="selected">
+        <Button type="submit" variant="primary">
           {t(pending ? "submitting" : "submit")}
         </Button>
       </fieldset>
@@ -190,7 +190,7 @@ export function CounterReferralForm({
           {t("responseSummary")}
           <textarea name="summary" className={styles.textarea} rows={4} required maxLength={8000} />
         </label>
-        <Button type="submit" variant="selected">
+        <Button type="submit" variant="primary">
           {t(pending ? "submitting" : "sendResponse")}
         </Button>
       </fieldset>

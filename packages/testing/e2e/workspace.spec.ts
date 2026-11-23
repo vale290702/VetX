@@ -8,12 +8,20 @@ test("opens in Spanish and switches the whole staff entry screen to English", as
   await expect(page.getByRole("heading", { level: 1, name: "Equipo veterinario" })).toBeVisible();
   await expect(page.getByText("Servicio disponible")).toBeVisible();
 
+  await expect(page.getByRole("link", { name: "Español" })).toHaveCSS(
+    "text-decoration-line",
+    "underline",
+  );
   await page.getByRole("link", { name: "English" }).click();
   await expect(page).toHaveURL(/\/en$/);
   await expect(page.locator("html")).toHaveAttribute("lang", "en");
   await expect(page.getByRole("heading", { level: 1, name: "Veterinary team" })).toBeVisible();
   await expect(page.getByText("Service available")).toBeVisible();
 
+  await expect(page.getByRole("link", { name: "English" })).toHaveCSS(
+    "text-decoration-line",
+    "underline",
+  );
   await page.getByRole("link", { name: "Español" }).click();
   await expect(page).toHaveURL(/\/es$/);
 });

@@ -62,7 +62,12 @@ export function ClinicalEntry({
       </p>
       <h3>
         {t(kind)}
-        {status && " · " + t(status)}
+        {status && (
+          <>
+            {" · "}
+            <span className={review ? "awaiting-review" : undefined}>{t(status)}</span>
+          </>
+        )}
       </h3>
       <dl className="soap-note">
         {chartFields(kind).map(

@@ -120,7 +120,7 @@ export function Invitation({
         <input type="hidden" name="patientId" value={patientId} />
         <input type="hidden" name="guardianId" value={guardianId} />
         <input type="hidden" name="requestId" value={initialRequestId} />
-        <Button type="submit" ref={issueButton} disabled={issuing} variant="selected">
+        <Button type="submit" ref={issueButton} disabled={issuing} variant="primary">
           {issuing ? labels.issuing : labels.issue}
         </Button>
       </form>
@@ -148,7 +148,7 @@ export function Invitation({
             </time>
           </p>
           <div className="auth-actions">
-            <Button type="button" variant="selected" onClick={copy}>
+            <Button type="button" variant="primary" onClick={copy}>
               {labels.copy}
             </Button>
             <Button

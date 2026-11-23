@@ -60,7 +60,7 @@ export async function AdminPanel({ csrf, locale, organizationId, directory }: Pr
           {t("clinicName")}
           <input name="name" required maxLength={120} defaultValue={clinic?.name} />
         </label>
-        <Button type="submit" variant="selected">
+        <Button type="submit" variant="primary">
           {clinic ? t("saveName") : t("createClinic")}
         </Button>
       </form>
@@ -82,7 +82,7 @@ export async function AdminPanel({ csrf, locale, organizationId, directory }: Pr
           </label>
         )}
         <MemberFields member={member} clinics={clinics} labels={fieldLabels} />
-        <Button type="submit" variant="selected">
+        <Button type="submit" variant="primary">
           {t("saveAccess")}
         </Button>
       </form>
@@ -188,7 +188,7 @@ export async function AdminPanel({ csrf, locale, organizationId, directory }: Pr
                           <input type="hidden" name="action" value="revoke" />
                           <input type="hidden" name="subject" value={member.subject} />
                           <p>{t("confirmRevoke", { subject: member.subject })}</p>
-                          <Button variant="selected" type="submit">
+                          <Button variant="destructive" type="submit">
                             {t("confirmRemoval")}
                           </Button>
                         </form>

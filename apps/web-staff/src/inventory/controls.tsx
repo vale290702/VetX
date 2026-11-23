@@ -111,7 +111,7 @@ function InventoryForm({
       <fieldset className="directory-form" disabled={pending || uncertain !== null}>
         {children}
       </fieldset>
-      <Button type="submit" disabled={pending} variant="selected">
+      <Button type="submit" disabled={pending} variant="primary">
         {t(pending ? "saving" : uncertain ? "retry" : movement ? "submit" : "save")}
       </Button>
       {status !== undefined && (
