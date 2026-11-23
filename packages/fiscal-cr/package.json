@@ -1,0 +1,28 @@
+{
+  "name": "@vetx/fiscal-cr",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./vat-tariffs": "./src/vat-tariffs.v4.4.json",
+    "./unit-codes": "./src/unit-codes.v4.4.json"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "node --test test/*.test.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "24.19.2",
+    "typescript": "5.9.3"
+  },
+  "dependencies": {
+    "@xmldom/xmldom": "0.9.12",
+    "xadesjs": "3.1.0",
+    "xpath": "0.0.34"
+  }
+}
