@@ -49,5 +49,10 @@
   "tooManyAttempts": "Too many attempts. Wait before using a code again.",
   "hideCode": "Hide code",
   "documentTooLarge": "This file exceeds the clinic’s upload limit. Choose a smaller file.",
-  "overlap": "This patient already has an appointment during that time. Choose a different time and try again."
+  "overlap": "This patient already has an appointment during that time. Choose a different time and try again.",
+  "exchangeUnavailable": "Clinical exchange is unavailable at this clinic. Try again later.",
+  "invalidPackage": "This package could not be verified. Check the receiving clinic or ask the sender for the original package.",
+  "exchangeSize": "The package exceeds the permitted size. Select fewer records or choose a smaller package.",
+  "handoffUnavailable": "This device could not open the share sheet. Try again.",
+  "referralsUnavailable": "Clinic referrals are currently unavailable. Try again later."
 }

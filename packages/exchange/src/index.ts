@@ -1,6 +1,12 @@
 import { CompactEncrypt, CompactSign, compactDecrypt, compactVerify } from "jose";
 import { z } from "zod";
-import { invalid, isBase64url, resolveLimits, type VetpkgLimits } from "./limits.js";
+import {
+  VetpkgSizeError,
+  invalid,
+  isBase64url,
+  resolveLimits,
+  type VetpkgLimits,
+} from "./limits.js";
 import { parseBoundedJson } from "./json.js";
 import {
   keyString,
@@ -12,7 +18,7 @@ import {
 } from "./keys.js";
 import { sameClinic, validateVetpkgManifest, type VetpkgManifest } from "./manifest.js";
 
-export { defaultVetpkgLimits, type VetpkgLimits } from "./limits.js";
+export { VetpkgSizeError, defaultVetpkgLimits, type VetpkgLimits } from "./limits.js";
 export { generateExchangeKeys, type ExchangeKeyBinding, type ExchangeKeyPair } from "./keys.js";
 export {
   validateVetpkgManifest,
@@ -102,7 +108,7 @@ export async function sealVetpkg(
       kid: recipient.kid,
     })
     .encrypt(recipient.key);
-  if (sealed.length > limits.maxPackageBytes) return invalid();
+  if (sealed.length > limits.maxPackageBytes) throw new VetpkgSizeError();
   return Buffer.from(sealed);
 }
 

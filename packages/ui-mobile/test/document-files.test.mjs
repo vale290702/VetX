@@ -58,10 +58,13 @@ const loader = registerHooks({
     }
     if (context.parentURL?.endsWith("/document-files.ts") && specifier === "./documents")
       return next("./documents.ts", context);
+    if (context.parentURL?.endsWith("/document-files.ts") && specifier === "./exchange-forms")
+      return next("./exchange-forms.ts", context);
     return next(specifier, context);
   },
 });
-const { pickDocument, openDocument } = await import("../src/document-files.ts");
+const { pickDocument, pickPackage, openDocument, openPrivateFile } =
+  await import("../src/document-files.ts");
 loader.deregister();
 const bytes = Uint8Array.of(137, 80, 78, 71);
 const doc = { mediaType: "image/png", byteLength: bytes.length, ready: true };
@@ -108,4 +111,65 @@ test("OS handoff receives a local file with exact downloaded bytes and removes t
   );
   assert.equal(handedOff, "file:///cache/vetx-handoff/VetX-random.png");
   assert.equal(files.has(handedOff), false);
+});
+
+test("encrypted exports reach the OS as a private .vetpkg file and are cleared afterward", async () => {
+  const uri = "file:///cache/vetx-handoff/VetX-random.vetpkg";
+  const mimeType = "application/vnd.vetx.vetpkg.v1";
+  let opened = false;
+  globalThis.documentDevice.share = async (local, options) => {
+    assert.equal(local, uri);
+    assert.equal(options.mimeType, mimeType);
+    assert.deepEqual(files.get(local), bytes);
+    opened = true;
+  };
+  await openPrivateFile(
+    { extension: "vetpkg", mimeType },
+    async () => bytes,
+    () => true,
+    "Share package",
+  );
+  assert.ok(opened);
+  assert.equal(files.has(uri), false);
+});
+
+test("the exchange picker accepts generic provider data with a .vetpkg name and discards invalid private copies", async () => {
+  const uri = "file:///cache/DocumentPicker/archive";
+  function supply(name, data) {
+    files.set(uri, data);
+    globalThis.documentDevice.pick = async (options) => {
+      assert.deepEqual(options.type, ["*/*"]);
+      assert.equal(options.copyToCacheDirectory, true);
+      return { canceled: false, assets: [{ uri, name, mimeType: "application/octet-stream" }] };
+    };
+  }
+  supply("clinical.VETPKG", bytes);
+  const selected = await pickPackage();
+  assert.equal(selected.name, "clinical.VETPKG");
+  assert.deepEqual(selected.bytes, bytes);
+  assert.equal(files.has(uri), false);
+  supply("report.pdf", bytes);
+  await assert.rejects(pickPackage(), (e) => e.issue === "fileType");
+  assert.equal(files.has(uri), false);
+  supply("oversize.vetpkg", { length: 64 * 1024 * 1024 + 1 });
+  await assert.rejects(pickPackage(), (e) => e.issue === "fileSize");
+  assert.equal(files.has(uri), false);
+  globalThis.documentDevice.pick = async () => ({ canceled: true });
+  assert.equal(await pickPackage(), undefined);
+});
+
+test("an unavailable share target clears the private copy and reports a recoverable handoff error", async () => {
+  globalThis.documentDevice.share = async () => {
+    throw new Error("No target");
+  };
+  await assert.rejects(
+    openPrivateFile(
+      { extension: "vetpkg", mimeType: "application/vnd.vetx.vetpkg.v1" },
+      async () => bytes,
+      () => true,
+      "Export",
+    ),
+    (e) => e.issue === "openUnavailable",
+  );
+  assert.equal(files.has("file:///cache/vetx-handoff/VetX-random.vetpkg"), false);
 });

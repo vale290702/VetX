@@ -1,6 +1,10 @@
 import { createInstance } from "i18next";
 import ICU from "i18next-icu";
 
+import enReferrals from "../locales/native-referrals.en.json";
+import esReferrals from "../locales/native-referrals.es.json";
+import enExchange from "../locales/native-exchange.en.json";
+import esExchange from "../locales/native-exchange.es.json";
 import enDocuments from "../locales/native-documents.en.json";
 import esDocuments from "../locales/native-documents.es.json";
 import enCare from "../locales/native-care.en.json";
@@ -14,6 +18,14 @@ import esPatients from "../locales/native-patients.es.json";
 
 import { defaultLocale, locales, messages, type Locale, type Messages } from "./index";
 
+const nativeReferrals = { en: enReferrals, es: esReferrals } satisfies Record<
+  Locale,
+  typeof esReferrals
+>;
+const nativeExchange = { en: enExchange, es: esExchange } satisfies Record<
+  Locale,
+  typeof esExchange
+>;
 const nativeDocuments = { en: enDocuments, es: esDocuments } satisfies Record<
   Locale,
   typeof esDocuments
@@ -30,6 +42,8 @@ declare module "i18next" {
   interface CustomTypeOptions {
     resources: {
       translation: Messages & {
+        nativeReferrals: typeof esReferrals;
+        nativeExchange: typeof esExchange;
         nativeDocuments: typeof esDocuments;
         nativeCare: typeof esCare;
         nativeAuth: typeof esAuth;
@@ -51,6 +65,8 @@ export async function createNativeI18n(locale: Locale) {
         translation: {
           ...messages.es,
           nativeAuth: nativeAuth.es,
+          nativeReferrals: nativeReferrals.es,
+          nativeExchange: nativeExchange.es,
           nativeDocuments: nativeDocuments.es,
           nativeCare: nativeCare.es,
           directory: directory.es,
@@ -61,6 +77,8 @@ export async function createNativeI18n(locale: Locale) {
         translation: {
           ...messages.en,
           nativeAuth: nativeAuth.en,
+          nativeReferrals: nativeReferrals.en,
+          nativeExchange: nativeExchange.en,
           nativeDocuments: nativeDocuments.en,
           nativeCare: nativeCare.en,
           directory: directory.en,

@@ -24,6 +24,13 @@ export function resolveLimits(overrides: Partial<VetpkgLimits> = {}): VetpkgLimi
   return limits;
 }
 
+export class VetpkgSizeError extends Error {
+  constructor() {
+    super("Invalid VetX exchange package");
+    this.name = "VetpkgSizeError";
+  }
+}
+
 export function invalid(): never {
   throw new Error("Invalid VetX exchange package");
 }
