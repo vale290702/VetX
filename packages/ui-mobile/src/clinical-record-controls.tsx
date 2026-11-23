@@ -49,6 +49,7 @@ export function SubmitClinical({
   state,
   label,
   valid,
+  disabled = false,
   submit,
   refresh,
 }: {
@@ -61,6 +62,7 @@ export function SubmitClinical({
   };
   label: string;
   valid: boolean;
+  disabled?: boolean;
   submit: () => void;
   refresh: () => void;
 }) {
@@ -79,13 +81,18 @@ export function SubmitClinical({
         </Text>
       )}
       {state.issue === "denied" || state.issue === "conflict" ? (
-        <Action styles={styles} label={t("nativeClinical.refresh")} onPress={refresh} />
+        <Action
+          styles={styles}
+          disabled={disabled}
+          label={t("nativeClinical.refresh")}
+          onPress={refresh}
+        />
       ) : (
         <Action
           styles={styles}
           primary
           busy={state.busy}
-          disabled={!valid && !state.pending}
+          disabled={disabled || (!valid && !state.pending)}
           label={state.pending ? t("nativeClinical.retry") : label}
           onPress={submit}
         />
