@@ -1,5 +1,5 @@
 import { StorageUnavailable } from "./documents/storage.js";
-import { CareError, DirectoryError, RegistryError } from "@vetx/database";
+import { CareError, ExchangeError, DirectoryError, RegistryError } from "@vetx/database";
 import { randomUUID } from "node:crypto";
 import {
   type ArgumentsHost,
@@ -82,7 +82,8 @@ function statusOf(exception: unknown): number {
   if (exception instanceof StorageUnavailable) return HttpStatus.SERVICE_UNAVAILABLE;
   if (exception instanceof CareError)
     return exception.code === "overlap" ? HttpStatus.CONFLICT : registryStatus[exception.code];
-  if (exception instanceof RegistryError) return registryStatus[exception.code];
+  if (exception instanceof ExchangeError || exception instanceof RegistryError)
+    return registryStatus[exception.code];
   if (exception instanceof DirectoryError) {
     if (exception.code === "forbidden") return HttpStatus.FORBIDDEN;
     if (exception.code === "invalid") return HttpStatus.BAD_REQUEST;

@@ -219,3 +219,27 @@ export function loadDocumentConfig(env = environment()): DocumentConfig | undefi
     ...(accessKeyId && secretAccessKey ? { credentials: { accessKeyId, secretAccessKey } } : {}),
   };
 }
+
+export interface ExchangeConfig {
+  keyDirectoryPath: string;
+  maxPackageBytes: number;
+  maxRecords: number;
+}
+export function loadExchangeConfig(env = environment()): ExchangeConfig | undefined {
+  const path = env.VETPKG_KEYRING_FILE;
+  if (!path) return undefined;
+  if (typeof path !== "string" || !path.startsWith("/") || path.includes("\0"))
+    throw new ConfigurationError("VETPKG_KEYRING_FILE must be an absolute secret file path");
+  const positive = (key: string, ceiling: number) => {
+    const raw = env[key] ?? "",
+      value = Number(raw);
+    if (!/^[1-9]\d*$/.test(raw) || !Number.isSafeInteger(value) || value > ceiling)
+      throw new ConfigurationError(`${key} must be a positive integer within the process limit`);
+    return value;
+  };
+  return {
+    keyDirectoryPath: path,
+    maxPackageBytes: positive("VETPKG_MAX_PACKAGE_BYTES", 64 * 1024 * 1024),
+    maxRecords: positive("VETPKG_MAX_RECORDS", 10000),
+  };
+}

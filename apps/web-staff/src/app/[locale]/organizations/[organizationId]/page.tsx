@@ -23,11 +23,12 @@ export default async function OrganizationDirectory({ params, searchParams }: Pr
   if (access.kind !== "active") redirect(`/${locale}`);
   const page = readDirectoryPage(query.page);
   const notice = directoryNotices.find((key) => key === query.notice);
-  const [view, t, patients, care] = await Promise.all([
+  const [view, t, patients, care, exchange] = await Promise.all([
     loadDirectory(access.config.apiOrigin, access.session, organizationId, page),
     getTranslations("directory"),
     getTranslations("patients"),
     getTranslations("care"),
+    getTranslations("webExchange"),
   ]);
   const path = `/organizations/${organizationId}${page === 1 ? "" : `?page=${page}`}`;
   return (
@@ -82,6 +83,13 @@ export default async function OrganizationDirectory({ params, searchParams }: Pr
                           href={`/organizations/${organizationId}/clinics/${clinic.id}/appointments`}
                         >
                           {care("calendar")}
+                        </Link>
+                        <Link
+                          className="clinic-registry-link"
+                          aria-label={exchange("importAt", { clinic: clinic.name })}
+                          href={`/organizations/${organizationId}/clinics/${clinic.id}/exchange/import`}
+                        >
+                          {exchange("importTitle")}
                         </Link>
                       </li>
                     ))}

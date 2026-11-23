@@ -8,8 +8,7 @@ import {
 } from "./patient-transport.ts";
 import type { MobileSession } from "./session";
 
-// Expo and Hermes provide the UTF-8 encoder. This workspace uses native-only TypeScript libraries.
-declare const TextEncoder: { new (): { encode(input: string): Uint8Array } };
+import { multipartFile } from "./multipart-file.ts";
 
 const patient = "/organizations/{organizationId}/clinics/{clinicId}/patients/{patientId}";
 const path = `${patient}/documents` as const;
@@ -44,19 +43,6 @@ export function recognizedType(
   if (suffix === "jpg" || suffix === "jpeg") return "image/jpeg";
   if (suffix === "pdf") return "application/pdf";
   if (suffix === "png") return "image/png";
-}
-function multipart(title: string, file: PickedDocument, boundary: string) {
-  // Expo's JSON request adapter reads a Request body as text. Serialize this binary body without that conversion.
-  const encoder = new TextEncoder();
-  const prefix = encoder.encode(
-    `--${boundary}\r\nContent-Disposition: form-data; name="title"\r\n\r\n${title}\r\n--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="document.${extensions[file.mediaType]}"\r\nContent-Type: ${file.mediaType}\r\n\r\n`,
-  );
-  const suffix = encoder.encode(`\r\n--${boundary}--\r\n`);
-  const body = new Uint8Array(prefix.length + file.bytes.length + suffix.length);
-  body.set(prefix);
-  body.set(file.bytes, prefix.length);
-  body.set(suffix, prefix.length + file.bytes.length);
-  return body;
 }
 function validateContent(doc: MedicalFile, data: ArrayBuffer, response: Response) {
   const type = response.headers.get("Content-Type")?.split(";")[0]?.trim().toLowerCase();
@@ -166,7 +152,13 @@ export function createDocuments(
                 "Cache-Control": "no-store",
                 "Content-Type": "multipart/form-data; boundary=" + boundary,
               },
-              body: multipart(title, file, boundary),
+              body: multipartFile(
+                file.bytes,
+                "document." + extensions[file.mediaType],
+                file.mediaType,
+                boundary,
+                title,
+              ),
               signal,
               credentials: "omit",
               redirect: "error",

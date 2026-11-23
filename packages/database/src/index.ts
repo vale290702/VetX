@@ -1,3 +1,11 @@
+import type {
+  ExportChoice,
+  ExportLocation,
+  ExportSelection,
+  ExportSnapshot,
+  ExportSource,
+} from "./export-source.js";
+export * from "./export-source.js";
 import { PrismaPg } from "@prisma/adapter-pg";
 import type { AccessPrincipal, OwnerPrincipal, StaffPrincipal } from "@vetx/permissions";
 import {
@@ -32,6 +40,18 @@ import {
   type OwnerEncounter,
   type StaffEncounter,
 } from "./care.js";
+import {
+  ExchangeError,
+  exchangeMetadata,
+  type ExchangeErrorCode,
+  type StageExchangeInput,
+  type ExchangePreview,
+  type ExchangeChoice,
+  type ExchangeReceipt,
+  type ExchangeCommit,
+  type ImportedRecordPage,
+  type ImportedAttachment,
+} from "./exchange.js";
 import { Prisma, PrismaClient } from "./generated/client.js";
 
 export {
@@ -44,6 +64,7 @@ export {
 
 export * from "./registry.js";
 export * from "./care.js";
+export * from "./exchange.js";
 
 export * from "./documents.js";
 import type {
@@ -55,6 +76,7 @@ import type {
 } from "./documents.js";
 
 const probeTimeoutMs = 1_000;
+const exchangeTimeoutMs = 30_000;
 
 export interface ResourceSummary {
   id: string;
@@ -63,6 +85,7 @@ export interface ResourceSummary {
 
 export class PrismaDatabase {
   private readonly client: PrismaClient;
+  private readonly importClient: PrismaClient;
 
   constructor(databaseUrl: string) {
     this.client = new PrismaClient({
@@ -72,6 +95,18 @@ export class PrismaDatabase {
         query_timeout: probeTimeoutMs,
         statement_timeout: probeTimeoutMs,
       }),
+    });
+    // A verified manifest may contain 24 MiB of clinical text. A small separate
+    // pool gives archive writes a bounded budget while preserving probe latency.
+    this.importClient = new PrismaClient({
+      adapter: new PrismaPg({
+        connectionString: databaseUrl,
+        max: 2,
+        connectionTimeoutMillis: exchangeTimeoutMs,
+        query_timeout: exchangeTimeoutMs,
+        statement_timeout: exchangeTimeoutMs,
+      }),
+      transactionOptions: { maxWait: exchangeTimeoutMs, timeout: exchangeTimeoutMs },
     });
   }
 
@@ -86,7 +121,7 @@ export class PrismaDatabase {
                     public.organization_memberships, public.clinic_grants
       LIMIT 0
     `;
-    await transaction.$queryRaw`SELECT public.registry_lock_tables() AS registry_locked, public.care_lock_tables() AS care_locked, public.document_lock_tables() AS documents_locked`;
+    await transaction.$queryRaw`SELECT public.registry_lock_tables() AS registry_locked, public.care_lock_tables() AS care_locked, public.document_lock_tables() AS documents_locked, public.exchange_lock_tables() AS exchange_locked, public.export_lock_tables() AS exports_locked`;
     const [result] = await transaction.$queryRaw<{ active: boolean }[]>`
       SELECT current_setting('row_security') = 'on'
         AND NOT EXISTS (
@@ -99,7 +134,9 @@ export class PrismaDatabase {
                         'public.organizations', 'public.clinics', 'public.directory_events',
                         'public.patients', 'public.owner_contacts', 'public.guardians',
                         'public.registry_events', 'public.pet_link_attempts', 'public.clinical_encounters',
-                        'public.encounter_sharing', 'public.encounter_recipients', 'public.appointments', 'public.care_events', 'public.medical_documents', 'public.document_events']::regclass[]) AS tables(relation)
+                        'public.encounter_sharing', 'public.encounter_recipients', 'public.appointments', 'public.care_events',
+                        'public.exchange_packages','public.exchange_receipts','public.exchange_patients',
+                        'public.exchange_imports','public.exchange_records','public.medical_documents','public.document_events','public.exchange_export_events']::regclass[]) AS tables(relation)
       JOIN pg_catalog.pg_class ON pg_class.oid = relation
     `;
     if (!result?.active) throw new Error("Database row security is inactive");
@@ -288,6 +325,63 @@ export class PrismaDatabase {
       ${input.digest}, ${input.requestId}::uuid, ${input.existingPetId ?? null}::uuid,
       ${input.attemptLimit}::int, ${input.windowSeconds}::int) AS result`,
       principal.verifiedEmail,
+    );
+  }
+
+  ownerExportLocations(
+    principal: OwnerPrincipal,
+    pet: string,
+  ): Promise<{ sources: ExportSource[] }> {
+    return this.registryQuery(
+      principal,
+      "",
+      "",
+      Prisma.sql`SELECT public.exchange_owner_locations(${pet}::uuid) AS result`,
+    );
+  }
+  ownerExportChoices(
+    principal: OwnerPrincipal,
+    pet: string,
+    scope: ExportLocation,
+    page: number,
+  ): Promise<{ records: ExportChoice[]; page: number; hasNextPage: boolean }> {
+    return this.registryQuery(
+      principal,
+      "",
+      "",
+      Prisma.sql`SELECT public.exchange_owner_choices(${pet}::uuid,${scope.organizationId}::uuid,${scope.clinicId}::uuid,${scope.patientId}::uuid,${page}::int) AS result`,
+    );
+  }
+  confirmOwnerExport(
+    principal: OwnerPrincipal,
+    pet: string,
+    scope: ExportLocation,
+    selection: ExportSelection,
+    destination: { organizationId: string; clinicId: string },
+    packageId: string,
+  ): Promise<{ ok: true }> {
+    return this.registryQuery(
+      principal,
+      "",
+      "",
+      Prisma.sql`SELECT public.exchange_confirm_export(${pet}::uuid,${scope.organizationId}::uuid,${scope.clinicId}::uuid,${scope.patientId}::uuid,${selection.encounterIds}::uuid[],${selection.documentAssetIds}::uuid[],${selection.includeOwner}::boolean,${destination.organizationId}::uuid,${destination.clinicId}::uuid,${packageId}::uuid) AS result`,
+      "",
+      this.importClient,
+    );
+  }
+  ownerExportSource(
+    principal: OwnerPrincipal,
+    pet: string,
+    scope: ExportLocation,
+    selection: ExportSelection,
+  ): Promise<ExportSnapshot> {
+    return this.registryQuery(
+      principal,
+      "",
+      "",
+      Prisma.sql`SELECT public.exchange_owner_source(${pet}::uuid,${scope.organizationId}::uuid,${scope.clinicId}::uuid,${scope.patientId}::uuid,${selection.encounterIds}::uuid[],${selection.documentAssetIds}::uuid[],${selection.includeOwner}::boolean) AS result`,
+      "",
+      this.importClient,
     );
   }
 
@@ -488,6 +582,109 @@ export class PrismaDatabase {
     );
   }
 
+  stageExchange(
+    staff: StaffPrincipal,
+    org: string,
+    clinic: string,
+    input: StageExchangeInput,
+  ): Promise<ExchangePreview> {
+    const metadata = exchangeMetadata(input.manifest);
+    return this.exchangeQuery(
+      staff,
+      org,
+      clinic,
+      Prisma.sql`SELECT public.exchange_stage(
+      ${JSON.stringify(metadata)}::jsonb, ${input.archiveSha256}, ${input.byteLength}::integer,
+      ${JSON.stringify(input.recordDigests)}::jsonb) AS result`,
+      this.importClient,
+    );
+  }
+
+  getExchangeReceipt(
+    staff: StaffPrincipal,
+    org: string,
+    clinic: string,
+    receiptId: string,
+  ): Promise<ExchangeReceipt> {
+    return this.exchangeQuery(
+      staff,
+      org,
+      clinic,
+      Prisma.sql`SELECT public.exchange_receipt(${receiptId}::uuid) AS result`,
+    );
+  }
+
+  commitExchange(
+    staff: StaffPrincipal,
+    org: string,
+    clinic: string,
+    receiptId: string,
+    choice: ExchangeChoice,
+  ): Promise<ExchangeCommit> {
+    return this.exchangeQuery(
+      staff,
+      org,
+      clinic,
+      Prisma.sql`SELECT public.exchange_commit(
+      ${receiptId}::uuid, ${choice.mode}, ${choice.mode === "match" ? choice.patientId : null}::uuid) AS result`,
+      this.importClient,
+    );
+  }
+
+  listImportedRecords(
+    staff: StaffPrincipal,
+    org: string,
+    clinic: string,
+    patientId: string,
+    page: number,
+  ): Promise<ImportedRecordPage> {
+    return this.exchangeQuery(
+      staff,
+      org,
+      clinic,
+      Prisma.sql`SELECT public.exchange_records_list(
+      ${patientId}::uuid, ${page}::integer) AS result`,
+    );
+  }
+
+  getImportedAttachment(
+    staff: StaffPrincipal,
+    org: string,
+    clinic: string,
+    patientId: string,
+    importedId: string,
+  ): Promise<ImportedAttachment> {
+    return this.exchangeQuery(
+      staff,
+      org,
+      clinic,
+      Prisma.sql`SELECT public.exchange_attachment(
+      ${patientId}::uuid, ${importedId}::uuid) AS result`,
+    );
+  }
+
+  private async exchangeQuery<T>(
+    staff: StaffPrincipal,
+    org: string,
+    clinic: string,
+    query: Prisma.Sql,
+    client = this.client,
+  ): Promise<T> {
+    const [row] = await this.scopedRows<T, ExchangeErrorCode>(
+      staff,
+      org,
+      clinic,
+      query,
+      "",
+      client,
+    );
+    const result = row?.result;
+    if (!result || typeof result !== "object")
+      throw new Error("Database returned no exchange result");
+    if ("error" in result) throw new ExchangeError(result.error);
+    return result;
+  }
+
   private async careQuery<T>(
     principal: AccessPrincipal,
     org: string,
@@ -507,10 +704,18 @@ export class PrismaDatabase {
     clinic: string,
     query: Prisma.Sql,
     verifiedEmail = "",
+    client = this.client,
   ): Promise<T> {
     // A rejected redemption still commits its rate-limit counter.
     return registryResult(
-      await this.scopedRows<T, RegistryErrorCode>(principal, org, clinic, query, verifiedEmail),
+      await this.scopedRows<T, RegistryErrorCode>(
+        principal,
+        org,
+        clinic,
+        query,
+        verifiedEmail,
+        client,
+      ),
     );
   }
 
@@ -520,12 +725,18 @@ export class PrismaDatabase {
     clinic: string,
     query: Prisma.Sql,
     verifiedEmail: string,
+    client = this.client,
   ) {
-    return this.withAccess(principal, org, async (transaction) => {
-      await transaction.$queryRaw`SELECT set_config('vetx.clinic_id', ${clinic}, true),
+    return this.withAccess(
+      principal,
+      org,
+      async (transaction) => {
+        await transaction.$queryRaw`SELECT set_config('vetx.clinic_id', ${clinic}, true),
         set_config('vetx.verified_email', ${verifiedEmail}, true)`;
-      return transaction.$queryRaw<{ result: T | { error: E } }[]>(query);
-    });
+        return transaction.$queryRaw<{ result: T | { error: E } }[]>(query);
+      },
+      client,
+    );
   }
 
   private directoryQuery<T extends DirectoryRevision>(
@@ -542,8 +753,9 @@ export class PrismaDatabase {
     principal: AccessPrincipal,
     organizationId: string,
     use: (transaction: Prisma.TransactionClient) => Promise<T>,
+    client = this.client,
   ): Promise<T> {
-    return this.client.$transaction(async (transaction) => {
+    return client.$transaction(async (transaction) => {
       await this.requireRowSecurity(transaction);
       await transaction.$queryRaw`
         SELECT
@@ -557,6 +769,6 @@ export class PrismaDatabase {
   }
 
   async onApplicationShutdown(): Promise<void> {
-    await this.client.$disconnect();
+    await Promise.all([this.client.$disconnect(), this.importClient.$disconnect()]);
   }
 }

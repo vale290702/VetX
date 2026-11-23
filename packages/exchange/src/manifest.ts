@@ -1,6 +1,12 @@
 import { createHash } from "node:crypto";
 import { z } from "zod";
-import { invalid, isBase64url, resolveLimits, type VetpkgLimits } from "./limits.js";
+import {
+  VetpkgSizeError,
+  invalid,
+  isBase64url,
+  resolveLimits,
+  type VetpkgLimits,
+} from "./limits.js";
 
 const uuid = z.uuid().regex(/^[a-f0-9-]+$/);
 const timestamp = z.iso.datetime({ offset: true });
@@ -134,7 +140,7 @@ export function validateVetpkgManifest(
   const byId = new Map<string, ExchangeRecord>();
   let bytes = Buffer.byteLength(JSON.stringify({ ...header.data, records: [] }));
   let attachmentBytes = 0;
-  if (bytes > limits.maxManifestBytes) return invalid();
+  if (bytes > limits.maxManifestBytes) throw new VetpkgSizeError();
   for (const raw of rawRecords) {
     const parsed = recordSchema.safeParse(raw);
     if (!parsed.success) return invalid();
@@ -152,16 +158,16 @@ export function validateVetpkgManifest(
       if (
         byteLength > limits.maxAttachmentBytes ||
         attachmentBytes > limits.maxTotalAttachmentBytes ||
-        content.length !== Math.ceil((byteLength * 4) / 3) ||
-        bytes + content.length > limits.maxManifestBytes ||
-        !isBase64url(content)
+        bytes + content.length > limits.maxManifestBytes
       )
+        throw new VetpkgSizeError();
+      if (content.length !== Math.ceil((byteLength * 4) / 3) || !isBase64url(content))
         return invalid();
       if (createHash("sha256").update(Buffer.from(content, "base64url")).digest("hex") !== sha256)
         return invalid();
     }
     bytes += Buffer.byteLength(JSON.stringify(item)) + (records.length === 0 ? 0 : 1);
-    if (bytes > limits.maxManifestBytes) return invalid();
+    if (bytes > limits.maxManifestBytes) throw new VetpkgSizeError();
     records.push(item);
   }
   validateAddendumChains(byId);
