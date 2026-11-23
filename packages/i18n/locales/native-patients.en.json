@@ -55,5 +55,6 @@
   "exchangeSize": "The package exceeds the permitted size. Select fewer records or choose a smaller package.",
   "handoffUnavailable": "This device could not open the share sheet. Try again.",
   "referralsUnavailable": "Clinic referrals are currently unavailable. Try again later.",
-  "inventoryUnavailable": "Clinic inventory is unavailable. Try again later."
+  "inventoryUnavailable": "Clinic inventory is unavailable. Try again later.",
+  "tradeUnavailable": "The clinic service is currently unavailable. Try again later."
 }

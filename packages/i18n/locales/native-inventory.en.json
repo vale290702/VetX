@@ -11,7 +11,7 @@
   "sku": "SKU",
   "unit": "Base unit",
   "unitValue": "Unit · {unit}",
-  "unitHelp": "Choose the unit used for every stock movement. It becomes permanent after the first movement.",
+  "unitHelp": "You can change the base unit until a purchase order, signed prescription, or stock movement uses this item.",
   "refresh": "Refresh stock data",
   "searchItems": "Search by item name or SKU",
   "noItems": "No stock items match this search.",
@@ -69,5 +69,6 @@
   "matched": "Movement {id} was recorded. View ledger.",
   "itemId": "Item ID · {id}",
   "fromId": "Source warehouse ID · {id}",
-  "toId": "Destination warehouse ID · {id}"
+  "toId": "Destination warehouse ID · {id}",
+  "unitLocked": "A purchase order, signed prescription, or stock movement has fixed this item’s base unit."
 }

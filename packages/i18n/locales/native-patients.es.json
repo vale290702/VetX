@@ -55,5 +55,6 @@
   "exchangeSize": "El paquete supera el tamaño permitido. Selecciona menos registros o elige un paquete más pequeño.",
   "handoffUnavailable": "No se pudo abrir el menú del dispositivo para compartir el archivo. Inténtalo de nuevo.",
   "referralsUnavailable": "Las referencias clínicas no están disponibles en este momento. Inténtalo más tarde.",
-  "inventoryUnavailable": "El inventario de la clínica no está disponible. Inténtalo más tarde."
+  "inventoryUnavailable": "El inventario de la clínica no está disponible. Inténtalo más tarde.",
+  "tradeUnavailable": "El servicio de la clínica no está disponible. Inténtalo más tarde."
 }

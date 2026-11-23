@@ -52,6 +52,7 @@ import type {
   StockMovementPage,
   StockBalancePage,
 } from "./inventory.js";
+import type * as Trade from "./procurement.js";
 import {
   ReferralError,
   type ReferralErrorCode,
@@ -88,6 +89,7 @@ export {
 export * from "./registry.js";
 export * from "./care.js";
 export * from "./inventory.js";
+export * from "./procurement.js";
 export * from "./referrals.js";
 export * from "./exchange.js";
 
@@ -101,7 +103,7 @@ import type {
 } from "./documents.js";
 
 const probeTimeoutMs = 1_000;
-const exchangeTimeoutMs = 30_000;
+const bulkTimeoutMs = 30_000;
 
 export interface ResourceSummary {
   id: string;
@@ -110,7 +112,7 @@ export interface ResourceSummary {
 
 export class PrismaDatabase {
   private readonly client: PrismaClient;
-  private readonly importClient: PrismaClient;
+  private readonly bulkClient: PrismaClient;
 
   constructor(databaseUrl: string) {
     this.client = new PrismaClient({
@@ -121,17 +123,17 @@ export class PrismaDatabase {
         statement_timeout: probeTimeoutMs,
       }),
     });
-    // A verified manifest may contain 24 MiB of clinical text. A small separate
-    // pool gives archive writes a bounded budget while preserving probe latency.
-    this.importClient = new PrismaClient({
+    // Verified archives and multi-line purchases use a small separate pool so
+    // their longer transactions do not consume readiness probe connections.
+    this.bulkClient = new PrismaClient({
       adapter: new PrismaPg({
         connectionString: databaseUrl,
         max: 2,
-        connectionTimeoutMillis: exchangeTimeoutMs,
-        query_timeout: exchangeTimeoutMs,
-        statement_timeout: exchangeTimeoutMs,
+        connectionTimeoutMillis: bulkTimeoutMs,
+        query_timeout: bulkTimeoutMs,
+        statement_timeout: bulkTimeoutMs,
       }),
-      transactionOptions: { maxWait: exchangeTimeoutMs, timeout: exchangeTimeoutMs },
+      transactionOptions: { maxWait: bulkTimeoutMs, timeout: bulkTimeoutMs },
     });
   }
 
@@ -146,7 +148,7 @@ export class PrismaDatabase {
                     public.organization_memberships, public.clinic_grants
       LIMIT 0
     `;
-    await transaction.$queryRaw`SELECT public.registry_lock_tables() AS registry_locked, public.care_lock_tables() AS care_locked, public.document_lock_tables() AS documents_locked, public.exchange_lock_tables() AS exchange_locked, public.export_lock_tables() AS exports_locked, public.referral_lock_tables() AS referrals_locked, public.stock_lock_tables() AS stock_locked`;
+    await transaction.$queryRaw`SELECT public.registry_lock_tables() AS registry_locked, public.care_lock_tables() AS care_locked, public.document_lock_tables() AS documents_locked, public.exchange_lock_tables() AS exchange_locked, public.export_lock_tables() AS exports_locked, public.referral_lock_tables() AS referrals_locked, public.stock_lock_tables() AS stock_locked, public.trade_lock_tables() AS trade_locked`;
     const [result] = await transaction.$queryRaw<{ active: boolean }[]>`
       SELECT current_setting('row_security') = 'on'
         AND NOT EXISTS (
@@ -162,7 +164,7 @@ export class PrismaDatabase {
                         'public.encounter_sharing', 'public.encounter_recipients', 'public.appointments', 'public.care_events',
                         'public.referral_states','public.referral_requests','public.referral_responses','public.referral_events',
                         'public.exchange_packages','public.exchange_receipts','public.exchange_patients',
-                        'public.exchange_imports','public.exchange_records','public.medical_documents','public.document_events','public.exchange_export_events','public.inventory_warehouses','public.inventory_items','public.stock_balances','public.stock_movements']::regclass[]) AS tables(relation)
+                        'public.exchange_imports','public.exchange_records','public.medical_documents','public.document_events','public.exchange_export_events','public.inventory_warehouses','public.inventory_items','public.stock_balances','public.stock_movements','public.trade_suppliers','public.purchase_orders','public.purchase_lines','public.purchase_receipts','public.purchase_receipt_lines','public.supplier_returns','public.pharmacy_capabilities','public.patient_prescriptions','public.prescription_dispensings','public.prescription_sharing','public.pharmacy_events']::regclass[]) AS tables(relation)
       JOIN pg_catalog.pg_class ON pg_class.oid = relation
     `;
     if (!result?.active) throw new Error("Database row security is inactive");
@@ -392,7 +394,7 @@ export class PrismaDatabase {
       "",
       Prisma.sql`SELECT public.exchange_confirm_export(${pet}::uuid,${scope.organizationId}::uuid,${scope.clinicId}::uuid,${scope.patientId}::uuid,${selection.encounterIds}::uuid[],${selection.documentAssetIds}::uuid[],${selection.includeOwner}::boolean,${destination.organizationId}::uuid,${destination.clinicId}::uuid,${packageId}::uuid) AS result`,
       "",
-      this.importClient,
+      this.bulkClient,
     );
   }
   ownerExportSource(
@@ -407,7 +409,7 @@ export class PrismaDatabase {
       "",
       Prisma.sql`SELECT public.exchange_owner_source(${pet}::uuid,${scope.organizationId}::uuid,${scope.clinicId}::uuid,${scope.patientId}::uuid,${selection.encounterIds}::uuid[],${selection.documentAssetIds}::uuid[],${selection.includeOwner}::boolean) AS result`,
       "",
-      this.importClient,
+      this.bulkClient,
     );
   }
 
@@ -824,6 +826,265 @@ export class PrismaDatabase {
     );
   }
 
+  saveSupplier(
+    staff: StaffPrincipal,
+    org: string,
+    clinic: string,
+    id: string,
+    input: Trade.SupplierInput,
+  ): Promise<Trade.Supplier> {
+    return this.registryQuery(
+      staff,
+      org,
+      clinic,
+      Prisma.sql`SELECT public.trade_save_supplier(${id}::uuid,${input.name},${input.revision}::int) AS result`,
+    );
+  }
+
+  createPurchaseOrder(
+    staff: StaffPrincipal,
+    org: string,
+    clinic: string,
+    id: string,
+    input: Trade.PurchaseInput,
+  ): Promise<Trade.PurchaseOrder> {
+    return this.registryQuery(
+      staff,
+      org,
+      clinic,
+      Prisma.sql`SELECT public.trade_order(${id}::uuid,${input.supplierId}::uuid,${JSON.stringify(input.lines)}::jsonb) AS result`,
+      "",
+      this.bulkClient,
+    );
+  }
+
+  receivePurchaseOrder(
+    staff: StaffPrincipal,
+    org: string,
+    clinic: string,
+    order: string,
+    id: string,
+    input: Trade.ReceiptInput,
+  ): Promise<Trade.PurchaseReceipt> {
+    return this.registryQuery(
+      staff,
+      org,
+      clinic,
+      Prisma.sql`SELECT public.trade_receive(${order}::uuid,${id}::uuid,${JSON.stringify(input.lines)}::jsonb) AS result`,
+      "",
+      this.bulkClient,
+    );
+  }
+
+  returnPurchaseStock(
+    staff: StaffPrincipal,
+    org: string,
+    clinic: string,
+    order: string,
+    id: string,
+    input: Trade.SupplierReturnInput,
+  ): Promise<Trade.SupplierReturn> {
+    return this.registryQuery(
+      staff,
+      org,
+      clinic,
+      Prisma.sql`SELECT public.trade_return(${order}::uuid,${id}::uuid,${input.receiptMovementId}::uuid,${input.quantity},${input.reason}) AS result`,
+    );
+  }
+
+  getPharmacyCapability(
+    staff: StaffPrincipal,
+    org: string,
+    clinic: string,
+  ): Promise<Trade.PharmacyCapability> {
+    return this.registryQuery(
+      staff,
+      org,
+      clinic,
+      Prisma.sql`SELECT public.pharmacy_me() AS result`,
+    );
+  }
+
+  savePharmacyCapability(
+    staff: StaffPrincipal,
+    org: string,
+    clinic: string,
+    subject: string,
+    input: Trade.PharmacyCapabilityInput,
+  ): Promise<Trade.PharmacyCapability> {
+    return this.registryQuery(
+      staff,
+      org,
+      clinic,
+      Prisma.sql`SELECT public.pharmacy_grant(${subject},${input.canPrescribe}::boolean,${input.canDispense}::boolean,${input.revision}::int) AS result`,
+    );
+  }
+
+  prescribe(
+    staff: StaffPrincipal,
+    org: string,
+    clinic: string,
+    patient: string,
+    id: string,
+    input: Trade.PrescriptionInput,
+  ): Promise<Trade.Prescription> {
+    return this.registryQuery(
+      staff,
+      org,
+      clinic,
+      Prisma.sql`SELECT public.pharmacy_prescribe(${patient}::uuid,${id}::uuid,${input.itemId}::uuid,${input.medication},${input.instructions},${input.quantity},${input.expectedUnit}) AS result`,
+    );
+  }
+
+  dispensePrescription(
+    staff: StaffPrincipal,
+    org: string,
+    clinic: string,
+    patient: string,
+    rx: string,
+    id: string,
+    input: Trade.DispensingInput,
+  ): Promise<Trade.Dispensing> {
+    return this.registryQuery(
+      staff,
+      org,
+      clinic,
+      Prisma.sql`SELECT public.pharmacy_dispense(${patient}::uuid,${rx}::uuid,${id}::uuid,${input.warehouseId}::uuid,${input.lot},${input.quantity}) AS result`,
+    );
+  }
+
+  sharePrescription(
+    staff: StaffPrincipal,
+    org: string,
+    clinic: string,
+    patient: string,
+    rx: string,
+    input: Trade.PrescriptionSharing,
+  ): Promise<Trade.PrescriptionSharing> {
+    return this.registryQuery(
+      staff,
+      org,
+      clinic,
+      Prisma.sql`SELECT public.pharmacy_share(${patient}::uuid,${rx}::uuid,${input.guardianIds}::uuid[],${input.revision}::int) AS result`,
+    );
+  }
+
+  listSuppliers(
+    staff: StaffPrincipal,
+    org: string,
+    clinic: string,
+    page: number,
+  ): Promise<Trade.TradePage<"suppliers", Trade.Supplier>> {
+    return this.registryQuery(
+      staff,
+      org,
+      clinic,
+      Prisma.sql`SELECT public.trade_suppliers_list(${page}::int) AS result`,
+    );
+  }
+
+  listPurchaseOrders(
+    staff: StaffPrincipal,
+    org: string,
+    clinic: string,
+    page: number,
+  ): Promise<Trade.TradePage<"orders", Trade.PurchaseOrder>> {
+    return this.registryQuery(
+      staff,
+      org,
+      clinic,
+      Prisma.sql`SELECT public.trade_orders_list(${page}::int) AS result`,
+    );
+  }
+
+  listPurchaseReceipts(
+    staff: StaffPrincipal,
+    org: string,
+    clinic: string,
+    order: string,
+    page: number,
+  ): Promise<Trade.TradePage<"receipts", Trade.PurchaseReceipt>> {
+    return this.registryQuery(
+      staff,
+      org,
+      clinic,
+      Prisma.sql`SELECT public.trade_receipts_list(${order}::uuid,${page}::int) AS result`,
+    );
+  }
+
+  listSupplierReturns(
+    staff: StaffPrincipal,
+    org: string,
+    clinic: string,
+    order: string,
+    page: number,
+  ): Promise<Trade.TradePage<"returns", Trade.SupplierReturn>> {
+    return this.registryQuery(
+      staff,
+      org,
+      clinic,
+      Prisma.sql`SELECT public.trade_returns_list(${order}::uuid,${page}::int) AS result`,
+    );
+  }
+
+  listPharmacyCapabilities(
+    staff: StaffPrincipal,
+    org: string,
+    clinic: string,
+    page: number,
+  ): Promise<Trade.TradePage<"capabilities", Trade.PharmacyCapability>> {
+    return this.registryQuery(
+      staff,
+      org,
+      clinic,
+      Prisma.sql`SELECT public.pharmacy_capabilities_list(${page}::int) AS result`,
+    );
+  }
+
+  listPrescriptions(
+    staff: StaffPrincipal,
+    org: string,
+    clinic: string,
+    patient: string,
+    page: number,
+  ): Promise<Trade.TradePage<"prescriptions", Trade.Prescription>> {
+    return this.registryQuery(
+      staff,
+      org,
+      clinic,
+      Prisma.sql`SELECT public.pharmacy_prescriptions_list(${patient}::uuid,${page}::int) AS result`,
+    );
+  }
+
+  listDispensings(
+    staff: StaffPrincipal,
+    org: string,
+    clinic: string,
+    patient: string,
+    rx: string,
+    page: number,
+  ): Promise<Trade.TradePage<"dispensings", Trade.Dispensing>> {
+    return this.registryQuery(
+      staff,
+      org,
+      clinic,
+      Prisma.sql`SELECT public.pharmacy_dispensings_list(${patient}::uuid,${rx}::uuid,${page}::int) AS result`,
+    );
+  }
+
+  listOwnerPrescriptions(
+    owner: OwnerPrincipal,
+    pet: string,
+    page: number,
+  ): Promise<Trade.TradePage<"prescriptions", Trade.OwnerPrescription>> {
+    return this.registryQuery(
+      owner,
+      "",
+      "",
+      Prisma.sql`SELECT public.pharmacy_owner_list(${pet}::uuid,${page}::int) AS result`,
+    );
+  }
+
   stageExchange(
     staff: StaffPrincipal,
     org: string,
@@ -838,7 +1099,7 @@ export class PrismaDatabase {
       Prisma.sql`SELECT public.exchange_stage(
       ${JSON.stringify(metadata)}::jsonb, ${input.archiveSha256}, ${input.byteLength}::integer,
       ${JSON.stringify(input.recordDigests)}::jsonb) AS result`,
-      this.importClient,
+      this.bulkClient,
     );
   }
 
@@ -869,7 +1130,7 @@ export class PrismaDatabase {
       clinic,
       Prisma.sql`SELECT public.exchange_commit(
       ${receiptId}::uuid, ${choice.mode}, ${choice.mode === "match" ? choice.patientId : null}::uuid) AS result`,
-      this.importClient,
+      this.bulkClient,
     );
   }
 
@@ -1011,6 +1272,6 @@ export class PrismaDatabase {
   }
 
   async onApplicationShutdown(): Promise<void> {
-    await Promise.all([this.client.$disconnect(), this.importClient.$disconnect()]);
+    await Promise.all([this.client.$disconnect(), this.bulkClient.$disconnect()]);
   }
 }

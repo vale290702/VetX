@@ -5,6 +5,7 @@ import { getTranslations } from "next-intl/server";
 
 import { readStaffSession } from "../../../../../../../../auth/account.ts";
 import { isDirectoryId, readDirectoryPage } from "../../../../../../../../directory/forms.ts";
+import { TradeLink } from "../../../../../../../../trade/nav";
 import { ReferralLink } from "../../../../../../../../referrals/navigation";
 import { Link } from "../../../../../../../../i18n/routing";
 import { readRegistry } from "../../../../../../../../patients/api.ts";
@@ -222,6 +223,7 @@ export default async function Patients({ params, searchParams }: Props) {
                     >
                       {exchange("history")}
                     </Link>
+                    <TradeLink scope={scope} locale={locale} patientId={detail.patient.id} />
                     <ReferralLink scope={scope} locale={locale} patientId={detail.patient.id} />
                     <PatientForm context={context} patient={detail.patient} />
                   </section>
