@@ -47,7 +47,7 @@ BEGIN
  SELECT d.asset_id,'document',d.title,d.recorded_at FROM public.medical_documents d WHERE
  (d.organization_id,d.clinic_id,d.patient_id)=(org,clinic,patient) AND vetx_documents.released(d,pet)
  UNION ALL
- SELECT r.revision_id,'clinical',left(coalesce(r.data->>'diagnosis',r.data->>'treatment',r.data->>'vaccine',r.data->>'test'),250),r.occurred_at
+ SELECT r.revision_id,'clinical',vetx_clinical.choice_title(r),r.occurred_at
  FROM public.clinical_record_heads h JOIN public.clinical_record_revisions r USING(organization_id,clinic_id,patient_id,record_id,revision)
  WHERE (h.organization_id,h.clinic_id,h.patient_id)=(org,clinic,patient) AND vetx_clinical.guardian(h,pet)
  UNION ALL
