@@ -1,12 +1,28 @@
 import type { components } from "@vetx/api-client";
-import { Temporal } from "@js-temporal/polyfill";
-import { localInput, localInstant } from "../care/time.ts";
+import {
+  isWorkflow,
+  workflowFields,
+  workflowData,
+  workflowInputs,
+  type WorkflowAction,
+  type WorkflowData,
+  type WorkflowStatus,
+} from "./workflows.ts";
+import { resolveLocalInstant } from "../care/time.ts";
 import { isDirectoryId } from "../directory/forms.ts";
 
-export const kinds = ["diagnosis", "treatment", "vaccination", "lab"] as const;
+export const kinds = [
+  "diagnosis",
+  "treatment",
+  "vaccination",
+  "lab",
+  "hospitalization",
+  "surgery",
+] as const;
 export type Kind = (typeof kinds)[number];
-export type Edit = "new" | "correct" | "result" | "review";
+export type Edit = "new" | "correct" | "result" | "review" | WorkflowAction;
 const fields = {
+  ...workflowFields,
   diagnosis: ["diagnosis", "code"],
   treatment: ["treatment", "notes"],
   vaccination: ["vaccine", "lotNumber", "nextDueDate"],
@@ -18,9 +34,18 @@ export type ClinicalData = Partial<
   Schema["DiagnosisDataDto"] &
     Schema["TreatmentDataDto"] &
     Schema["VaccinationDataDto"] &
-    Schema["LabDataDto"]
->;
+    Omit<Schema["LabDataDto"], "status"> &
+    WorkflowData
+> & { status?: Schema["LabDataDto"]["status"] | WorkflowStatus };
 export const limits: Record<Field, number> = {
+  ward: 120,
+  location: 120,
+  note: 8000,
+  summary: 8000,
+  procedure: 250,
+  scheduledAt: 40,
+  performedProcedure: 250,
+  recoveryNotes: 8000,
   diagnosis: 8000,
   treatment: 8000,
   notes: 8000,
@@ -34,7 +59,11 @@ export const limits: Record<Field, number> = {
   referenceRange: 250,
   nextDueDate: 10,
 };
-export function recordFields(kind: Kind, edit: Edit): readonly Field[] {
+export function chartFields(kind: Kind): readonly Field[] {
+  return fields[kind];
+}
+export function recordFields(kind: Kind, edit: Edit, currentStatus?: string): readonly Field[] {
+  if (isWorkflow(kind)) return workflowInputs(kind, edit, currentStatus);
   if (kind !== "lab" || edit === "review") return fields[kind];
   return edit === "result" ? ["result", "unit", "referenceRange"] : ["test", "specimen"];
 }
@@ -45,14 +74,6 @@ export type RevisionSource = {
   revision: number;
   data: ClinicalData;
 };
-function unchangedTime(entry: FormDataEntryValue | null, current: RevisionSource, zone: string) {
-  if (typeof entry !== "string") return false;
-  try {
-    return Temporal.PlainDateTime.from(entry).equals(localInput(current.occurredAt, zone, true));
-  } catch {
-    return false;
-  }
-}
 export function buildRevision(
   kind: Kind,
   edit: Edit,
@@ -71,9 +92,9 @@ export function buildRevision(
   if (current && !changeReason) return null;
   const entry = form.get("occurredAt");
   const occurredAt =
-    current && (edit === "review" || unchangedTime(entry, current, zone))
+    current && (edit === "review" || edit === "amend")
       ? current.occurredAt
-      : localInstant(entry, zone);
+      : resolveLocalInstant(entry, zone, current?.occurredAt);
   if (!occurredAt) return null;
   const base = {
     kind,
@@ -82,6 +103,11 @@ export function buildRevision(
     occurredAt,
     ...(current ? { changeReason } : {}),
   };
+  if (isWorkflow(kind)) {
+    if (current && Date.parse(occurredAt) < Date.parse(current.occurredAt)) return null;
+    const data = workflowData(kind, edit, form, zone, current);
+    return data ? { ...base, data } : null;
+  }
   if (edit === "review") {
     if (
       kind !== "lab" ||

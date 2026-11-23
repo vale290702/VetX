@@ -56,6 +56,24 @@ test("staff verify a signed package, explicitly match a clinic patient, and read
       },
       {
         id: randomUUID(),
+        kind: "hospitalization",
+        clinicalRevision: { recordId: randomUUID(), revision: 4 },
+        occurredAt: "2026-03-29T12:00:00Z",
+        recordedAt: "2026-03-29T12:10:00Z",
+        author: { issuer: "https://issuer.example", subject: "hospital-staff" },
+        data: { status: "DISCHARGED", summary: "Released stay summary." },
+      },
+      {
+        id: randomUUID(),
+        kind: "surgery",
+        clinicalRevision: { recordId: randomUUID(), revision: 3 },
+        occurredAt: "2026-03-28T12:00:00Z",
+        recordedAt: "2026-03-28T12:10:00Z",
+        author: { issuer: "https://issuer.example", subject: "surgical-staff" },
+        data: { status: "COMPLETED", summary: "Released surgical summary." },
+      },
+      {
+        id: randomUUID(),
         kind: "document",
         occurredAt: "2026-03-31T12:00:00Z",
         recordedAt: "2026-03-31T12:05:00Z",
@@ -137,7 +155,7 @@ test("staff verify a signed package, explicitly match a clinic patient, and read
     await expect(page.getByRole("main").getByRole("alert")).toContainText("Try again");
     await expect(matched).toBeChecked();
     await button.click();
-    await expect(page.getByText("3 records imported. 0 existing records skipped.")).toBeVisible();
+    await expect(page.getByText("5 records imported. 0 existing records skipped.")).toBeVisible();
     await page.getByRole("link", { name: "Imported clinical history" }).click();
     await expect(page.getByText("Seguimiento renal")).toBeVisible();
     const diagnosis = page
@@ -160,6 +178,17 @@ test("staff verify a signed package, explicitly match a clinic patient, and read
       "reviewing-vet",
     ]) {
       await expect(lab.getByText(value, { exact: true })).toBeVisible();
+    }
+    for (const [name, status, summary] of [
+      ["Hospital stay", "Discharged", "Released stay summary."],
+      ["Surgery", "Completed", "Released surgical summary."],
+    ] as const) {
+      const entry = page
+        .getByRole("listitem")
+        .filter({ has: page.getByRole("heading", { name, exact: true }) });
+      await expect(entry.getByText(status, { exact: true })).toBeVisible();
+      await expect(entry.getByText("Guardian summary", { exact: true })).toBeVisible();
+      await expect(entry.getByText(summary, { exact: true })).toBeVisible();
     }
     const [download] = await Promise.all([
       page.waitForEvent("download"),

@@ -825,6 +825,7 @@ model ClinicalRecordRevision {
   @@map("clinical_record_revisions")
 }
 model ClinicalRecordHead {
+  activeAdmission Boolean @default(false) @map("active_admission")
   organizationId String @map("organization_id") @db.Uuid
   clinicId String @map("clinic_id") @db.Uuid
   patientId String @map("patient_id") @db.Uuid

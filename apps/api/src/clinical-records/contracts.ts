@@ -19,7 +19,14 @@ import {
 import type { ClinicalWrite } from "@vetx/database";
 import { SharingDto, instant, revision } from "../care/contracts.js";
 const uuid = () => applyDecorators(ApiProperty({ format: "uuid" }), IsUUID());
-const kinds = ["diagnosis", "treatment", "vaccination", "lab"] as const;
+const kinds = [
+  "diagnosis",
+  "treatment",
+  "vaccination",
+  "lab",
+  "hospitalization",
+  "surgery",
+] as const;
 const status = ["ORDERED", "RESULTED", "REVIEWED"] as const;
 const label = (max: number, optional = false) =>
   applyDecorators(
@@ -62,19 +69,51 @@ class LabDataDto {
   @label(128, true) readonly unit?: string;
   @label(250, true) readonly referenceRange?: string;
 }
-const models = [DiagnosisDataDto, TreatmentDataDto, VaccinationDataDto, LabDataDto];
-const shape = () =>
+const wardStates = ["ADMITTED", "PROGRESS", "DISCHARGED"] as const;
+const surgeryStates = ["PLANNED", "IN_PROGRESS", "COMPLETED", "CANCELLED"] as const;
+class HospitalizationDataDto {
+  @ApiProperty({ enum: wardStates })
+  @IsIn(wardStates)
+  readonly status!: (typeof wardStates)[number];
+  @label(120) readonly ward!: string;
+  @label(120, true) readonly location?: string;
+  @narrative() readonly note!: string;
+  @narrative(true) readonly summary?: string;
+}
+class SurgeryDataDto {
+  @ApiProperty({ enum: surgeryStates })
+  @IsIn(surgeryStates)
+  readonly status!: (typeof surgeryStates)[number];
+  @label(250) readonly procedure!: string;
+  @instant() readonly scheduledAt!: string;
+  @narrative(true) readonly notes?: string;
+  @label(250, true) readonly performedProcedure?: string;
+  @narrative(true) readonly recoveryNotes?: string;
+  @narrative(true) readonly summary?: string;
+}
+class DischargeSummaryDto {
+  @ApiProperty({ enum: ["DISCHARGED"] }) readonly status!: "DISCHARGED";
+  @narrative() readonly summary!: string;
+}
+class SurgerySummaryDto {
+  @ApiProperty({ enum: ["COMPLETED", "CANCELLED"] }) readonly status!: "COMPLETED" | "CANCELLED";
+  @narrative() readonly summary!: string;
+}
+const generalModels = [DiagnosisDataDto, TreatmentDataDto, VaccinationDataDto, LabDataDto];
+const staffModels = [...generalModels, HospitalizationDataDto, SurgeryDataDto];
+const ownerModels = [...generalModels, DischargeSummaryDto, SurgerySummaryDto];
+const shape = (models: typeof staffModels | typeof ownerModels) =>
   applyDecorators(
     ApiProperty({ oneOf: models.map((m) => ({ $ref: getSchemaPath(m) })) }),
     IsObject(),
   );
-@ApiExtraModels(...models)
+@ApiExtraModels(...staffModels, ...ownerModels)
 class ClinicalContentDto {
   @ApiProperty({ enum: kinds }) @IsIn(kinds) readonly kind!: (typeof kinds)[number];
-  @shape() readonly data!: object;
   @instant() readonly occurredAt!: string;
 }
 export class ClinicalWriteDto extends ClinicalContentDto {
+  @shape(staffModels) readonly data!: object;
   @uuid() readonly encounterId!: string;
   @revision() readonly revision!: number;
   @label(500, true) readonly changeReason?: string;
@@ -101,6 +140,32 @@ export function clinicalWrite(input: ClinicalWriteDto): ClinicalWrite {
       return { ...base, kind: input.kind, data: validateData(TreatmentDataDto, input.data) };
     case "vaccination":
       return { ...base, kind: input.kind, data: validateData(VaccinationDataDto, input.data) };
+    case "hospitalization": {
+      const data = validateData(HospitalizationDataDto, input.data);
+      if (input.revision === 0 && data.status !== "ADMITTED") throw new BadRequestException();
+      if (data.status === "DISCHARGED" ? !data.summary?.trim() : data.summary !== undefined)
+        throw new BadRequestException();
+      return { ...base, kind: input.kind, data };
+    }
+    case "surgery": {
+      const data = validateData(SurgeryDataDto, input.data);
+      const completed = data.status === "COMPLETED",
+        terminal = completed || data.status === "CANCELLED";
+      if (input.revision === 0 && data.status !== "PLANNED") throw new BadRequestException();
+      if (terminal ? !data.summary?.trim() : data.summary !== undefined)
+        throw new BadRequestException();
+      if (
+        completed
+          ? !(data.performedProcedure && data.recoveryNotes?.trim())
+          : data.performedProcedure !== undefined || data.recoveryNotes !== undefined
+      )
+        throw new BadRequestException();
+      return {
+        ...base,
+        kind: input.kind,
+        data: { ...data, scheduledAt: new Date(data.scheduledAt).toISOString() },
+      };
+    }
     case "lab": {
       const data = validateData(LabDataDto, input.data);
       if (
@@ -134,12 +199,14 @@ class ClinicalVersionDto extends ClinicalContentDto {
   @instant() readonly recordedAt!: string;
 }
 export class StaffClinicalDto extends ClinicalVersionDto {
+  @shape(staffModels) readonly data!: object;
   @uuid() readonly encounterId!: string;
   @ApiProperty({ type: "string", nullable: true }) readonly changeReason!: string | null;
   @ApiProperty({ type: AuthorDto }) readonly author!: AuthorDto;
   @ApiProperty({ type: SharingDto }) readonly sharing!: SharingDto;
 }
 export class OwnerClinicalDto extends ClinicalVersionDto {
+  @shape(ownerModels) readonly data!: object;
   @uuid() readonly clinicId!: string;
   @ApiProperty() readonly clinicName!: string;
   @ApiProperty() readonly organizationName!: string;

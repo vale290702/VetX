@@ -7,6 +7,7 @@ import { useRef, useState, useTransition, type FormEvent, type ReactNode } from 
 import { localInput } from "../care/time.ts";
 import { buildRevision, kinds, limits, recordFields, type Edit, type Kind } from "./forms.ts";
 import { clinicalMessages, clinicalError } from "./messages.ts";
+import { isWorkflow, type WorkflowAction } from "./workflows.ts";
 import type { ClinicalRecord } from "./api.ts";
 type Context = { locale: Locale; csrf: string; endpoint: string };
 type Submission = { url: string; body: string };
@@ -21,10 +22,20 @@ function SaveForm({
   label,
   children,
   afterSave,
+  admission = false,
 }: {
   context: Context;
   build: (form: FormData) => Submission | null;
-  label: "save" | "order" | "saveVersion" | "reviewConfirm" | "saveAccess";
+  label:
+    | "save"
+    | "order"
+    | "saveVersion"
+    | "reviewConfirm"
+    | "saveAccess"
+    | "admit"
+    | "planSurgery"
+    | WorkflowAction;
+  admission?: boolean;
   children: ReactNode;
   afterSave?: () => void;
 }) {
@@ -88,7 +99,15 @@ function SaveForm({
       </fieldset>
       {status !== undefined && (
         <p role={status === 204 ? "status" : "alert"} className="directory-notice">
-          {t(status === 204 ? "saved" : uncertain ? "uncertain" : clinicalError(status))}
+          {t(
+            status === 204
+              ? "saved"
+              : uncertain
+                ? "uncertain"
+                : status === 409 && admission
+                  ? "admissionConflict"
+                  : clinicalError(status),
+          )}
         </p>
       )}
       {uncertain && (
@@ -105,6 +124,20 @@ function SaveForm({
   );
 }
 
+const newRecordLabels = {
+  diagnosis: "save",
+  treatment: "save",
+  vaccination: "save",
+  lab: "order",
+  hospitalization: "admit",
+  surgery: "planSurgery",
+} as const satisfies Record<Kind, string>;
+function buttonLabel(kind: Kind, edit: Edit) {
+  if (edit === "new") return newRecordLabels[kind];
+  if (edit === "review") return "reviewConfirm";
+  if (edit === "result" || edit === "correct") return "saveVersion";
+  return edit;
+}
 type EncounterChoice = { id: string; label: string };
 export function EditRecord({
   context,
@@ -123,7 +156,12 @@ export function EditRecord({
 }) {
   const t = clinicalMessages(context.locale);
   const [selected, setSelected] = useState<Kind>(current?.kind ?? "diagnosis");
-  const fields = recordFields(selected, edit);
+  const fields = recordFields(selected, edit, current?.data.status);
+  const workflow = isWorkflow(selected);
+  const stageDate =
+    workflow && current && edit !== "amend" && Date.parse(now) > Date.parse(current.occurredAt)
+      ? now
+      : (current?.occurredAt ?? now);
   function build(form: FormData) {
     const body = buildRevision(selected, edit, form, zone, current);
     if (!body) return null;
@@ -136,15 +174,8 @@ export function EditRecord({
   return (
     <SaveForm
       context={context}
-      label={
-        edit === "review"
-          ? "reviewConfirm"
-          : edit === "new"
-            ? selected === "lab"
-              ? "order"
-              : "save"
-            : "saveVersion"
-      }
+      label={buttonLabel(selected, edit)}
+      admission={selected === "hospitalization" && edit === "new"}
       build={build}
       afterSave={() => setSelected(current?.kind ?? "diagnosis")}
     >
@@ -177,21 +208,40 @@ export function EditRecord({
       )}
       {edit !== "review" && (
         <>
-          <label>
-            {t("occurredAt", { zone })}
-            <input
-              required
-              name="occurredAt"
-              type="datetime-local"
-              step="any"
-              defaultValue={localInput(current?.occurredAt ?? now, zone, !!current)}
-            />
-          </label>
+          {edit !== "amend" && (
+            <label>
+              {t("occurredAt", { zone })}
+              <input
+                required
+                name="occurredAt"
+                type="datetime-local"
+                step="any"
+                defaultValue={localInput(stageDate, zone, !!current)}
+              />
+            </label>
+          )}
+          {workflow &&
+            (edit === "new" ||
+              edit === "progress" ||
+              edit === "startSurgery" ||
+              edit === "reschedule") && (
+              <p>{t(selected === "hospitalization" ? "activeStayHint" : "activeSurgeryHint")}</p>
+            )}
           {fields.map((field, i) => {
-            const required = i === 0 || field === "result";
+            const required = workflow
+              ? field !== "notes" && field !== "location"
+              : i === 0 || field === "result";
+            const previous =
+              field === "note" && (edit === "progress" || edit === "discharge")
+                ? ""
+                : (current?.data[field] ?? "");
             return (
-              <label key={field}>
-                {t(field)}
+              <label key={selected + "/" + field}>
+                {field === "scheduledAt"
+                  ? t("scheduledAt", { zone })
+                  : field === "notes" && selected === "surgery"
+                    ? t("surgicalNotes")
+                    : t(field)}
                 {!required && " (" + t("requiredHint") + ")"}
                 {limits[field] === 8000 ? (
                   <textarea
@@ -199,7 +249,15 @@ export function EditRecord({
                     rows={3}
                     maxLength={limits[field]}
                     required={required}
-                    defaultValue={current?.data[field] ?? ""}
+                    defaultValue={previous}
+                  />
+                ) : field === "scheduledAt" ? (
+                  <input
+                    type="datetime-local"
+                    name={field}
+                    step="any"
+                    required
+                    defaultValue={previous ? localInput(previous, zone, true) : ""}
                   />
                 ) : (
                   <input
@@ -207,9 +265,10 @@ export function EditRecord({
                     type={field === "nextDueDate" ? "date" : "text"}
                     maxLength={limits[field]}
                     required={required}
-                    defaultValue={current?.data[field] ?? ""}
+                    defaultValue={previous}
                   />
                 )}
+                {field === "summary" && <small>{t("summaryHint")}</small>}
               </label>
             );
           })}
@@ -217,7 +276,15 @@ export function EditRecord({
       )}
       {current && (
         <>
-          <p>{t(edit === "review" ? "reviewHint" : "correctionHint")}</p>
+          <p>
+            {t(
+              edit === "review"
+                ? "reviewHint"
+                : workflow && edit !== "amend"
+                  ? "stageHint"
+                  : "correctionHint",
+            )}
+          </p>
           <label>
             {t("changeReason")}
             <input type="text" name="changeReason" required maxLength={500} />
@@ -265,6 +332,7 @@ export function ReleaseForm({
           </label>
         ))}
       </fieldset>
+      {isWorkflow(record.kind) && <p>{t("summaryRelease")}</p>}
       <small>{t("sharingHint")}</small>
     </SaveForm>
   );

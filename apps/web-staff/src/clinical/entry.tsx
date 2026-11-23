@@ -4,7 +4,8 @@ import { displayTime } from "../care/time.ts";
 import { Link } from "../i18n/routing";
 import type { ClinicalRecord } from "./api.ts";
 import { EditRecord, ReleaseForm } from "./edit";
-import { recordFields } from "./forms.ts";
+import { chartFields, type Edit } from "./forms.ts";
+import { isWorkflow, terminalStatus, workflowActions, type WorkflowAction } from "./workflows.ts";
 import { clinicalMessages } from "./messages.ts";
 type Props = {
   record: ClinicalRecord;
@@ -37,16 +38,17 @@ export function ClinicalEntry({
     review = editableLab && status === "RESULTED";
   const context = current && { locale, csrf: current.csrf, endpoint: current.endpoint };
   const editor = (
-    edit: "correct" | "result" | "review",
-    label: "correct" | "orderCorrection" | "enterResult" | "correctResult" | "review",
+    edit: Exclude<Edit, "new">,
+    label:
+      "correct" | "orderCorrection" | "enterResult" | "correctResult" | "review" | WorkflowAction,
   ) =>
     context && (
-      <details className="directory-disclosure">
+      <details key={edit} className="directory-disclosure">
         <summary>{t(label)}</summary>
         <EditRecord
           context={context}
           zone={timeZone}
-          now={record.occurredAt}
+          now={isWorkflow(kind) ? new Date().toISOString() : record.occurredAt}
           current={record}
           edit={edit}
         />
@@ -63,18 +65,26 @@ export function ClinicalEntry({
         {status && " · " + t(status)}
       </h3>
       <dl className="soap-note">
-        {recordFields(kind, "review").map(
+        {chartFields(kind).map(
           (field) =>
             record.data[field] && (
               <div key={field}>
-                <dt>{t(field)}</dt>
+                <dt>
+                  {field === "scheduledAt"
+                    ? t("scheduledAt", { zone: timeZone })
+                    : field === "notes" && kind === "surgery"
+                      ? t("surgicalNotes")
+                      : t(field)}
+                </dt>
                 <dd>
                   {field === "nextDueDate"
                     ? new Intl.DateTimeFormat(locale, {
                         dateStyle: "medium",
                         timeZone: "UTC",
                       }).format(new Date(record.data[field] + "T12:00:00Z"))
-                    : record.data[field]}
+                    : field === "scheduledAt"
+                      ? stamp(record.data[field])
+                      : record.data[field]}
                 </dd>
               </div>
             ),
@@ -124,7 +134,9 @@ export function ClinicalEntry({
           <Link className="directory-back" href={current.historyUrl}>
             {t("openHistory")}
           </Link>
-          {kind !== "lab" ? (
+          {isWorkflow(kind) ? (
+            workflowActions(kind, status).map((action) => editor(action, action))
+          ) : kind !== "lab" ? (
             editor("correct", "correct")
           ) : (
             <>
@@ -133,7 +145,9 @@ export function ClinicalEntry({
               {review && editor("review", "review")}
             </>
           )}
-          {kind === "lab" && status !== "REVIEWED" ? (
+          {isWorkflow(kind) && !terminalStatus(status) ? (
+            <p>{t("privateStage")}</p>
+          ) : kind === "lab" && status !== "REVIEWED" ? (
             <p>{t("labPrivate")}</p>
           ) : (
             <>
@@ -141,7 +155,7 @@ export function ClinicalEntry({
                 {!linked
                   ? t("staleGuardians")
                   : record.sharing.guardianIds.length
-                    ? t("released", {
+                    ? t(isWorkflow(kind) ? "releasedSummary" : "released", {
                         names: linked
                           .filter((g) => record.sharing.guardianIds.includes(g.id))
                           .map((g) => g.name)

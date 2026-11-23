@@ -1,6 +1,6 @@
 import type { EncounterSharing } from "./care.js";
 
-export type ClinicalData =
+type GeneralClinicalData =
   | { kind: "diagnosis"; data: { diagnosis: string; code?: string } }
   | { kind: "treatment"; data: { treatment: string; notes?: string } }
   | { kind: "vaccination"; data: { vaccine: string; lotNumber?: string; nextDueDate?: string } }
@@ -15,6 +15,30 @@ export type ClinicalData =
         referenceRange?: string;
       };
     };
+export interface HospitalizationData {
+  status: "ADMITTED" | "PROGRESS" | "DISCHARGED";
+  ward: string;
+  location?: string;
+  note: string;
+  summary?: string;
+}
+export interface SurgeryData {
+  status: "PLANNED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
+  procedure: string;
+  scheduledAt: string;
+  notes?: string;
+  performedProcedure?: string;
+  recoveryNotes?: string;
+  summary?: string;
+}
+export type ClinicalData =
+  | GeneralClinicalData
+  | { kind: "hospitalization"; data: HospitalizationData }
+  | { kind: "surgery"; data: SurgeryData };
+export type OwnerClinicalData =
+  | GeneralClinicalData
+  | { kind: "hospitalization"; data: { status: "DISCHARGED"; summary: string } }
+  | { kind: "surgery"; data: { status: "COMPLETED" | "CANCELLED"; summary: string } };
 export type ClinicalWrite = ClinicalData & {
   encounterId: string;
   occurredAt: string;
@@ -37,7 +61,7 @@ export type StaffClinical = ClinicalVersion &
     sharing: EncounterSharing;
   };
 export type OwnerClinical = ClinicalVersion &
-  ClinicalData & { clinicId: string; clinicName: string; organizationName: string };
+  OwnerClinicalData & { clinicId: string; clinicName: string; organizationName: string };
 export interface ClinicalPage<T> {
   records: T[];
   page: number;

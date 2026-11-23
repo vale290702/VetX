@@ -14016,6 +14016,122 @@
           "status"
         ]
       },
+      "HospitalizationDataDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "ADMITTED",
+              "PROGRESS",
+              "DISCHARGED"
+            ]
+          },
+          "ward": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "location": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 8000
+          },
+          "summary": {
+            "type": "string",
+            "maxLength": 8000
+          }
+        },
+        "required": [
+          "status",
+          "ward",
+          "note"
+        ]
+      },
+      "SurgeryDataDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "PLANNED",
+              "IN_PROGRESS",
+              "COMPLETED",
+              "CANCELLED"
+            ]
+          },
+          "procedure": {
+            "type": "string",
+            "maxLength": 250
+          },
+          "scheduledAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "notes": {
+            "type": "string",
+            "maxLength": 8000
+          },
+          "performedProcedure": {
+            "type": "string",
+            "maxLength": 250
+          },
+          "recoveryNotes": {
+            "type": "string",
+            "maxLength": 8000
+          },
+          "summary": {
+            "type": "string",
+            "maxLength": 8000
+          }
+        },
+        "required": [
+          "status",
+          "procedure",
+          "scheduledAt"
+        ]
+      },
+      "DischargeSummaryDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "DISCHARGED"
+            ]
+          },
+          "summary": {
+            "type": "string",
+            "maxLength": 8000
+          }
+        },
+        "required": [
+          "status",
+          "summary"
+        ]
+      },
+      "SurgerySummaryDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "COMPLETED",
+              "CANCELLED"
+            ]
+          },
+          "summary": {
+            "type": "string",
+            "maxLength": 8000
+          }
+        },
+        "required": [
+          "status",
+          "summary"
+        ]
+      },
       "AuthorDto": {
         "type": "object",
         "properties": {
@@ -14040,23 +14156,9 @@
               "diagnosis",
               "treatment",
               "vaccination",
-              "lab"
-            ]
-          },
-          "data": {
-            "oneOf": [
-              {
-                "$ref": "#/components/schemas/DiagnosisDataDto"
-              },
-              {
-                "$ref": "#/components/schemas/TreatmentDataDto"
-              },
-              {
-                "$ref": "#/components/schemas/VaccinationDataDto"
-              },
-              {
-                "$ref": "#/components/schemas/LabDataDto"
-              }
+              "lab",
+              "hospitalization",
+              "surgery"
             ]
           },
           "occurredAt": {
@@ -14082,6 +14184,28 @@
             "type": "string",
             "format": "date-time"
           },
+          "data": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/DiagnosisDataDto"
+              },
+              {
+                "$ref": "#/components/schemas/TreatmentDataDto"
+              },
+              {
+                "$ref": "#/components/schemas/VaccinationDataDto"
+              },
+              {
+                "$ref": "#/components/schemas/LabDataDto"
+              },
+              {
+                "$ref": "#/components/schemas/HospitalizationDataDto"
+              },
+              {
+                "$ref": "#/components/schemas/SurgeryDataDto"
+              }
+            ]
+          },
           "encounterId": {
             "type": "string",
             "format": "uuid"
@@ -14099,13 +14223,13 @@
         },
         "required": [
           "kind",
-          "data",
           "occurredAt",
           "id",
           "revisionId",
           "patientId",
           "revision",
           "recordedAt",
+          "data",
           "encounterId",
           "changeReason",
           "author",
@@ -14144,8 +14268,14 @@
               "diagnosis",
               "treatment",
               "vaccination",
-              "lab"
+              "lab",
+              "hospitalization",
+              "surgery"
             ]
+          },
+          "occurredAt": {
+            "type": "string",
+            "format": "date-time"
           },
           "data": {
             "oneOf": [
@@ -14160,12 +14290,14 @@
               },
               {
                 "$ref": "#/components/schemas/LabDataDto"
+              },
+              {
+                "$ref": "#/components/schemas/HospitalizationDataDto"
+              },
+              {
+                "$ref": "#/components/schemas/SurgeryDataDto"
               }
             ]
-          },
-          "occurredAt": {
-            "type": "string",
-            "format": "date-time"
           },
           "encounterId": {
             "type": "string",
@@ -14182,8 +14314,8 @@
         },
         "required": [
           "kind",
-          "data",
           "occurredAt",
+          "data",
           "encounterId",
           "revision"
         ]
@@ -14223,23 +14355,9 @@
               "diagnosis",
               "treatment",
               "vaccination",
-              "lab"
-            ]
-          },
-          "data": {
-            "oneOf": [
-              {
-                "$ref": "#/components/schemas/DiagnosisDataDto"
-              },
-              {
-                "$ref": "#/components/schemas/TreatmentDataDto"
-              },
-              {
-                "$ref": "#/components/schemas/VaccinationDataDto"
-              },
-              {
-                "$ref": "#/components/schemas/LabDataDto"
-              }
+              "lab",
+              "hospitalization",
+              "surgery"
             ]
           },
           "occurredAt": {
@@ -14265,6 +14383,28 @@
             "type": "string",
             "format": "date-time"
           },
+          "data": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/DiagnosisDataDto"
+              },
+              {
+                "$ref": "#/components/schemas/TreatmentDataDto"
+              },
+              {
+                "$ref": "#/components/schemas/VaccinationDataDto"
+              },
+              {
+                "$ref": "#/components/schemas/LabDataDto"
+              },
+              {
+                "$ref": "#/components/schemas/DischargeSummaryDto"
+              },
+              {
+                "$ref": "#/components/schemas/SurgerySummaryDto"
+              }
+            ]
+          },
           "clinicId": {
             "type": "string",
             "format": "uuid"
@@ -14278,13 +14418,13 @@
         },
         "required": [
           "kind",
-          "data",
           "occurredAt",
           "id",
           "revisionId",
           "patientId",
           "revision",
           "recordedAt",
+          "data",
           "clinicId",
           "clinicName",
           "organizationName"
