@@ -11,6 +11,10 @@ import type { ClinicalRecord } from "./api.ts";
 type Context = { locale: Locale; csrf: string; endpoint: string };
 type Submission = { url: string; body: string };
 
+function uncertainResponse(status: number | undefined) {
+  return status === 408 || (status !== undefined && status >= 500);
+}
+
 function SaveForm({
   context,
   build,
@@ -30,7 +34,7 @@ function SaveForm({
     [busy, start] = useTransition();
   const submission = useRef<Submission | null>(null),
     inFlight = useRef(false);
-  const uncertain = (status ?? 0) >= 500;
+  const uncertain = uncertainResponse(status);
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (busy || inFlight.current) return;
@@ -60,7 +64,7 @@ function SaveForm({
       }
       setStatus(status);
       inFlight.current = false;
-      if (status < 500) submission.current = null;
+      if (!uncertainResponse(status)) submission.current = null;
       if (status === 204) {
         form.reset();
         afterSave?.();

@@ -103,7 +103,7 @@ test("staff chart typed records, review a lab result and release only its curren
         firstUrl = route.request().url();
         firstBody = route.request().postData()!;
         expect((await route.fetch()).status()).toBe(204);
-        await route.fulfill({ status: 503, body: "" });
+        await route.fulfill({ status: 408, body: "" });
       },
       { times: 1 },
     );
