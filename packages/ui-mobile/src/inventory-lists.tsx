@@ -12,12 +12,14 @@ export function StockRows<T>({
   render,
   rowKey,
   empty,
+  refreshLabel,
 }: {
   styles: AccessStyles;
   load: (page: number) => Promise<{ rows: T[]; hasNextPage: boolean }>;
   render: (row: T) => ReactNode;
   rowKey: (row: T) => string;
   empty: string;
+  refreshLabel?: string;
 }) {
   const { t } = useTranslation(),
     [page, setPage] = useState(1);
@@ -27,7 +29,11 @@ export function StockRows<T>({
     return <PatientReadState styles={styles} error={result?.error} retry={reload} />;
   return (
     <View style={styles.section}>
-      <Action styles={styles} label={t("nativeInventory.refresh")} onPress={reload} />
+      <Action
+        styles={styles}
+        label={refreshLabel ?? t("nativeInventory.refresh")}
+        onPress={reload}
+      />
       {!result.value.rows.length && <Text style={styles.support}>{empty}</Text>}
       {result.value.rows.map((r) => (
         <View key={rowKey(r)} style={styles.row}>
