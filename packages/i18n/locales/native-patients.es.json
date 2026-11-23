@@ -1,4 +1,5 @@
 {
+  "billingUnavailable": "La facturación no está disponible. Inténtalo de nuevo más tarde.",
   "patients": "Pacientes",
   "patientsIn": "Pacientes de {clinic}",
   "backClinics": "Volver a las clínicas",
