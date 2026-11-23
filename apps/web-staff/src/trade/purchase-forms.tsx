@@ -140,10 +140,11 @@ function PurchaseLines(
               initial={props.catalog}
               name={"item" + id}
               unitName={"unit" + id}
+              quantityName={"quantity" + id}
               label={t("item")}
             />
           )}
-          <Quantity ctx={ctx} name={"quantity" + id} />
+          {receipt && <Quantity ctx={ctx} name={"quantity" + id} />}
           {rows.length > 1 && (
             <Button type="button" onClick={() => setRows((r) => r.filter((n) => n !== id))}>
               {t("remove", { n: index + 1 })}

@@ -178,7 +178,7 @@ test("an administrator maintains stock and assigned staff can retry, transfer an
     await expect(edit.getByLabel("Base unit")).toHaveAttribute("readonly", "");
     await expect(
       edit.getByText(
-        "The base unit is fixed because this item has a movement, purchase order, or prescription.",
+        "A purchase order, signed prescription, or stock movement has fixed this item’s base unit.",
       ),
     ).toBeVisible();
   } finally {

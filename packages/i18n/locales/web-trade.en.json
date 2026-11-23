@@ -82,5 +82,6 @@
   "date": "Recorded",
   "needAccess": "This clinic has not granted you prescribing or dispensing permission.",
   "receivedLine": "Original receipt line",
-  "remainingHelp": "The return uses this receipt line’s warehouse and lot."
+  "remainingHelp": "The return uses this receipt line’s warehouse and lot.",
+  "reviewUnit": "The catalog changed. Select the item again and enter the quantity in its current base unit."
 }

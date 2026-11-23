@@ -559,8 +559,22 @@ test(
             ),
             false,
           );
+          const untouched = randomUUID();
+          await db.saveStockItem(admin, org, clinic, untouched, {
+            ...product,
+            sku: "DRAFT-UNUSED",
+          });
+          const projectedLocks = async () => {
+            const { items } = await db.listStockItems(pharmacist, org, clinic, "DRAFT-", 1);
+            return [purchaseItem, prescriptionItem, untouched].map(
+              (id) => items.find((row) => row.id === id)?.unitLocked,
+            );
+          };
+          assert.deepEqual(await projectedLocks(), [false, false, false]);
           const savedOrder = await orderDraft("vials"),
             savedRx = await rxDraft("vials");
+          // These items have an order or signed prescription and no ledger movement.
+          assert.deepEqual(await projectedLocks(), [true, true, false]);
           assert.equal(savedOrder.lines[1]!.unit, "vials");
           assert.equal("expectedUnit" in savedOrder.lines[1]!, false);
           assert.equal(savedRx.unit, "vials");

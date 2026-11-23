@@ -80,7 +80,6 @@ export function Prescribe({
           {t("directions")}
           <textarea name="instructions" required maxLength={8000} rows={4} />
         </label>
-        <Quantity ctx={ctx} />
       </Write>
     </Disclosure>
   );

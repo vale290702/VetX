@@ -71,7 +71,7 @@ test("clinic purchases, supplier returns and prescription dispensing honor separ
     await put(scope + "/inventory/items/" + item, {
       name: "Clinic supply",
       sku: "CS-1",
-      unit: "pack",
+      unit: "box",
       revision: 0,
     });
     await put(record, { name: "Luna", species: "Gato", birthDate: null, revision: 0 });
@@ -112,8 +112,28 @@ test("clinic purchases, supplier returns and prescription dispensing honor separ
     await order
       .getByRole("combobox", { name: "Supplier", exact: true })
       .selectOption({ label: "Río Supplies" });
-    await order.getByLabel("Stock item and base unit").selectOption(item);
-    await order.getByLabel("Quantity in base units").fill("5");
+    const selectItem = order.getByLabel("Stock item and base unit");
+    const quantity = order.getByRole("textbox", { name: /Quantity/ });
+    await selectItem.selectOption(item);
+    await quantity.fill("8");
+    await put(scope + "/inventory/items/" + item, {
+      name: "Clinic supply",
+      sku: "CS-1",
+      unit: "pack",
+      revision: 1,
+    });
+    await page.getByRole("button", { name: "Refresh", exact: true }).click();
+    await expect(selectItem).toHaveValue("");
+    await expect(quantity).toHaveValue("");
+    await expect(quantity).toBeDisabled();
+    await expect(order.locator('input[name="unit0"]')).toHaveValue("");
+    await expect(
+      selectItem.getByRole("option", { name: "Clinic supply · CS-1 · pack" }),
+    ).toHaveCount(1);
+    await selectItem.selectOption(item);
+    await expect(order.locator('input[name="unit0"]')).toHaveValue("pack");
+    await expect(quantity).toBeEmpty();
+    await quantity.fill("5");
     await order.getByRole("button", { name: "Create purchase order", exact: true }).click();
     await expect(page.getByRole("heading", { name: "Río Supplies · Open" })).toBeVisible();
     await page.locator("summary").filter({ hasText: "Receive delivery" }).click();
@@ -180,7 +200,7 @@ test("clinic purchases, supplier returns and prescription dispensing honor separ
     await rx.getByLabel("Stock item and base unit").selectOption(item);
     await rx.getByLabel("Medication", { exact: true }).fill("Clinic product");
     await rx.getByLabel("Prescriber’s directions").fill("Directions entered by the prescriber.");
-    await rx.getByLabel("Quantity in base units").fill("2");
+    await rx.getByRole("textbox", { name: /Quantity/ }).fill("2");
     await rx.getByRole("button", { name: "Write prescription" }).click();
     await expect(page.getByRole("heading", { name: "Clinic product" })).toBeVisible();
     expect(await ownerList()).toEqual([]);

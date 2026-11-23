@@ -137,6 +137,14 @@ END
 $$;
 CREATE TRIGGER preserve_order_unit BEFORE UPDATE OF unit ON public.inventory_items FOR EACH ROW WHEN(OLD.unit IS DISTINCT FROM NEW.unit) EXECUTE FUNCTION vetx_trade.keep_unit();
 
+CREATE OR REPLACE FUNCTION vetx_stock.item(i public.inventory_items) RETURNS jsonb LANGUAGE sql STABLE SET search_path=pg_catalog,pg_temp AS $$
+ SELECT jsonb_build_object('id',i.id,'name',i.name,'sku',i.sku,'unit',i.unit,'revision',i.revision,
+   'unitLocked',
+     EXISTS(SELECT FROM public.stock_movements m WHERE (m.organization_id,m.clinic_id,m.item_id)=(i.organization_id,i.clinic_id,i.id)) OR
+     EXISTS(SELECT FROM public.purchase_lines l WHERE (l.organization_id,l.clinic_id,l.item_id)=(i.organization_id,i.clinic_id,i.id)) OR
+     EXISTS(SELECT FROM public.patient_prescriptions p WHERE (p.organization_id,p.clinic_id,p.item_id)=(i.organization_id,i.clinic_id,i.id)))
+$$;
+
 CREATE FUNCTION vetx_trade.amount(input text) RETURNS numeric LANGUAGE sql IMMUTABLE SET search_path=pg_catalog,pg_temp AS $$
  SELECT CASE WHEN input ~ '^(0|[1-9][0-9]{0,14})([.][0-9]{1,3})?$' THEN nullif(input::numeric(18,3),0) END
 $$;

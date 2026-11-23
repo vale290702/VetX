@@ -37,7 +37,8 @@ export function Write({
     key = useRef<string | null>(null),
     [pending, start] = useTransition(),
     [retry, setRetry] = useState<string | null>(null),
-    [status, setStatus] = useState<number>();
+    [status, setStatus] = useState<number>(),
+    [draftVersion, setDraftVersion] = useState(0);
   function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (pending) return;
@@ -75,6 +76,7 @@ export function Write({
         key.current = null;
         if (!id) {
           form.reset();
+          setDraftVersion((previous) => previous + 1);
           onSaved?.();
         }
         router.refresh();
@@ -91,7 +93,7 @@ export function Write({
         if (!retry) setStatus(undefined);
       }}
     >
-      <fieldset className="directory-form" disabled={pending || retry !== null}>
+      <fieldset key={draftVersion} className="directory-form" disabled={pending || retry !== null}>
         {children}
       </fieldset>
       <Button type="submit" variant="selected" disabled={pending}>
@@ -112,6 +114,7 @@ export function Picker({
   name,
   label,
   unitName,
+  quantityName,
 }: {
   ctx: Context;
   kind: ChoiceKind;
@@ -119,16 +122,20 @@ export function Picker({
   name: string;
   label: string;
   unitName?: string;
+  quantityName?: string;
 }) {
   const t = tradeMessages(ctx.locale),
     [extra, setExtra] = useState<{ first: Choices; all: Choices }>(),
     [pending, start] = useTransition(),
     [status, setStatus] = useState<number>(),
-    [chosen, setChosen] = useState<Choice>();
+    [chosen, setChosen] = useState<Choice>(),
+    [reviewUnit, setReviewUnit] = useState(false);
   const list = extra?.first === initial ? extra.all : initial;
-  const visible = chosen
-    ? [...new Map([...list.options, chosen].map((o) => [o.id, o])).values()]
-    : list.options;
+  const current = chosen && list.options.find((option) => option.id === chosen.id);
+  if (chosen && (!current || (unitName && current.unit !== chosen.unit))) {
+    setChosen(undefined);
+    if (unitName) setReviewUnit(true);
+  }
   function more() {
     start(async () => {
       try {
@@ -163,20 +170,35 @@ export function Picker({
         <select
           name={name}
           required
-          defaultValue=""
-          onChange={(e) => setChosen(list.options.find((o) => o.id === e.target.value))}
+          value={chosen?.id ?? ""}
+          onChange={(event) => {
+            setChosen(list.options.find((option) => option.id === event.currentTarget.value));
+            setReviewUnit(false);
+          }}
         >
           <option disabled value="">
             {t("select")}
           </option>
-          {visible.map((o) => (
+          {list.options.map((o) => (
             <option key={o.id} value={o.id}>
               {o.label}
             </option>
           ))}
         </select>
       </label>
-      {unitName && <input name={unitName} type="hidden" value={chosen?.unit ?? ""} />}
+      {unitName && (
+        <>
+          {reviewUnit && <p role="alert">{t("reviewUnit")}</p>}
+          <input name={unitName} type="hidden" value={current?.unit ?? ""} />
+          <Quantity
+            key={JSON.stringify([current?.id, current?.unit])}
+            ctx={ctx}
+            unit={current?.unit}
+            name={quantityName}
+            disabled={!current}
+          />
+        </>
+      )}
       {list.hasNextPage && (
         <Button type="button" onClick={more} disabled={pending}>
           {t("more")}
@@ -190,16 +212,18 @@ export function Quantity({
   ctx,
   name = "quantity",
   unit,
+  disabled = false,
 }: {
   ctx: Context;
   name?: string;
   unit?: string;
+  disabled?: boolean;
 }) {
   const t = tradeMessages(ctx.locale);
   return (
     <label>
       {unit ? t("quantity") + " (" + unit + ")" : t("total")}
-      <input name={name} inputMode="decimal" maxLength={19} required />
+      <input name={name} inputMode="decimal" maxLength={19} required disabled={disabled} />
     </label>
   );
 }

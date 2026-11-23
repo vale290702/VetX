@@ -82,5 +82,6 @@
   "date": "Fecha de registro",
   "needAccess": "Esta clínica no le ha concedido permiso para prescribir ni dispensar.",
   "receivedLine": "Línea de recepción original",
-  "remainingHelp": "La devolución usa la bodega y el lote de esta línea de recepción."
+  "remainingHelp": "La devolución usa la bodega y el lote de esta línea de recepción.",
+  "reviewUnit": "El catálogo cambió. Seleccione de nuevo el artículo e introduzca la cantidad en su unidad base actual."
 }
