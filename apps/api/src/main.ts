@@ -1,4 +1,5 @@
 import { ConsoleLogger } from "@nestjs/common";
+import { ExchangeKeyDirectory } from "./exchange/keyring.js";
 import { S3Client } from "@aws-sdk/client-s3";
 import { S3DocumentStorage } from "./documents/storage.js";
 import { KeycloakTokenVerifier } from "@vetx/auth";
@@ -6,6 +7,7 @@ import {
   ConfigurationError,
   loadApiConfig,
   loadDocumentConfig,
+  loadExchangeConfig,
   loadOidcConfig,
   loadPetLinkConfig,
 } from "@vetx/config";
@@ -17,6 +19,7 @@ async function main(): Promise<void> {
   const logger = new ConsoleLogger({ json: true });
   const oidc = loadOidcConfig();
   const database = new PrismaDatabase(config.databaseUrl);
+  const settings = loadExchangeConfig();
   const files = loadDocumentConfig();
   const storage =
     files &&
@@ -33,6 +36,11 @@ async function main(): Promise<void> {
     database,
     directory: database,
     registry: database,
+    exchange: {
+      database,
+      ...(files && storage ? { storage, documentMaxBytes: files.maxBytes } : {}),
+      ...(settings ? { settings, keys: ExchangeKeyDirectory.read(settings.keyDirectoryPath) } : {}),
+    },
     documents: { database, ...(files && storage ? { config: files, storage } : {}) },
     care: database,
     petLinks: loadPetLinkConfig(),

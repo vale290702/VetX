@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { Action, Field } from "./controls";
 import { PatientReadState, usePatientRead } from "./patient-controls";
 import { PatientForm, type ClinicPatientProps } from "./patient-form";
+import { StaffExchange } from "./staff-exchange";
 import { Appointments } from "./appointments";
 import { PatientDetail } from "./patient-detail";
 
@@ -24,7 +25,7 @@ export function ClinicPatients({
   const [filter, setFilter] = useState("");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
-  const [calendar, setCalendar] = useState(false);
+  const [clinicScreen, setClinicScreen] = useState<"calendar" | "import">();
   const [selected, setSelected] = useState<{ id: string; create?: boolean }>();
   const scope = useMemo(
     () => ({ subject: account.subject, organizationId, clinicId: clinic.id }),
@@ -37,13 +38,29 @@ export function ClinicPatients({
     setSelected(undefined);
     reload();
   }
-  if (calendar)
+  if (clinicScreen === "import")
     return (
       <View style={styles.section}>
         <Text accessibilityRole="header" style={styles.heading}>
           {clinic.name}
         </Text>
-        <Appointments {...props} back={() => setCalendar(false)} />
+        <StaffExchange
+          {...props}
+          back={() => setClinicScreen(undefined)}
+          openPatient={(id) => {
+            setClinicScreen(undefined);
+            setSelected({ id });
+          }}
+        />
+      </View>
+    );
+  if (clinicScreen === "calendar")
+    return (
+      <View style={styles.section}>
+        <Text accessibilityRole="header" style={styles.heading}>
+          {clinic.name}
+        </Text>
+        <Appointments {...props} back={() => setClinicScreen(undefined)} />
       </View>
     );
   if (selected)
@@ -68,8 +85,13 @@ export function ClinicPatients({
         <Action styles={styles} label={t("nativePatients.backClinics")} onPress={back} />
         <Action
           styles={styles}
+          label={t("nativeExchange.import")}
+          onPress={() => setClinicScreen("import")}
+        />
+        <Action
+          styles={styles}
           label={t("nativeCare.calendar")}
-          onPress={() => setCalendar(true)}
+          onPress={() => setClinicScreen("calendar")}
         />
       </View>
       <Text accessibilityRole="header" style={styles.heading}>

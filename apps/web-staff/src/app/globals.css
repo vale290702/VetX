@@ -274,7 +274,7 @@ body {
   font-weight: 600;
 }
 .staff-id input,
-.directory-form input:not([type="hidden"], [type="checkbox"]),
+.directory-form input:not([type="hidden"], [type="checkbox"], [type="radio"]),
 .directory-form select {
   width: 100%;
   min-block-size: var(--vetx-size-touch);
@@ -425,7 +425,7 @@ body {
   gap: var(--vetx-space-inline);
 }
 .registry-trail .directory-back + .directory-back::before {
-  content: "/";
+  content: "/" / "";
   margin-inline-end: var(--vetx-space-inline);
   color: var(--vetx-color-muted);
 }
@@ -555,4 +555,18 @@ body {
   border-radius: var(--vetx-radius-control);
   background: var(--vetx-color-control);
   color: var(--vetx-color-ink);
+}
+
+.exchange-form {
+  max-inline-size: 48rem;
+}
+.exchange-choice small {
+  display: block;
+  font-weight: 400;
+}
+.exchange-data {
+  margin-block: var(--vetx-space-regular);
+}
+.exchange-record dd {
+  white-space: pre-wrap;
 }

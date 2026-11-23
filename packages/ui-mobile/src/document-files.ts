@@ -2,6 +2,7 @@ import { getDocumentAsync } from "expo-document-picker";
 import { Directory, File, Paths } from "expo-file-system";
 import { isAvailableAsync, shareAsync } from "expo-sharing";
 import { Platform } from "react-native";
+import { packageType, packageLimit } from "./exchange-forms";
 import {
   absoluteSizeLimit,
   extensions,
@@ -45,9 +46,23 @@ export function clearOldDocumentFiles() {
   }
 }
 
-export async function pickDocument(): Promise<PickedDocument | undefined> {
+export function pickPackage() {
+  // Unknown file extensions commonly arrive as generic data from Files or Android providers.
+  return pickPrivateFile(["*/*"], packageLimit, (mime, name) =>
+    mime === packageType || /\.vetpkg$/i.test(name) ? packageType : undefined,
+  );
+}
+
+export function pickDocument(): Promise<PickedDocument | undefined> {
+  return pickPrivateFile(Object.keys(extensions), absoluteSizeLimit, recognizedType);
+}
+export async function pickPrivateFile<T extends string>(
+  types: string[],
+  limit: number,
+  identify: (mime: string | undefined, name: string) => T | undefined,
+) {
   const result = await getDocumentAsync({
-    type: Object.keys(extensions),
+    type: types,
     multiple: false,
     copyToCacheDirectory: true,
   });
@@ -56,11 +71,11 @@ export async function pickDocument(): Promise<PickedDocument | undefined> {
   if (!asset) return;
   const file = new File(asset.uri);
   try {
-    if (file.size < 1 || file.size > absoluteSizeLimit) throw new DocumentFileError("fileSize");
-    const mediaType = recognizedType(asset.mimeType, asset.name);
+    if (file.size < 1 || file.size > limit) throw new DocumentFileError("fileSize");
+    const mediaType = identify(asset.mimeType, asset.name);
     if (!mediaType) throw new DocumentFileError("fileType");
     const bytes = await file.bytes();
-    if (!bytes.length || bytes.length > absoluteSizeLimit) throw new DocumentFileError("fileSize");
+    if (!bytes.length || bytes.length > limit) throw new DocumentFileError("fileSize");
     return { name: asset.name, bytes, mediaType };
   } finally {
     // Never delete a source URI returned by the device's document provider.
@@ -74,24 +89,39 @@ export async function openDocument(
   active: () => boolean,
   dialogTitle: string,
 ) {
+  const uti = {
+    "image/png": "public.png",
+    "image/jpeg": "public.jpeg",
+    "application/pdf": "com.adobe.pdf",
+  }[doc.mediaType];
+  return openPrivateFile(
+    { extension: extensions[doc.mediaType], mimeType: doc.mediaType, uti },
+    download,
+    active,
+    dialogTitle,
+  );
+}
+export async function openPrivateFile(
+  format: { extension: string; mimeType: string; uti?: string },
+  download: () => Promise<Uint8Array>,
+  active: () => boolean,
+  dialogTitle: string,
+) {
   if (!(await isAvailableAsync())) throw new DocumentFileError("openUnavailable");
   if (!active()) return;
   const bytes = await download();
   if (!active()) return;
   const dir = sharedDirectory();
   dir.create({ intermediates: true, idempotent: true });
-  const file = new File(dir, "VetX-" + globalThis.expo.uuidv4() + "." + extensions[doc.mediaType]);
+  const file = new File(dir, "VetX-" + globalThis.expo.uuidv4() + "." + format.extension);
   let handedOff = false;
   try {
     file.create();
     file.write(bytes);
-    const uti = {
-      "image/png": "public.png",
-      "image/jpeg": "public.jpeg",
-      "application/pdf": "com.adobe.pdf",
-    }[doc.mediaType];
-    await shareAsync(file.uri, { mimeType: doc.mediaType, UTI: uti, dialogTitle });
+    await shareAsync(file.uri, { mimeType: format.mimeType, UTI: format.uti, dialogTitle });
     handedOff = true;
+  } catch {
+    throw new DocumentFileError("openUnavailable");
   } finally {
     // Android's chooser can resolve before the chosen app reads its one-time content URI.
     if (handedOff && Platform.OS === "android") setTimeout(() => remove(file), handoffLifetime);

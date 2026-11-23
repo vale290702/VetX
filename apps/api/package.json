@@ -21,6 +21,7 @@
     "@vetx/auth": "workspace:*",
     "@vetx/config": "workspace:*",
     "@vetx/database": "workspace:*",
+    "@vetx/exchange": "workspace:*",
     "@vetx/permissions": "workspace:*",
     "class-transformer": "0.5.1",
     "class-validator": "0.15.1",
