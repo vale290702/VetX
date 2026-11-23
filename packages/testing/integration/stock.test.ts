@@ -141,6 +141,11 @@ test(
             revision: 1,
           });
           assert.equal(sameUnit.revision, 2);
+          assert.equal(sameUnit.unitLocked, true);
+          const original = await db.recordStockMovement(staff, org, clinic, request, receipt);
+          assert.equal(original.itemName, product.name);
+          assert.equal(original.toWarehouseName, "Main");
+          assert.equal(original.fromWarehouseName, null);
           assert.deepEqual(
             await db.saveStockItem(admin, org, clinic, item, {
               ...product,

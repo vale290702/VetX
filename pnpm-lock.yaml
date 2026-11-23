@@ -65,6 +65,9 @@ importers:
       '@vetx/database':
         specifier: workspace:*
         version: link:../../packages/database
+      '@vetx/exchange':
+        specifier: workspace:*
+        version: link:../../packages/exchange
       '@vetx/permissions':
         specifier: workspace:*
         version: link:../../packages/permissions
@@ -413,6 +416,9 @@ importers:
       '@vetx/database':
         specifier: workspace:*
         version: link:../database
+      '@vetx/exchange':
+        specifier: workspace:*
+        version: link:../exchange
       pg:
         specifier: ^8.16.3
         version: 8.23.1

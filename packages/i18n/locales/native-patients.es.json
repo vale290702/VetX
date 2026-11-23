@@ -49,5 +49,11 @@
   "tooManyAttempts": "Demasiados intentos. Espera antes de volver a usar un código.",
   "hideCode": "Ocultar código",
   "documentTooLarge": "El archivo supera el límite de carga de la clínica. Elige uno más pequeño.",
-  "overlap": "Este paciente ya tiene una cita en ese horario. Elige otro horario e inténtalo de nuevo."
+  "overlap": "Este paciente ya tiene una cita en ese horario. Elige otro horario e inténtalo de nuevo.",
+  "exchangeUnavailable": "El intercambio clínico no está disponible en esta clínica. Inténtalo más tarde.",
+  "invalidPackage": "No se pudo verificar el paquete. Comprueba la clínica de destino o pide al remitente el paquete original.",
+  "exchangeSize": "El paquete supera el tamaño permitido. Selecciona menos registros o elige un paquete más pequeño.",
+  "handoffUnavailable": "No se pudo abrir el menú del dispositivo para compartir el archivo. Inténtalo de nuevo.",
+  "referralsUnavailable": "Las referencias clínicas no están disponibles en este momento. Inténtalo más tarde.",
+  "inventoryUnavailable": "El inventario de la clínica no está disponible. Inténtalo más tarde."
 }

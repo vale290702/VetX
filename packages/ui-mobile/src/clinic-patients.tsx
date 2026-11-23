@@ -5,18 +5,23 @@ import { useTranslation } from "react-i18next";
 import { Action, Field } from "./controls";
 import { PatientReadState, usePatientRead } from "./patient-controls";
 import { PatientForm, type ClinicPatientProps } from "./patient-form";
+import { ClinicInventory } from "./inventory";
+import { ClinicReferrals } from "./referrals";
+import { StaffExchange } from "./staff-exchange";
 import { Appointments } from "./appointments";
 import { PatientDetail } from "./patient-detail";
 
 export function ClinicPatients({
   account,
   organizationId,
+  admin,
   clinic,
   client,
   styles,
   back,
 }: Omit<ClinicPatientProps, "scope"> & {
   organizationId: string;
+  admin: boolean | undefined;
   clinic: { id: string; name: string };
   back: () => void;
 }) {
@@ -24,7 +29,9 @@ export function ClinicPatients({
   const [filter, setFilter] = useState("");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
-  const [calendar, setCalendar] = useState(false);
+  const [clinicScreen, setClinicScreen] = useState<
+    "calendar" | "import" | "referrals" | "inventory"
+  >();
   const [selected, setSelected] = useState<{ id: string; create?: boolean }>();
   const scope = useMemo(
     () => ({ subject: account.subject, organizationId, clinicId: clinic.id }),
@@ -37,13 +44,47 @@ export function ClinicPatients({
     setSelected(undefined);
     reload();
   }
-  if (calendar)
+  if (clinicScreen === "inventory")
     return (
       <View style={styles.section}>
         <Text accessibilityRole="header" style={styles.heading}>
           {clinic.name}
         </Text>
-        <Appointments {...props} back={() => setCalendar(false)} />
+        <ClinicInventory {...props} admin={admin} back={() => setClinicScreen(undefined)} />
+      </View>
+    );
+  if (clinicScreen === "referrals")
+    return (
+      <View style={styles.section}>
+        <Text accessibilityRole="header" style={styles.heading}>
+          {clinic.name}
+        </Text>
+        <ClinicReferrals {...props} back={() => setClinicScreen(undefined)} />
+      </View>
+    );
+  if (clinicScreen === "import")
+    return (
+      <View style={styles.section}>
+        <Text accessibilityRole="header" style={styles.heading}>
+          {clinic.name}
+        </Text>
+        <StaffExchange
+          {...props}
+          back={() => setClinicScreen(undefined)}
+          openPatient={(id) => {
+            setClinicScreen(undefined);
+            setSelected({ id });
+          }}
+        />
+      </View>
+    );
+  if (clinicScreen === "calendar")
+    return (
+      <View style={styles.section}>
+        <Text accessibilityRole="header" style={styles.heading}>
+          {clinic.name}
+        </Text>
+        <Appointments {...props} back={() => setClinicScreen(undefined)} />
       </View>
     );
   if (selected)
@@ -68,8 +109,23 @@ export function ClinicPatients({
         <Action styles={styles} label={t("nativePatients.backClinics")} onPress={back} />
         <Action
           styles={styles}
+          label={t("nativeInventory.title")}
+          onPress={() => setClinicScreen("inventory")}
+        />
+        <Action
+          styles={styles}
+          label={t("nativeReferrals.inbox")}
+          onPress={() => setClinicScreen("referrals")}
+        />
+        <Action
+          styles={styles}
+          label={t("nativeExchange.import")}
+          onPress={() => setClinicScreen("import")}
+        />
+        <Action
+          styles={styles}
           label={t("nativeCare.calendar")}
-          onPress={() => setCalendar(true)}
+          onPress={() => setClinicScreen("calendar")}
         />
       </View>
       <Text accessibilityRole="header" style={styles.heading}>

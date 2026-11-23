@@ -1,0 +1,35 @@
+.textarea {
+  width: 100%;
+  resize: vertical;
+  padding: var(--vetx-space-inline);
+  color: var(--vetx-color-ink);
+  background: var(--vetx-color-paper);
+  border: var(--vetx-space-hairline) solid var(--vetx-color-muted);
+  border-radius: var(--vetx-radius-control);
+  font: inherit;
+}
+.record {
+  display: grid;
+  gap: var(--vetx-space-regular);
+  min-width: 0;
+}
+.record h3,
+.record h4 {
+  font-weight: 650;
+}
+.narrative {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.queueControls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--vetx-space-inline);
+}
+.directions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--vetx-space-compact);
+}

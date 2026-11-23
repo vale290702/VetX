@@ -4,7 +4,7 @@ import { randomUUID } from "node:crypto";
 import pg from "pg";
 import { createIdentity, setting } from "./identity.js";
 
-export async function createDirectoryFixture() {
+export async function createDirectoryFixture(organizationId: string = randomUUID()) {
   const url = new URL(setting("DATABASE_URL"));
   if (!["127.0.0.1", "localhost"].includes(url.hostname)) {
     throw new Error("Directory fixtures require a local test database");
@@ -13,7 +13,6 @@ export async function createDirectoryFixture() {
   url.password = setting("POSTGRES_PASSWORD");
   const db = new pg.Client({ connectionString: url.href });
   const users: Awaited<ReturnType<typeof createIdentity>>[] = [];
-  const organizationId = randomUUID();
   const organizationName = `VetX ${organizationId}`;
   const issuer = setting("OIDC_ISSUER_URL");
   await db.connect();
@@ -23,7 +22,11 @@ export async function createDirectoryFixture() {
         "SELECT clinic_id,patient_id,id,sha256 FROM medical_documents WHERE organization_id=$1",
         [organizationId],
       );
-      if (documents.rowCount) {
+      const archives = await db.query(
+        "SELECT clinic_id,archive_sha256 FROM exchange_packages WHERE organization_id=$1",
+        [organizationId],
+      );
+      if (documents.rowCount || archives.rowCount) {
         execFileSync(
           process.execPath,
           [
@@ -34,13 +37,38 @@ export async function createDirectoryFixture() {
               ),
             ),
           ],
-          { input: JSON.stringify({ org: organizationId, rows: documents.rows }), timeout: 15000 },
+          {
+            input: JSON.stringify({
+              org: organizationId,
+              rows: documents.rows,
+              archives: archives.rows,
+            }),
+            timeout: 15000,
+          },
         );
       }
       await db.query("BEGIN");
+      const routeFilter = "source_org=$1 OR destination_org=$1";
+      for (const [table, id] of [
+        ["referral_events", "referral_id"],
+        ["referral_responses", "id"],
+        ["referral_requests", "id"],
+      ]) {
+        await db.query(
+          `DELETE FROM ${table} WHERE ${id} IN (SELECT id FROM referral_states WHERE ${routeFilter})`,
+          [organizationId],
+        );
+      }
+      await db.query(`DELETE FROM referral_states WHERE ${routeFilter}`, [organizationId]);
       for (const table of [
         "document_events",
         "medical_documents",
+        "exchange_export_events",
+        "exchange_records",
+        "exchange_imports",
+        "exchange_patients",
+        "exchange_receipts",
+        "exchange_packages",
         "care_events",
         "encounter_recipients",
         "encounter_sharing",
@@ -88,8 +116,11 @@ export async function createDirectoryFixture() {
     await db.query("COMMIT");
     return { admin, staff, organizationId, organizationName, cleanup };
   } catch (error) {
-    await db.query("ROLLBACK");
-    await cleanup();
+    try {
+      await db.query("ROLLBACK");
+    } finally {
+      await Promise.all([db.end(), ...users.map((user) => user.remove())]);
+    }
     throw error;
   }
 }
