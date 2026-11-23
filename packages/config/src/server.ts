@@ -243,3 +243,54 @@ export function loadExchangeConfig(env = environment()): ExchangeConfig | undefi
     maxRecords: positive("VETPKG_MAX_RECORDS", 10000),
   };
 }
+
+export interface OrthancConfig {
+  endpoint: string;
+  username: string;
+  password: string;
+  timeoutMs: number;
+  metadataBytes: number;
+  previewBytes: number;
+}
+export function loadOrthancConfig(env = environment()): OrthancConfig | undefined {
+  const names = [
+    "ORTHANC_API_URL",
+    "ORTHANC_API_USERNAME",
+    "ORTHANC_API_PASSWORD",
+    "ORTHANC_TIMEOUT_MS",
+    "ORTHANC_METADATA_BYTES",
+    "ORTHANC_PREVIEW_BYTES",
+  ] as const;
+  if (names.every((name) => !env[name])) return undefined;
+  const read = (name: (typeof names)[number]) => {
+    const v = env[name];
+    if (!v || v !== v.trim()) throw new ConfigurationError("Invalid " + name);
+    return v;
+  };
+  const number = (name: (typeof names)[number], maximum: number) => {
+    const s = read(name),
+      n = Number(s);
+    if (!/^[1-9]\d*$/.test(s) || !Number.isSafeInteger(n) || n > maximum)
+      throw new ConfigurationError("Invalid " + name);
+    return n;
+  };
+  const url = URL.parse(read("ORTHANC_API_URL"));
+  if (
+    !url ||
+    (url.protocol !== "https:" &&
+      !(url.protocol === "http:" && ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname))) ||
+    url.username ||
+    url.password ||
+    url.search ||
+    url.hash
+  )
+    throw new ConfigurationError("Invalid ORTHANC_API_URL");
+  return {
+    endpoint: url.href.replace(/\/$/, ""),
+    username: read("ORTHANC_API_USERNAME"),
+    password: read("ORTHANC_API_PASSWORD"),
+    timeoutMs: number("ORTHANC_TIMEOUT_MS", 120000),
+    metadataBytes: number("ORTHANC_METADATA_BYTES", 8 * 1024 * 1024),
+    previewBytes: number("ORTHANC_PREVIEW_BYTES", 32 * 1024 * 1024),
+  };
+}

@@ -18,7 +18,7 @@ export type StaffDocument = components["schemas"]["StaffDocumentDto"];
 export type OwnerDocument = components["schemas"]["OwnerDocumentDto"];
 export type MedicalFile = Pick<
   StaffDocument,
-  "id" | "assetId" | "mediaType" | "byteLength" | "ready"
+  "id" | "assetId" | "mediaType" | "byteLength" | "ready" | "imaging"
 >;
 export type DocumentAccess = components["schemas"]["DocumentSharingDto"];
 export type PickedDocument = {
@@ -29,6 +29,7 @@ export type PickedDocument = {
 const transferTimeoutMs = 60_000;
 export const absoluteSizeLimit = 32 * 1024 * 1024;
 export const extensions = {
+  "application/dicom": "dcm",
   "application/pdf": "pdf",
   "image/png": "png",
   "image/jpeg": "jpg",
@@ -41,6 +42,7 @@ export function recognizedType(
   if (mime && mime !== "application/octet-stream") return undefined;
   const suffix = name.toLowerCase().split(".").pop();
   if (suffix === "jpg" || suffix === "jpeg") return "image/jpeg";
+  if (/\.dcm$/i.test(name)) return "application/dicom";
   if (suffix === "pdf") return "application/pdf";
   if (suffix === "png") return "image/png";
 }
@@ -55,6 +57,21 @@ function validateContent(doc: MedicalFile, data: ArrayBuffer, response: Response
   )
     throw new Error("Invalid document content");
   return new Uint8Array(data);
+}
+function validatePreview(doc: MedicalFile, data: ArrayBuffer, response: Response) {
+  const info = doc.imaging?.preview,
+    bytes = new Uint8Array(data);
+  if (
+    !doc.ready ||
+    doc.mediaType !== "application/dicom" ||
+    !info ||
+    bytes.length !== info.byteLength ||
+    bytes.length > absoluteSizeLimit ||
+    response.headers.get("content-type")?.split(";")[0]?.trim() !== "image/png" ||
+    ![137, 80, 78, 71, 13, 10, 26, 10].every((value, i) => bytes[i] === value)
+  )
+    throw new Error("Invalid DICOM preview");
+  return bytes;
 }
 export function createDocuments(
   { api, staff, owner }: PatientTransport,
@@ -165,6 +182,34 @@ export function createDocuments(
             },
           );
           if (!response.ok) throw new PatientError(response.status);
+        },
+        transferTimeoutMs,
+      );
+    },
+    staffPreview(scope: ClinicScope, patientId: string, doc: MedicalFile) {
+      return staff(
+        scope,
+        async (config, clinic) => {
+          const result = await api.GET(`${record}/preview`, {
+            ...config,
+            params: { path: { ...clinic, patientId, documentId: doc.id } },
+            parseAs: "arrayBuffer",
+          });
+          return validatePreview(doc, dataOf(result), result.response);
+        },
+        transferTimeoutMs,
+      );
+    },
+    ownerPreview(subject: string, petId: string, doc: MedicalFile) {
+      return owner(
+        subject,
+        async (config) => {
+          const result = await api.GET(`${ownerPath}/{assetId}/preview`, {
+            ...config,
+            params: { path: { petId, assetId: doc.assetId } },
+            parseAs: "arrayBuffer",
+          });
+          return validatePreview(doc, dataOf(result), result.response);
         },
         transferTimeoutMs,
       );

@@ -358,6 +358,7 @@ model ReferralEvent {
 }
 
 model MedicalDocument {
+  imaging Json? @db.JsonB
   organizationId  String          @map("organization_id") @db.Uuid
   clinicId        String          @map("clinic_id") @db.Uuid
   patientId       String          @map("patient_id") @db.Uuid

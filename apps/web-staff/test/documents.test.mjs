@@ -164,3 +164,36 @@ test("sharing accepts a viewed revision and explicit guardian IDs including an e
     assert.equal(await readSharingBody(json(body)), null);
   }
 });
+
+test("first-frame proxy permits only scoped PNG bytes with private non-cacheable headers", async () => {
+  const { previewResponse } = await import("../src/documents/transport.ts");
+  const bytes = Uint8Array.of(137, 80, 78, 71);
+  const output = await previewResponse(
+    new Response(bytes, {
+      headers: {
+        "Content-Type": "image/png",
+        "X-Private": "hidden",
+        "Content-Disposition": "attachment",
+        "Content-Length": "4",
+      },
+    }),
+  );
+  assert.deepEqual(new Uint8Array(await output.arrayBuffer()), bytes);
+  for (const [key, v] of [
+    ["Content-Type", "image/png"],
+    ["Cache-Control", "private, no-store"],
+    ["Content-Disposition", "inline"],
+    ["X-Content-Type-Options", "nosniff"],
+    ["Cross-Origin-Resource-Policy", "same-origin"],
+    ["X-Private", null],
+  ])
+    assert.equal(output.headers.get(key), v);
+  for (const upstream of [
+    new Response("unsafe", { headers: { "Content-Type": "text/html" } }),
+    new Response("private failure", { status: 404 }),
+  ]) {
+    const rejected = await previewResponse(upstream);
+    assert.ok(rejected.status >= 400);
+    assert.equal(await rejected.text(), "");
+  }
+});

@@ -1920,6 +1920,121 @@
         ]
       }
     },
+    "/organizations/{organizationId}/clinics/{clinicId}/patients/{patientId}/documents/{documentId}/preview": {
+      "get": {
+        "operationId": "previewStaffDicom",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "clinicId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "patientId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "documentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "image/png": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "medical documents"
+        ]
+      }
+    },
     "/organizations/{organizationId}/clinics/{clinicId}/patients/{patientId}/documents/{documentId}/content": {
       "get": {
         "operationId": "downloadPatientDocument",
@@ -2069,6 +2184,103 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "medical documents"
+        ]
+      }
+    },
+    "/owner/pets/{petId}/documents/{assetId}/preview": {
+      "get": {
+        "operationId": "previewOwnerDicom",
+        "parameters": [
+          {
+            "name": "petId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "assetId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "image/png": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            },
+            "description": ""
           },
           "400": {
             "description": "",
@@ -10481,6 +10693,58 @@
           "petId"
         ]
       },
+      "DicomPreviewDto": {
+        "type": "object",
+        "properties": {
+          "byteLength": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        },
+        "required": [
+          "byteLength",
+          "sha256"
+        ]
+      },
+      "DicomMetadataDto": {
+        "type": "object",
+        "properties": {
+          "studyInstanceUid": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "seriesInstanceUid": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "sopInstanceUid": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "modality": {
+            "type": "string",
+            "maxLength": 16
+          },
+          "frames": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "preview": {
+            "$ref": "#/components/schemas/DicomPreviewDto"
+          }
+        },
+        "required": [
+          "studyInstanceUid",
+          "seriesInstanceUid",
+          "sopInstanceUid",
+          "modality",
+          "frames"
+        ]
+      },
       "DocumentSharingDto": {
         "type": "object",
         "properties": {
@@ -10505,6 +10769,9 @@
       "StaffDocumentDto": {
         "type": "object",
         "properties": {
+          "imaging": {
+            "$ref": "#/components/schemas/DicomMetadataDto"
+          },
           "id": {
             "type": "string",
             "format": "uuid"
@@ -10533,7 +10800,8 @@
             "enum": [
               "application/pdf",
               "image/jpeg",
-              "image/png"
+              "image/png",
+              "application/dicom"
             ]
           },
           "byteLength": {
@@ -10596,6 +10864,9 @@
       "OwnerDocumentDto": {
         "type": "object",
         "properties": {
+          "imaging": {
+            "$ref": "#/components/schemas/DicomMetadataDto"
+          },
           "id": {
             "type": "string",
             "format": "uuid"
@@ -10624,7 +10895,8 @@
             "enum": [
               "application/pdf",
               "image/jpeg",
-              "image/png"
+              "image/png",
+              "application/dicom"
             ]
           },
           "byteLength": {

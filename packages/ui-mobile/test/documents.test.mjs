@@ -188,3 +188,46 @@ test("a document on a later page opens directly at its latest revision", async (
   assert.equal(requests.length, 2);
   assert.ok(requests.some((r) => new URL(r.url).searchParams.get("page") === "5"));
 });
+
+test("DICOM previews use scoped endpoints and require a matching PNG type, signature and size", async () => {
+  const png = Uint8Array.of(137, 80, 78, 71, 13, 10, 26, 10, 0);
+  const image = {
+    ...doc,
+    mediaType: "application/dicom",
+    imaging: { preview: { byteLength: png.length, sha256: "a".repeat(64) } },
+  };
+  const { client, requests } = fixture(
+    () => new Response(png, { headers: { "Content-Type": "image/png" } }),
+  );
+  assert.deepEqual(await client.staffPreview(scope, "patient", image), png);
+  assert.deepEqual(await client.ownerPreview("owner", "pet", image), png);
+  assert.deepEqual(
+    requests.map((r) => [new URL(r.url).pathname, r.headers.get("Authorization")]),
+    [
+      [
+        "/organizations/org/clinics/one/patients/patient/documents/doc/preview",
+        "Bearer staff-token",
+      ],
+      ["/owner/pets/pet/documents/asset/preview", "Bearer owner-token"],
+    ],
+  );
+  for (const [type, body] of [
+    ["text/html", png],
+    ["image/png", png.slice(1)],
+    ["image/png", new Uint8Array(png.length)],
+  ]) {
+    const bad = fixture(() => new Response(body, { headers: { "Content-Type": type } }));
+    await assert.rejects(bad.client.ownerPreview("owner", "pet", image));
+  }
+  const gone = fixture(() => Response.json({ error: { code: "NOT_FOUND" } }, { status: 404 }));
+  await assert.rejects(gone.client.ownerPreview("owner", "pet", image), (e) => e.status === 404);
+  for (const unavailable of [
+    { ...image, imaging: undefined },
+    { ...image, ready: false },
+  ])
+    await assert.rejects(client.ownerPreview("owner", "pet", unavailable));
+  assert.equal(recognizedType(undefined, "dcm"), undefined);
+  assert.equal(recognizedType(undefined, "scan.DCM"), "application/dicom");
+  assert.equal(recognizedType("application/octet-stream", "scan.dcm"), "application/dicom");
+  assert.equal(recognizedType("text/html", "scan.dcm"), undefined);
+});

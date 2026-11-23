@@ -1,6 +1,6 @@
 import "server-only";
 import type { paths } from "@vetx/api-client";
-import { forwardMultipart, emptyResponse } from "../auth/file-proxy.ts";
+import { forwardMultipart, emptyResponse, privateHeaders } from "../auth/file-proxy.ts";
 export {
   attachmentResponse,
   privateHeaders,
@@ -32,4 +32,24 @@ export async function uploadDocument(
   const upstream = await forwardMultipart(request, url, token, "PUT", maxMultipartBytes);
   await upstream.body?.cancel();
   return emptyResponse(upstream.ok ? 204 : upstream.status);
+}
+
+export async function previewResponse(upstream: Response) {
+  if (
+    !upstream.ok ||
+    !upstream.body ||
+    upstream.headers.get("content-type")?.split(";")[0]?.trim() !== "image/png"
+  ) {
+    await upstream.body?.cancel();
+    return emptyResponse(upstream.ok ? 502 : upstream.status);
+  }
+  const headers = new Headers(privateHeaders);
+  headers.set("Content-Type", "image/png");
+  headers.set("Content-Disposition", "inline");
+  headers.set("X-Content-Type-Options", "nosniff");
+  headers.set("Cross-Origin-Resource-Policy", "same-origin");
+  headers.set("Content-Security-Policy", "sandbox; default-src 'none'");
+  const length = upstream.headers.get("content-length");
+  if (length && /^\d+$/.test(length)) headers.set("Content-Length", length);
+  return new Response(upstream.body, { headers });
 }

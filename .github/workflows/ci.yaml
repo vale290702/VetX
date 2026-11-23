@@ -54,9 +54,10 @@ jobs:
         run: |
           node scripts/init-local-env.mjs
           pnpm compose config --quiet
-          pnpm compose up -d --wait postgres redis keycloak mailpit storage
+          pnpm compose --profile integrations up -d --wait postgres redis keycloak mailpit storage orthanc
           pnpm --filter @vetx/api storage:init
           pnpm --filter @vetx/api test:storage
+          pnpm --filter @vetx/api test:imaging
           pnpm db:migrate
       - name: Run browser tests
         run: |

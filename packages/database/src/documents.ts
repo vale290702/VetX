@@ -1,12 +1,21 @@
+export interface DicomMetadata {
+  studyInstanceUid: string;
+  seriesInstanceUid: string;
+  sopInstanceUid: string;
+  modality: string;
+  frames: number;
+  preview?: { sha256: string; byteLength: number };
+}
 export interface DocumentInput {
   title: string;
-  mediaType: "application/pdf" | "image/jpeg" | "image/png";
+  mediaType: "application/pdf" | "image/jpeg" | "image/png" | "application/dicom";
   byteLength: number;
   sha256: string;
 }
 export interface MedicalDocument extends DocumentInput {
   id: string;
   assetId: string;
+  imaging?: DicomMetadata;
   organizationId: string;
   clinicId: string;
   patientId: string;

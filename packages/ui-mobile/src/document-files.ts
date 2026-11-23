@@ -20,6 +20,7 @@ export class DocumentFileError extends Error {
 }
 const handoffLifetime = 5 * 60 * 1000;
 const sharedDirectory = () => new Directory(Paths.cache, "vetx-handoff");
+const previewDirectory = () => new Directory(Paths.cache, "vetx-preview");
 const pickerDirectory = () => new Directory(Paths.cache, "DocumentPicker");
 
 function remove(file: File) {
@@ -31,7 +32,7 @@ function remove(file: File) {
 }
 
 export function clearOldDocumentFiles() {
-  for (const dir of [sharedDirectory(), pickerDirectory()]) {
+  for (const dir of [sharedDirectory(), pickerDirectory(), previewDirectory()]) {
     try {
       if (!dir.exists) continue;
       for (const file of dir.list()) {
@@ -54,7 +55,8 @@ export function pickPackage() {
 }
 
 export function pickDocument(): Promise<PickedDocument | undefined> {
-  return pickPrivateFile(Object.keys(extensions), absoluteSizeLimit, recognizedType);
+  // Files providers may advertise DICOM as generic data. Validate the selected file type below.
+  return pickPrivateFile(["*/*"], absoluteSizeLimit, recognizedType);
 }
 export async function pickPrivateFile<T extends string>(
   types: string[],
@@ -83,6 +85,22 @@ export async function pickPrivateFile<T extends string>(
   }
 }
 
+export async function preparePreview(download: () => Promise<Uint8Array>, active: () => boolean) {
+  if (!active()) return;
+  const bytes = await download();
+  if (!active()) return;
+  const dir = previewDirectory();
+  dir.create({ intermediates: true, idempotent: true });
+  const file = new File(dir, globalThis.expo.uuidv4() + ".png");
+  try {
+    file.create();
+    file.write(bytes);
+    return { uri: file.uri, close: () => remove(file) };
+  } catch (error) {
+    remove(file);
+    throw error;
+  }
+}
 export async function openDocument(
   doc: MedicalFile,
   download: () => Promise<Uint8Array>,
@@ -90,6 +108,7 @@ export async function openDocument(
   dialogTitle: string,
 ) {
   const uti = {
+    "application/dicom": undefined,
     "image/png": "public.png",
     "image/jpeg": "public.jpeg",
     "application/pdf": "com.adobe.pdf",

@@ -55,6 +55,20 @@ export async function downloadDocument(
   });
 }
 
+export function fetchDocumentPreview(
+  origin: string,
+  token: string,
+  ids: DocumentIds,
+  signal: AbortSignal,
+) {
+  return createVetxClient(origin).GET(`${documentPath}/preview`, {
+    ...staffRequestOptions(token),
+    params: { path: ids },
+    parseAs: "stream",
+    signal: AbortSignal.any([signal, AbortSignal.timeout(120_000)]),
+  });
+}
+
 export async function shareDocument(
   origin: string,
   token: string,

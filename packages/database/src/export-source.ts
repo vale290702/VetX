@@ -1,3 +1,4 @@
+import type { DicomMetadata } from "./documents.js";
 import type { ExchangeClinic, ExchangePatient, ClinicalRevisionProvenance } from "./exchange.js";
 export interface ExportLocation extends ExchangeClinic {
   patientId: string;
@@ -38,10 +39,11 @@ export interface ExportNote {
   };
 }
 export interface ExportFile {
+  imaging?: Pick<DicomMetadata, "studyInstanceUid" | "seriesInstanceUid" | "sopInstanceUid"> | null;
   id: string;
   objectId: string;
   title: string;
-  mediaType: "application/pdf" | "image/png" | "image/jpeg";
+  mediaType: "application/pdf" | "image/png" | "image/jpeg" | "application/dicom";
   byteLength: number;
   sha256: string;
   recordedAt: string;

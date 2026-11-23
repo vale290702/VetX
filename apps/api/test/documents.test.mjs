@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { test } from "node:test";
+import { BadRequestException, ConflictException } from "@nestjs/common";
+import { RegistryError } from "@vetx/database";
 import { createApplication } from "../dist/application.js";
 import { inspectDocument } from "../dist/documents/content.js";
 
@@ -35,18 +37,22 @@ function form(data, type = "application/pdf", title = record.title) {
   body.set("file", new Blob([data], { type }), "client.pdf");
   return body;
 }
-async function withApp(kind, db, storage, run) {
+async function withApp(kind, db, storage, run, imaging) {
   const app = await createApplication({ async checkReady() {} }, false, {
     tokenVerifier: {
       verify: async () => ({ kind, subject: "actor", issuer: "https://identity.example" }),
     },
-    documents: { database: db, storage, config: conf },
+    documents: { database: db, storage, config: conf, imaging },
   });
   try {
     await app.listen(0, "127.0.0.1");
     const origin = await app.getUrl();
-    await run((url, method = "GET", body) =>
-      fetch(origin + url, { method, headers: { authorization: "Bearer a.b.c" }, body }),
+    await run((url, method = "GET", body, authenticated = true) =>
+      fetch(origin + url, {
+        method,
+        headers: authenticated ? { authorization: "Bearer a.b.c" } : {},
+        body,
+      }),
     );
   } finally {
     await app.close();
@@ -119,7 +125,6 @@ test("the configured maximum size is inclusive and a missing storage service ret
 });
 
 test("a grant withdrawn while the bytes are being verified prevents delivery", async () => {
-  const { RegistryError } = await import("@vetx/database");
   for (const kind of ["staff", "owner"]) {
     let allowed = true;
     const read = async () => {
@@ -142,4 +147,135 @@ test("a grant withdrawn while the bytes are being verified prevents delivery", a
       assert.equal(response.headers.get("content-disposition"), null);
     });
   }
+});
+
+const invalidDicom = Buffer.alloc(148);
+invalidDicom.write("DICM", 128);
+const correctedDicom = Buffer.concat([invalidDicom, Buffer.from([1])]);
+const scanMetadata = {
+  studyInstanceUid: "2.25.1",
+  seriesInstanceUid: "2.25.2",
+  sopInstanceUid: "2.25.3",
+  modality: "DX",
+  frames: 1,
+};
+
+test("archive rejection leaves no original or reservation and the same request ID can be corrected", async () => {
+  for (const rejection of [new BadRequestException(), new ConflictException()]) {
+    const writes = new Map();
+    const calls = [];
+    let reservation;
+    let finalized;
+    const db = {
+      getPatient: async () => ({}),
+      preflightDocument: async () => {
+        calls.push("preflight");
+        return finalized ?? null;
+      },
+      reserveDocument: async (_actor, _org, _clinic, _patient, _id, input) => {
+        calls.push("reserve");
+        reservation = { ...record, ...input, ready: false };
+        return reservation;
+      },
+      finishDicomDocument: async (_actor, _org, _clinic, _patient, _id, digest, imaging) => {
+        calls.push("publish");
+        assert.equal(digest, reservation.sha256);
+        finalized = { ...reservation, ready: true, imaging };
+        return finalized;
+      },
+    };
+    const storage = {
+      put: async (key, body) => {
+        calls.push("put");
+        writes.set(key, body);
+      },
+    };
+    const archive = {
+      ingest: async (data) => {
+        calls.push("archive");
+        if (data.equals(invalidDicom)) throw rejection;
+        assert.deepEqual(data, correctedDicom);
+        return { metadata: scanMetadata };
+      },
+    };
+    await withApp(
+      "staff",
+      db,
+      storage,
+      async (send) => {
+        const rejected = await send(path, "PUT", form(invalidDicom, "application/dicom"));
+        assert.equal(rejected.status, rejection.getStatus());
+        assert.equal(reservation, undefined);
+        assert.equal(writes.size, 0);
+        assert.deepEqual(calls, ["preflight", "archive"]);
+
+        const corrected = await send(path, "PUT", form(correctedDicom, "application/dicom"));
+        assert.equal(corrected.status, 200);
+        assert.deepEqual(await corrected.json(), finalized);
+        assert.deepEqual([...writes.values()], [correctedDicom]);
+        assert.deepEqual(calls, [
+          "preflight",
+          "archive",
+          "preflight",
+          "archive",
+          "reserve",
+          "put",
+          "publish",
+        ]);
+      },
+      archive,
+    );
+
+    await withApp("staff", db, storage, async (send) => {
+      const replay = await send(path, "PUT", form(correctedDicom, "application/dicom"));
+      assert.equal(replay.status, 200);
+      assert.deepEqual(await replay.json(), finalized);
+      assert.equal(calls.at(-1), "preflight");
+      assert.equal(writes.size, 1);
+    });
+  }
+});
+
+test("missing identity, cross-clinic access, and mismatched reservation fail before archive work", async () => {
+  const calls = [];
+  const db = {
+    getPatient: async (_actor, _org, selectedClinic) => {
+      calls.push("patient");
+      if (selectedClinic !== clinic) throw new RegistryError("forbidden");
+      return {};
+    },
+    preflightDocument: async () => {
+      calls.push("preflight");
+      throw new RegistryError("conflict");
+    },
+    reserveDocument: async () => {
+      calls.push("reserve");
+      return record;
+    },
+  };
+  const archive = {
+    ingest: async () => {
+      calls.push("archive");
+    },
+  };
+  const storage = {
+    put: async () => {
+      calls.push("put");
+    },
+  };
+  const upload = () => form(correctedDicom, "application/dicom");
+  await withApp(
+    "staff",
+    db,
+    storage,
+    async (send) => {
+      assert.equal((await send(path, "PUT", upload(), false)).status, 401);
+      assert.deepEqual(calls, []);
+      assert.equal((await send(path.replace(clinic, randomUUID()), "PUT", upload())).status, 403);
+      assert.deepEqual(calls, ["patient"]);
+      assert.equal((await send(path, "PUT", upload())).status, 409);
+      assert.deepEqual(calls, ["patient", "patient", "preflight"]);
+    },
+    archive,
+  );
 });

@@ -1,8 +1,11 @@
+import { createHash } from "node:crypto";
+import type { ClinicalImagingArchive } from "../imaging/orthanc.js";
 import {
   applyDecorators,
   type CanActivate,
   type ExecutionContext,
   ForbiddenException,
+  NotFoundException,
   BadRequestException,
   Body,
   Controller,
@@ -63,8 +66,10 @@ import {
 export type DocumentStore = Pick<
   PrismaDatabase,
   | "getPatient"
+  | "preflightDocument"
   | "reserveDocument"
   | "finishDocument"
+  | "finishDicomDocument"
   | "shareDocument"
   | "listDocuments"
   | "getDocument"
@@ -73,6 +78,7 @@ export type DocumentStore = Pick<
 >;
 export interface DocumentDependencies {
   database?: DocumentStore;
+  imaging?: ClinicalImagingArchive;
   storage?: DocumentStorage;
   config?: DocumentConfig;
 }
@@ -80,6 +86,7 @@ const depsKey = Symbol("document dependencies");
 interface FileUpload {
   buffer: Buffer;
   mimetype: string;
+  originalname: string;
 }
 @Injectable()
 class Documents {
@@ -113,19 +120,62 @@ class Documents {
     if (file.buffer.length > config.maxBytes) throw new PayloadTooLargeException();
     let integrity;
     try {
-      integrity = inspectDocument(file.buffer, file.mimetype, config.maxBytes);
+      const type =
+        file.mimetype === "application/octet-stream" && /[.]dcm$/i.test(file.originalname)
+          ? "application/dicom"
+          : file.mimetype;
+      integrity = inspectDocument(file.buffer, type, config.maxBytes);
     } catch (error) {
       if (error instanceof InvalidDocument) throw new BadRequestException();
       throw error;
     }
-    const doc = await this.db.reserveDocument(actor, org, clinic, patient, id, {
-      title: title.trim(),
-      ...integrity,
-    });
+    const input = { title: title.trim(), ...integrity };
+    let scan: Awaited<ReturnType<ClinicalImagingArchive["ingest"]>> | undefined;
+    if (integrity.mediaType === "application/dicom") {
+      const existing = await this.db.preflightDocument(actor, org, clinic, patient, id, input);
+      if (existing?.ready) return existing;
+      if (!this.deps.imaging) throw new ServiceUnavailableException();
+      scan = await this.deps.imaging.ingest(file.buffer, integrity.sha256);
+    }
+    // Recheck the write grant and matching request after any archive work.
+    const doc = await this.db.reserveDocument(actor, org, clinic, patient, id, input);
     if (doc.ready) return doc;
     const key = documentKey(org, clinic, patient, id, doc.sha256);
     await this.storage.put(key, file.buffer, integrity);
+    if (scan) {
+      const { metadata, preview } = scan;
+      if (preview) {
+        const checksum = {
+          sha256: createHash("sha256").update(preview).digest("hex"),
+          byteLength: preview.length,
+        };
+        await this.storage.put(documentKey(org, clinic, patient, id, checksum.sha256), preview, {
+          ...checksum,
+          mediaType: "image/png",
+        });
+        return this.db.finishDicomDocument(actor, org, clinic, patient, id, doc.sha256, {
+          ...metadata,
+          preview: checksum,
+        });
+      }
+      return this.db.finishDicomDocument(actor, org, clinic, patient, id, doc.sha256, metadata);
+    }
     return this.db.finishDocument(actor, org, clinic, patient, id, doc.sha256);
+  }
+  async preview(authorize: () => Promise<MedicalDocument>) {
+    const doc = await authorize();
+    const info = doc.imaging?.preview;
+    if (!info) throw new NotFoundException();
+    const bytes = await this.storage.read(
+      documentKey(doc.organizationId, doc.clinicId, doc.patientId, doc.id, info.sha256),
+      { ...info, mediaType: "image/png" },
+    );
+    await authorize();
+    return new StreamableFile(bytes, {
+      type: "image/png",
+      length: bytes.length,
+      disposition: "inline",
+    });
   }
   async download(authorize: () => Promise<MedicalDocument>) {
     const doc = await authorize();
@@ -136,9 +186,12 @@ class Documents {
     );
     // A release can be withdrawn while the file is being read and verified.
     await authorize();
-    const ext = { "application/pdf": "pdf", "image/png": "png", "image/jpeg": "jpg" }[
-      doc.mediaType
-    ];
+    const ext = {
+      "application/dicom": "dcm",
+      "application/pdf": "pdf",
+      "image/png": "png",
+      "image/jpeg": "jpg",
+    }[doc.mediaType];
     const name = encodeURIComponent(doc.title + "." + ext).replace(
       /[!'()*]/g,
       (c) => "%" + c.charCodeAt(0).toString(16).toUpperCase(),
@@ -264,6 +317,20 @@ class StaffDocuments {
   ) {
     return this.docs.db.shareDocument(actor, org, clinic, patient, id, input);
   }
+  @Get(":documentId/preview")
+  @idParam("documentId")
+  @Header("X-Content-Type-Options", "nosniff")
+  @ApiOperation({ operationId: "previewStaffDicom" })
+  @ApiOkResponse({ content: { "image/png": { schema: { type: "string", format: "binary" } } } })
+  preview(
+    @StaffIdentity() actor: StaffPrincipal,
+    @Param("organizationId", ParseUUIDPipe) org: string,
+    @Param("clinicId", ParseUUIDPipe) clinic: string,
+    @Param("patientId", ParseUUIDPipe) patient: string,
+    @Param("documentId", ParseUUIDPipe) id: string,
+  ) {
+    return this.docs.preview(() => this.docs.db.getDocument(actor, org, clinic, patient, id));
+  }
   @Get(":documentId/content")
   @idParam("documentId")
   @binary()
@@ -293,6 +360,18 @@ class OwnerDocuments {
     @Query("page", pagePipe, ParseIntPipe) page: number,
   ) {
     return this.docs.db.listOwnerDocuments(actor, pet, pageNumber(page));
+  }
+  @Get(":assetId/preview")
+  @idParam("assetId")
+  @Header("X-Content-Type-Options", "nosniff")
+  @ApiOperation({ operationId: "previewOwnerDicom" })
+  @ApiOkResponse({ content: { "image/png": { schema: { type: "string", format: "binary" } } } })
+  preview(
+    @OwnerIdentity() actor: OwnerPrincipal,
+    @Param("petId", ParseUUIDPipe) pet: string,
+    @Param("assetId", ParseUUIDPipe) id: string,
+  ) {
+    return this.docs.preview(() => this.docs.db.getOwnerDocument(actor, pet, id));
   }
   @Get(":assetId/content")
   @idParam("assetId")

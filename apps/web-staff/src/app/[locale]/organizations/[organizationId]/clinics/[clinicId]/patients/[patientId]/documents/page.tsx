@@ -6,6 +6,7 @@ import { getTranslations } from "next-intl/server";
 import { readStaffSession } from "../../../../../../../../../auth/account.ts";
 import { isDirectoryId, readDirectoryPage } from "../../../../../../../../../directory/forms.ts";
 import { readDocuments } from "../../../../../../../../../documents/api.ts";
+import { StudyPreview } from "../../../../../../../../../documents/imaging";
 import { DocumentSharing, DocumentUpload } from "../../../../../../../../../documents/forms";
 import type { PatientIds } from "../../../../../../../../../documents/transport.ts";
 import { Link } from "../../../../../../../../../i18n/routing";
@@ -106,6 +107,7 @@ export default async function MedicalDocuments({ params, searchParams }: Props) 
                           {
                             (
                               {
+                                "application/dicom": "DICOM",
                                 "application/pdf": "PDF",
                                 "image/png": "PNG",
                                 "image/jpeg": "JPEG",
@@ -119,11 +121,23 @@ export default async function MedicalDocuments({ params, searchParams }: Props) 
                         </p>
                         {doc.ready ? (
                           <>
+                            {doc.mediaType === "application/dicom" && (
+                              <StudyPreview
+                                key={endpoint + "/" + doc.id}
+                                title={doc.title}
+                                imaging={doc.imaging}
+                                endpoint={endpoint + "/" + doc.id + "/preview"}
+                              />
+                            )}
                             <a
                               className="directory-back"
                               href={`${endpoint}/${doc.id}?locale=${locale}&page=${page}`}
                             >
-                              {t("download")}
+                              {t(
+                                doc.mediaType === "application/dicom"
+                                  ? "downloadOriginal"
+                                  : "download",
+                              )}
                             </a>
                             <DocumentSharing
                               endpoint={`${endpoint}/${doc.id}/sharing`}

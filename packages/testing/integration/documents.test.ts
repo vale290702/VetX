@@ -112,13 +112,97 @@ test(
         guardianIds: [guardian],
         revision: 2,
       });
+      const scan = randomUUID();
+      const raw = { ...input, mediaType: "application/dicom" as const };
+      const preflight = (candidate = raw) =>
+        db.preflightDocument(staff, org, clinic, patient, scan, candidate);
+      const rejectedRaw = { ...raw, sha256: "0".repeat(64) };
+      assert.equal(await preflight(rejectedRaw), null);
+      assert.equal(
+        (await sql.query("SELECT id FROM medical_documents WHERE id=$1", [scan])).rowCount,
+        0,
+      );
+      await assert.rejects(db.preflightDocument(staff, org, randomUUID(), patient, scan, raw), {
+        code: "forbidden",
+      });
+      await assert.rejects(db.preflightDocument(staff, org, clinic, randomUUID(), scan, raw), {
+        code: "not_found",
+      });
+      await assert.rejects(preflight({ ...raw, title: "bad\u001btitle" }), { code: "invalid" });
+      const original = await db.reserveDocument(staff, org, clinic, patient, scan, raw);
+      assert.deepEqual(await preflight(), original);
+      await assert.rejects(preflight(rejectedRaw), { code: "conflict" });
+      await assert.rejects(preflight({ ...raw, title: "Different title" }), { code: "conflict" });
+      const otherStaff = { ...staff, subject: "peer" };
+      const otherUser = await sql.query(
+        "INSERT INTO users(identity_issuer,identity_subject) VALUES($1,$2) RETURNING id",
+        [otherStaff.issuer, otherStaff.subject],
+      );
+      await sql.query(
+        "INSERT INTO organization_memberships(organization_id,user_id,role) VALUES($1,$2,'ADMIN')",
+        [org, otherUser.rows[0].id],
+      );
+      await assert.rejects(db.preflightDocument(otherStaff, org, clinic, patient, scan, raw), {
+        code: "conflict",
+      });
+      const metadata = {
+        studyInstanceUid: "2.25.1",
+        seriesInstanceUid: "2.25.2",
+        sopInstanceUid: "2.25.3",
+        modality: "DX",
+        frames: 2,
+        preview: { byteLength: 123, sha256: "1".repeat(64) },
+      };
+      const finalize = (m: typeof metadata) =>
+        db.finishDicomDocument(staff, org, clinic, patient, scan, raw.sha256, m);
+      await assert.rejects(db.finishDocument(staff, org, clinic, patient, scan, raw.sha256), {
+        code: "conflict",
+      });
+      await assert.rejects(finalize({ ...metadata, frames: 0 }), { code: "invalid" });
+      await assert.rejects(finalize({ ...metadata, seriesInstanceUid: "invalid" }), {
+        code: "invalid",
+      });
+      assert.deepEqual((await finalize(metadata)).imaging, metadata);
+      const readyScan = await finalize(metadata);
+      assert.deepEqual(readyScan.imaging, metadata);
+      assert.deepEqual(await preflight(), readyScan);
+      await assert.rejects(finalize({ ...metadata, modality: "MR" }), { code: "conflict" });
+      await assert.rejects(db.getOwnerDocument(owner, petId, original.assetId), {
+        code: "not_found",
+      });
+      await db.shareDocument(staff, org, clinic, patient, scan, {
+        guardianIds: [guardian],
+        revision: 0,
+      });
+      assert.deepEqual(
+        (await db.getOwnerDocument(owner, petId, original.assetId)).imaging,
+        metadata,
+      );
+      const selection = {
+        encounterIds: [],
+        documentAssetIds: [original.assetId],
+        includeOwner: false,
+      };
+      const source = { organizationId: org, clinicId: clinic, patientId: patient };
+      const snapshot = await db.ownerExportSource(owner, petId, source, selection);
+      assert.deepEqual(snapshot.files[0]?.imaging, {
+        studyInstanceUid: metadata.studyInstanceUid,
+        seriesInstanceUid: metadata.seriesInstanceUid,
+        sopInstanceUid: metadata.sopInstanceUid,
+      });
       await db.removeGuardian(staff, org, clinic, patient, guardian);
+      await assert.rejects(db.ownerExportSource(owner, petId, source, selection), {
+        code: "not_found",
+      });
+      await assert.rejects(db.getOwnerDocument(owner, petId, original.assetId), {
+        code: "not_found",
+      });
       await assert.rejects(db.getOwnerDocument(owner, petId, pending.assetId), {
         code: "not_found",
       });
       assert.equal(
         (await sql.query("SELECT count(*)::int AS count FROM document_events")).rows[0].count,
-        4,
+        6,
       );
     } finally {
       await db.onApplicationShutdown();

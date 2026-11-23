@@ -3,6 +3,7 @@ import { Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { Action, type AccessStyles } from "./controls";
 import { ShareDocument, UploadDocument } from "./document-forms";
+import { StudyPreview } from "./study-preview";
 import { DocumentFileError, openDocument } from "./document-files";
 import { extensions, type StaffDocument, type OwnerDocument } from "./documents";
 import { Pager, PatientReadState, usePatientRead } from "./patient-controls";
@@ -15,12 +16,14 @@ function DocumentRow({
   account,
   styles,
   download,
+  preview,
   children,
 }: {
   doc: StaffDocument | OwnerDocument;
   account: MobileAccount;
   styles: AccessStyles;
   download: () => Promise<Uint8Array>;
+  preview: () => Promise<Uint8Array>;
   children?: ReactNode;
 }) {
   const { t, i18n } = useTranslation();
@@ -71,10 +74,19 @@ function DocumentRow({
         </Text>
       )}
       <Text style={styles.support}>
-        {extensions[doc.mediaType].toUpperCase()} ·{" "}
-        {t("nativeDocuments.kib", { count: Math.ceil(doc.byteLength / 1024) })} ·{" "}
+        {doc.mediaType === "application/dicom" ? "DICOM" : extensions[doc.mediaType].toUpperCase()}{" "}
+        · {t("nativeDocuments.kib", { count: Math.ceil(doc.byteLength / 1024) })} ·{" "}
         {new Date(doc.recordedAt).toLocaleDateString(i18n.language)}
       </Text>
+      {doc.mediaType === "application/dicom" && doc.ready && (
+        <StudyPreview
+          title={doc.title}
+          imaging={doc.imaging}
+          download={preview}
+          account={account}
+          styles={styles}
+        />
+      )}
       {issue && (
         <Text accessibilityRole="alert" style={styles.error}>
           {issue === "denied" ? t("nativePatients.denied") : t(`nativeDocuments.${issue}`)}
@@ -83,8 +95,17 @@ function DocumentRow({
       <View style={styles.actions}>
         <Action
           styles={styles}
-          label={t("nativeDocuments.open")}
-          accessibilityLabel={t("nativeDocuments.openNamed", { title: doc.title })}
+          label={t(
+            doc.mediaType === "application/dicom"
+              ? "nativeDocuments.openOriginal"
+              : "nativeDocuments.open",
+          )}
+          accessibilityLabel={t(
+            doc.mediaType === "application/dicom"
+              ? "nativeDocuments.openOriginalNamed"
+              : "nativeDocuments.openNamed",
+            { title: doc.title },
+          )}
           disabled={!doc.ready}
           busy={loading}
           onPress={() => void open()}
@@ -157,11 +178,18 @@ export function PatientDocuments({ patientId, back, ...props }: StaffProps) {
           )}
           {result.value.documents.map((doc) => (
             <DocumentRow
-              key={doc.id}
+              key={[
+                scope.subject,
+                scope.organizationId,
+                scope.clinicId,
+                patientId,
+                doc.assetId,
+              ].join("/")}
               doc={doc}
               account={account}
               styles={styles}
               download={() => client.documents.staffContent(scope, patientId, doc)}
+              preview={() => client.documents.staffPreview(scope, patientId, doc)}
             >
               <Text style={styles.support}>
                 {doc.sharing.guardianIds.length
@@ -222,11 +250,12 @@ export function OwnerDocuments({
           )}
           {result.value.documents.map((doc) => (
             <DocumentRow
-              key={doc.assetId}
+              key={[account.subject, pet.id, doc.assetId].join("/")}
               styles={styles}
               account={account}
               doc={doc}
               download={() => client.documents.ownerContent(account.subject, pet.id, doc)}
+              preview={() => client.documents.ownerPreview(account.subject, pet.id, doc)}
             />
           ))}
           <Pager styles={styles} page={page} next={result.value.hasNextPage} change={setPage} />
