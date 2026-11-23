@@ -67,7 +67,10 @@ test(
         stockItemId: item,
         revision: 0,
       };
-      await assert.rejects(db.saveBillingPrice(admin, org, clinic, second, { ...entry, unit: "box" }), {code: "conflict"});
+      await assert.rejects(
+        db.saveBillingPrice(admin, org, clinic, second, { ...entry, unit: "box" }),
+        { code: "conflict" },
+      );
       const priced = await db.saveBillingPrice(admin, org, clinic, price, entry);
       await assert.rejects(db.saveBillingPrice(cashier, org, clinic, second, entry), {
         code: "forbidden",

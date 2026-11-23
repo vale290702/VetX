@@ -45,6 +45,7 @@ export class StockItemInputDto extends WarehouseInputDto {
   @label(40) readonly unit!: string;
 }
 export class StockItemDto extends StockItemInputDto {
+  @ApiProperty() readonly unitLocked!: boolean;
   @id() readonly id!: string;
 }
 export class StockSearchDto extends PageQueryDto {
@@ -59,6 +60,7 @@ export class MovementInputDto {
   @IsIn(movementKinds)
   readonly kind!: StockMovementInput["kind"];
   @id() @IsUUID() readonly itemId!: string;
+  @label(40) readonly unit!: string;
   @nullableId() readonly fromWarehouseId!: string | null;
   @nullableId() readonly toWarehouseId!: string | null;
   @ApiProperty({ type: "string", description: "Positive decimal, up to three fractional places" })
@@ -77,6 +79,10 @@ class LedgerActorDto {
   @ApiProperty() readonly subject!: string;
 }
 export class MovementDto extends MovementInputDto {
+  @ApiProperty() readonly itemName!: string;
+  @ApiProperty() readonly sku!: string;
+  @ApiProperty({ type: "string", nullable: true }) readonly fromWarehouseName!: string | null;
+  @ApiProperty({ type: "string", nullable: true }) readonly toWarehouseName!: string | null;
   @id() readonly id!: string;
   @ApiProperty({ type: "string", nullable: true }) readonly fromBalance!: string | null;
   @ApiProperty({ type: "string", nullable: true }) readonly toBalance!: string | null;

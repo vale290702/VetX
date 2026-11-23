@@ -101,7 +101,7 @@ BEGIN
  SELECT * INTO p FROM public.billing_prices WHERE (organization_id,clinic_id,id)=(org,clinic,price);
  IF FOUND THEN
   IF (p.name,p.currency,p.unit_price,p.tax_rate,p.cabys,p.stock_item_id,p.unit) IS NOT DISTINCT FROM
-   (btrim(title),ccy,unit_price_input::numeric,rate::numeric,cabys_code,stock_id,unit_input) AND (expected=p.revision OR (expected=p.revision-1 AND EXISTS(SELECT FROM public.billing_price_events e WHERE (e.organization_id,e.clinic_id,e.price_id,e.revision,e.actor_issuer,e.actor_subject)=(org,clinic,price,p.revision,current_setting('vetx.identity_issuer'),current_setting('vetx.identity_subject'))))) THEN RETURN vetx_billing.price(p); END IF;
+   (btrim(title),ccy,unit_price_input::numeric,rate::numeric,cabys_code,stock_id,unit_input) AND (expected=p.revision OR (expected=p.revision-1 AND EXISTS(SELECT FROM public.billing_price_events e WHERE (e.organization_id,e.clinic_id,e.price_id,e.revision,e.actor_issuer,e.actor_subject)=(org,clinic,p.id,p.revision,current_setting('vetx.identity_issuer'),current_setting('vetx.identity_subject'))))) THEN RETURN vetx_billing.price(p); END IF;
   IF expected<>p.revision OR expected=2147483647 THEN RETURN '{"error":"conflict"}';END IF;
   UPDATE public.billing_prices SET name=btrim(title),currency=ccy,unit_price=unit_price_input::numeric,tax_rate=rate::numeric,
    cabys=cabys_code,stock_item_id=stock_id,unit=unit_input,revision=revision+1 WHERE (organization_id,clinic_id,id)=(org,clinic,price) RETURNING * INTO p;
