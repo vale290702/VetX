@@ -3,6 +3,8 @@ import ICU from "i18next-icu";
 
 import enBilling from "../locales/native-billing.en.json";
 import esBilling from "../locales/native-billing.es.json";
+import enTrade from "../locales/native-trade.en.json";
+import esTrade from "../locales/native-trade.es.json";
 import enInventory from "../locales/native-inventory.en.json";
 import esInventory from "../locales/native-inventory.es.json";
 import enReferrals from "../locales/native-referrals.en.json";
@@ -22,6 +24,7 @@ import esPatients from "../locales/native-patients.es.json";
 
 import { defaultLocale, locales, messages, type Locale, type Messages } from "./index";
 
+const nativeTrade = { en: enTrade, es: esTrade } satisfies Record<Locale, typeof esTrade>;
 const nativeInventory = { en: enInventory, es: esInventory } satisfies Record<
   Locale,
   typeof esInventory
@@ -51,6 +54,7 @@ declare module "i18next" {
     resources: {
       translation: Messages & {
         nativeBilling: typeof esBilling;
+        nativeTrade: typeof esTrade;
         nativeInventory: typeof esInventory;
         nativeReferrals: typeof esReferrals;
         nativeExchange: typeof esExchange;
@@ -76,6 +80,7 @@ export async function createNativeI18n(locale: Locale) {
           ...messages.es,
           nativeAuth: nativeAuth.es,
           nativeBilling: esBilling,
+          nativeTrade: nativeTrade.es,
           nativeInventory: nativeInventory.es,
           nativeReferrals: nativeReferrals.es,
           nativeExchange: nativeExchange.es,
@@ -90,6 +95,7 @@ export async function createNativeI18n(locale: Locale) {
           ...messages.en,
           nativeAuth: nativeAuth.en,
           nativeBilling: enBilling,
+          nativeTrade: nativeTrade.en,
           nativeInventory: nativeInventory.en,
           nativeReferrals: nativeReferrals.en,
           nativeExchange: nativeExchange.en,

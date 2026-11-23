@@ -20,7 +20,7 @@
     "paid": "Paid {amount} {currency}",
     "balance": "Balance due {amount} {currency}"
   },
-  "searchPrices": "Search prices by name",
+  "searchPrices": "Search prices by name or CABYS",
   "emptyPrices": "No prices on this page.",
   "priceSummary": "{amount} {currency} per {unit} · {rate}% tax · CABYS {cabys}",
   "newPrice": "Create price",

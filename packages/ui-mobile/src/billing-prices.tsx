@@ -1,4 +1,4 @@
-import { useCallback, useState, type ReactNode } from "react";
+import { Activity, useCallback, useState, type ReactNode } from "react";
 import { Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { Action, Field } from "./controls";
@@ -77,13 +77,23 @@ export function PriceCatalog(
   const { t } = useTranslation(),
     [edit, setEdit] = useState<Price | "new">(),
     { styles, admin } = props;
-  if (edit && admin)
+  if (edit && admin === false) setEdit(undefined);
+  if (edit && admin !== false)
     return (
-      <PriceEditor
-        {...props}
-        existing={edit === "new" ? undefined : edit}
-        back={() => setEdit(undefined)}
-      />
+      <>
+        {admin === undefined && (
+          <Text accessibilityLiveRegion="polite" style={styles.support}>
+            {t("directory.loading")}
+          </Text>
+        )}
+        <Activity mode={admin ? "visible" : "hidden"}>
+          <PriceEditor
+            {...props}
+            existing={edit === "new" ? undefined : edit}
+            back={() => setEdit(undefined)}
+          />
+        </Activity>
+      </>
     );
   return (
     <View style={styles.section}>

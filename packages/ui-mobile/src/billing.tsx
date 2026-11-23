@@ -10,9 +10,18 @@ import { Invoice, Invoices } from "./billing-invoices";
 import { Drawers } from "./billing-drawers";
 
 type Screen = "checkout" | "prices" | "invoices" | "drawers";
-export function ClinicBilling(
-  props: ClinicPatientProps & { back: () => void; admin: boolean | undefined },
-) {
+type BillingProps = ClinicPatientProps & { back: () => void; admin: boolean | undefined };
+export function ClinicBilling(props: BillingProps) {
+  const { account, scope } = props;
+  const identity = JSON.stringify([
+    account.issuer,
+    account.subject,
+    scope.organizationId,
+    scope.clinicId,
+  ]);
+  return <BillingWorkspace key={identity} {...props} />;
+}
+function BillingWorkspace(props: BillingProps) {
   const { t } = useTranslation(),
     [section, setSection] = useState<Screen>(),
     [saleId, setSaleId] = useState<string>(),
@@ -21,6 +30,7 @@ export function ClinicBilling(
   if (saleId)
     return (
       <Invoice
+        key={saleId}
         {...props}
         id={saleId}
         back={() => {

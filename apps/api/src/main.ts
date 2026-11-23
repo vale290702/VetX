@@ -47,6 +47,7 @@ async function main(): Promise<void> {
     inventory: database,
     billing: database,
     fiscal: database,
+    procurement: database,
     referrals: database,
     referralDirectory: keys,
     petLinks: loadPetLinkConfig(),

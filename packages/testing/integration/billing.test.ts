@@ -150,6 +150,10 @@ test(
         (await db.listBillingPrices(cashier, org, clinic, "Uni", 1)).prices[0]?.name,
         "Unit",
       );
+      assert.deepEqual(
+        (await db.listBillingPrices(cashier, org, clinic, "456789", 1)).prices.map((p) => p.id),
+        [price],
+      );
       assert.equal((await db.listSales(cashier, org, clinic, 1)).sales[0]?.balance, "0.00000");
       assert.equal((await db.listPayments(cashier, org, clinic, saleId, 1)).payments.length, 2);
       assert.equal(

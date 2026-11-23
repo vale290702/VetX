@@ -37,13 +37,15 @@ export function CatalogEditor({
     [failure, setFailure] = useState<"denied" | "conflict" | "invalid">();
   const action = usePatientAction(account),
     locked = !!pending || action.busy;
-  const fields = { name, sku, unit, revision: existing?.revision ?? 0 };
+  const catalogUnit = item?.unitLocked ? item.unit : unit;
+  const reviewedUnit = pending && "unit" in pending.body ? pending.body.unit : catalogUnit;
+  const fields = { name, sku, unit: reviewedUnit, revision: existing?.revision ?? 0 };
   const body =
     target.kind === "item" ? catalogInput("item", fields) : catalogInput("warehouse", fields);
   const modified =
     !existing ||
     name.trim() !== existing.name ||
-    (item && (sku.trim() !== item.sku || unit.trim() !== item.unit));
+    (item && (sku.trim() !== item.sku || reviewedUnit.trim() !== item.unit));
   function submit() {
     if (!body) return;
     const attempt = preserveAttempt<ItemInput | WarehouseInput>(pending, id, body);
@@ -106,12 +108,14 @@ export function CatalogEditor({
           <Field
             styles={styles}
             label={t("nativeInventory.unit")}
-            value={unit}
+            value={reviewedUnit}
             onChange={setUnit}
             maxLength={40}
-            disabled={locked}
+            disabled={locked || !!item?.unitLocked}
           />
-          <Text style={styles.support}>{t("nativeInventory.unitHelp")}</Text>
+          <Text style={styles.support}>
+            {t(item?.unitLocked ? "nativeInventory.unitLocked" : "nativeInventory.unitHelp")}
+          </Text>
         </>
       )}
       <PatientNotice styles={styles} error={action.error} />
@@ -131,7 +135,7 @@ export function CatalogEditor({
         styles={styles}
         primary
         busy={action.busy}
-        disabled={!body || !modified || failure === "conflict"}
+        disabled={!body || (!pending && !modified) || failure === "conflict"}
         label={t(pending && action.error ? "nativeInventory.retrySave" : "directory.save")}
         onPress={submit}
       />
