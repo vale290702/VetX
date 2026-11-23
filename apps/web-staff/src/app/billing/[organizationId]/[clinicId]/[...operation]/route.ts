@@ -1,5 +1,6 @@
 import { readStaffSession } from "../../../../../auth/account.ts";
 import {
+  attachmentResponse,
   emptyResponse,
   privateHeaders,
   safeWrite,
@@ -26,7 +27,10 @@ async function handle(
       return emptyResponse(403);
     body = await smallJson(
       request,
-      operation[0] === "sales" && operation.length === 2 ? 768 * 1024 : 4096,
+      operation[0] === "sales" &&
+        (operation.length === 2 || (operation[2] === "fiscal" && operation.length === 4))
+        ? 768 * 1024
+        : 4096,
     );
     if (!body || typeof body !== "object" || Array.isArray(body)) return emptyResponse(400);
   }
@@ -34,6 +38,11 @@ async function handle(
   if (!result.ok || request.method === "POST") {
     await result.body?.cancel();
     return emptyResponse(result.ok ? 204 : result.status);
+  }
+  if (operation[2] === "fiscal" && operation[4] === "artifacts") {
+    const attachment = attachmentResponse(result);
+    attachment.headers.set("Content-Type", "application/xml");
+    return attachment;
   }
   return new Response(result.body, {
     status: 200,

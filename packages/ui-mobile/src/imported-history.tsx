@@ -1,6 +1,7 @@
 import { useCallback, useState } from "react";
 import { Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
+import { isEpisode, releasedEpisodeStatus } from "./inpatient-forms";
 import { Action } from "./controls";
 import { useExchangeHandoff } from "./exchange-files";
 import type { ImportedRecord } from "./exchange-forms";
@@ -8,6 +9,8 @@ import { Pager, PatientNotice, PatientReadState, usePatientRead } from "./patien
 import type { ClinicPatientProps } from "./patient-form";
 
 const kinds = [
+  "hospitalization",
+  "surgery",
   "encounter",
   "addendum",
   "diagnosis",
@@ -86,6 +89,9 @@ function ImportedDetail({
   const { styles, account, scope, client } = props,
     { t, i18n } = useTranslation();
   const transfer = useExchangeHandoff(account);
+  const episode = isEpisode(record.kind);
+  const finalStatus = releasedEpisodeStatus(record.kind, record.data.status);
+  const visibleFields = episode ? (finalStatus ? (["summary"] as const) : []) : fields;
   const media = record.data.mediaType,
     size = record.data.byteLength;
   const mime = Object.keys(formats).find((k) => k === media) as keyof typeof formats | undefined;
@@ -153,7 +159,8 @@ function ImportedDetail({
           )}
         </View>
       )}
-      {fields.map((key) => {
+      {finalStatus && <Text style={styles.heading}>{t(`nativeClinical.${finalStatus}`)}</Text>}
+      {visibleFields.map((key) => {
         const value = fieldValue(record.data[key]);
         return value ? (
           <View key={key} style={styles.section}>

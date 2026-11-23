@@ -17,6 +17,7 @@
     "@vetx/api-client": "workspace:*",
     "@vetx/config": "workspace:*",
     "@vetx/design-tokens": "workspace:*",
+    "@vetx/fiscal-cr": "workspace:*",
     "@vetx/i18n": "workspace:*",
     "@vetx/ui-web": "workspace:*",
     "next": "16.4.6",

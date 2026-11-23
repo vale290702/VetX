@@ -58,7 +58,9 @@
     "radiograph": "Radiografía",
     "dicom": "Imagen DICOM",
     "referral": "Referencia",
-    "counterReferral": "Contrarreferencia"
+    "counterReferral": "Contrarreferencia",
+    "hospitalization": "Hospitalización",
+    "surgery": "Cirugía"
   },
   "fields": {
     "reason": "Motivo de consulta",

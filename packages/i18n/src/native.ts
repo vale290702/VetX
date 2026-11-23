@@ -3,6 +3,8 @@ import ICU from "i18next-icu";
 
 import enClinical from "../locales/native-clinical.en.json";
 import esClinical from "../locales/native-clinical.es.json";
+import enFiscal from "../locales/native-fiscal.en.json";
+import esFiscal from "../locales/native-fiscal.es.json";
 import enBilling from "../locales/native-billing.en.json";
 import esBilling from "../locales/native-billing.es.json";
 import enTrade from "../locales/native-trade.en.json";
@@ -56,6 +58,7 @@ declare module "i18next" {
     resources: {
       translation: Messages & {
         nativeClinical: typeof esClinical;
+        nativeFiscal: typeof esFiscal;
         nativeBilling: typeof esBilling;
         nativeTrade: typeof esTrade;
         nativeInventory: typeof esInventory;
@@ -83,6 +86,7 @@ export async function createNativeI18n(locale: Locale) {
           ...messages.es,
           nativeAuth: nativeAuth.es,
           nativeClinical: esClinical,
+          nativeFiscal: esFiscal,
           nativeBilling: esBilling,
           nativeTrade: nativeTrade.es,
           nativeInventory: nativeInventory.es,
@@ -99,6 +103,7 @@ export async function createNativeI18n(locale: Locale) {
           ...messages.en,
           nativeAuth: nativeAuth.en,
           nativeClinical: enClinical,
+          nativeFiscal: enFiscal,
           nativeBilling: enBilling,
           nativeTrade: nativeTrade.en,
           nativeInventory: nativeInventory.en,

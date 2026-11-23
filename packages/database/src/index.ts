@@ -1,3 +1,10 @@
+import {
+  preflightFiscalInvoice,
+  FiscalXmlValidationError,
+  type FiscalInvoice,
+} from "@vetx/fiscal-cr";
+import type { ClinicFiscalStatus, FiscalDraft, FiscalEnvironment, FiscalRecord } from "./fiscal.js";
+export * from "./fiscal.js";
 import type {
   BillingPage,
   PriceInput,
@@ -36,6 +43,7 @@ import {
   type PatientPage,
   type PatientSummary,
   type RedeemPetLinkInput,
+  RegistryError,
   registryResult,
   type RegistryErrorCode,
 } from "./registry.js";
@@ -167,7 +175,7 @@ export class PrismaDatabase {
                     public.organization_memberships, public.clinic_grants
       LIMIT 0
     `;
-    await transaction.$queryRaw`SELECT public.registry_lock_tables() AS registry_locked, public.care_lock_tables() AS care_locked, public.document_lock_tables() AS documents_locked, public.exchange_lock_tables() AS exchange_locked, public.export_lock_tables() AS exports_locked, public.referral_lock_tables() AS referrals_locked, public.stock_lock_tables() AS stock_locked, public.trade_lock_tables() AS trade_locked,public.billing_lock_tables() AS billing_locked,public.clinical_lock_tables() AS clinical_locked`;
+    await transaction.$queryRaw`SELECT public.registry_lock_tables() AS registry_locked, public.care_lock_tables() AS care_locked, public.document_lock_tables() AS documents_locked, public.exchange_lock_tables() AS exchange_locked, public.export_lock_tables() AS exports_locked, public.referral_lock_tables() AS referrals_locked, public.stock_lock_tables() AS stock_locked, public.trade_lock_tables() AS trade_locked,public.billing_lock_tables() AS billing_locked, public.fiscal_lock_tables() AS fiscal_locked, public.clinical_lock_tables() AS clinical_locked`;
     const [result] = await transaction.$queryRaw<{ active: boolean }[]>`
       SELECT current_setting('row_security') = 'on'
         AND NOT EXISTS (
@@ -183,7 +191,7 @@ export class PrismaDatabase {
                         'public.encounter_sharing', 'public.encounter_recipients', 'public.appointments', 'public.care_events',
                         'public.referral_states','public.referral_requests','public.referral_responses','public.referral_events',
                         'public.exchange_packages','public.exchange_receipts','public.exchange_patients',
-                        'public.exchange_imports','public.exchange_records','public.medical_documents','public.document_events','public.exchange_export_events','public.inventory_warehouses','public.inventory_items','public.stock_balances','public.stock_movements','public.trade_suppliers','public.purchase_orders','public.purchase_lines','public.purchase_receipts','public.purchase_receipt_lines','public.supplier_returns','public.pharmacy_capabilities','public.patient_prescriptions','public.prescription_dispensings','public.prescription_sharing','public.pharmacy_events','public.billing_prices','public.billing_price_events','public.billing_sales','public.cash_shifts','public.billing_payments','public.clinical_record_heads','public.clinical_record_revisions']::regclass[]) AS tables(relation)
+                        'public.exchange_imports','public.exchange_records','public.medical_documents','public.document_events','public.exchange_export_events','public.inventory_warehouses','public.inventory_items','public.stock_balances','public.stock_movements','public.trade_suppliers','public.purchase_orders','public.purchase_lines','public.purchase_receipts','public.purchase_receipt_lines','public.supplier_returns','public.pharmacy_capabilities','public.patient_prescriptions','public.prescription_dispensings','public.prescription_sharing','public.pharmacy_events','public.billing_prices','public.billing_price_events','public.billing_sales','public.cash_shifts','public.billing_payments','public.fiscal_events','public.fiscal_profiles','public.fiscal_invoices','public.clinical_record_heads','public.clinical_record_revisions']::regclass[]) AS tables(relation)
       JOIN pg_catalog.pg_class ON pg_class.oid = relation
     `;
     if (!result?.active) throw new Error("Database row security is inactive");
@@ -1174,6 +1182,89 @@ export class PrismaDatabase {
       "",
       "",
       Prisma.sql`SELECT public.pharmacy_owner_list(${pet}::uuid,${page}::int) AS result`,
+    );
+  }
+
+  async fiscalArtifact(
+    staff: StaffPrincipal,
+    org: string,
+    clinic: string,
+    sale: string,
+    environment: FiscalEnvironment,
+    kind: "invoice" | "receipt",
+  ): Promise<{ key: string; xml: Buffer }> {
+    const result = await this.registryQuery<{ key: string; body: string }>(
+      staff,
+      org,
+      clinic,
+      Prisma.sql`SELECT public.fiscal_artifact(${sale}::uuid,${environment},${kind}) AS result`,
+      "",
+      this.bulkClient,
+    );
+    return { key: result.key, xml: Buffer.from(result.body, "base64") };
+  }
+
+  fiscalStatus(
+    staff: StaffPrincipal,
+    org: string,
+    clinic: string,
+    sale: string,
+    environment: FiscalEnvironment,
+  ): Promise<ClinicFiscalStatus> {
+    return this.registryQuery(
+      staff,
+      org,
+      clinic,
+      Prisma.sql`SELECT public.fiscal_get_status(${sale}::uuid,${environment}) AS result`,
+    );
+  }
+
+  issueFiscalInvoice(
+    staff: StaffPrincipal,
+    org: string,
+    clinic: string,
+    sale: string,
+    environment: FiscalEnvironment,
+    draft: FiscalDraft,
+  ): Promise<FiscalRecord> {
+    return this.withAccess(
+      staff,
+      org,
+      async (transaction) => {
+        await transaction.$queryRaw`SELECT set_config('vetx.clinic_id',${clinic},true)`;
+        type Frozen = { invoice: FiscalRecord; snapshot: FiscalInvoice; created: boolean };
+        const rows = await transaction.$queryRaw<
+          { result: Frozen | { error: RegistryErrorCode } }[]
+        >`SELECT public.fiscal_request(${sale}::uuid,${environment},${JSON.stringify(draft)}::jsonb) AS result`;
+        const { invoice, snapshot, created } = registryResult<Frozen>(rows);
+        if (created === false) return invoice;
+        // A rejected snapshot rolls back its sequence and outbox entry together.
+        try {
+          if ((await preflightFiscalInvoice(snapshot, 5000)) !== invoice.key)
+            throw new Error("Fiscal key mismatch");
+        } catch (error) {
+          if (error instanceof FiscalXmlValidationError && error.kind === "unavailable")
+            throw error;
+          throw new RegistryError("invalid");
+        }
+        return invoice;
+      },
+      this.bulkClient,
+    );
+  }
+
+  retryFiscalInvoice(
+    staff: StaffPrincipal,
+    org: string,
+    clinic: string,
+    sale: string,
+    environment: FiscalEnvironment,
+  ): Promise<FiscalRecord> {
+    return this.registryQuery(
+      staff,
+      org,
+      clinic,
+      Prisma.sql`SELECT public.fiscal_retry(${sale}::uuid,${environment}) AS result`,
     );
   }
 

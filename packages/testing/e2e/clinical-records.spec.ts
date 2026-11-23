@@ -1,8 +1,7 @@
 import { randomUUID } from "node:crypto";
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
-import { createDirectoryFixture } from "./support/directory.js";
-import { mobileSession, enterCredentials, setting } from "./support/identity.js";
+import { openClinicalChart } from "./support/clinical-chart.js";
 test.use({ trace: "off" });
 test.setTimeout(120_000);
 
@@ -12,65 +11,13 @@ test("staff chart typed records, review a lab result and release only its curren
   request,
 }) => {
   page.setDefaultTimeout(15_000);
-  const f = await createDirectoryFixture(),
-    setup = await browser.newContext();
-  const clinicId = randomUUID(),
-    patientId = randomUUID(),
-    encounterId = randomUUID(),
-    guardianId = randomUUID();
-  const org = "/organizations/" + f.organizationId,
-    patient = org + "/clinics/" + clinicId + "/patients/" + patientId;
-  const api = setting("API_INTERNAL_URL"),
-    stamp = "2026-11-22T15:00:22.123Z";
+  const { encounterId, endpoint, ownerRecords, cleanup } = await openClinicalChart(
+    page,
+    browser,
+    request,
+  );
   try {
-    const staff = await mobileSession(await setup.newPage(), f.admin, "STAFF");
-    const headers = { Authorization: "Bearer " + staff.accessToken };
-    for (const [url, data] of [
-      [org + "/administration/clinics/" + clinicId, { name: "Clinical services", revision: 0 }],
-      [patient, { name: "Luna", species: "Cat", birthDate: null, revision: 0 }],
-      [
-        patient + "/encounters/" + encounterId,
-        {
-          occurredAt: stamp,
-          reason: "Annual visit",
-          subjective: "Routine visit",
-          objective: "",
-          assessment: "",
-          plan: "",
-        },
-      ],
-      [patient + "/guardians/" + guardianId, { name: "Ari Vega", email: f.staff.email }],
-    ] as const) {
-      expect((await request.put(api + url, { headers, data })).ok()).toBe(true);
-    }
-    const invite = await request.post(api + patient + "/guardians/" + guardianId + "/invitations", {
-      headers,
-      data: { requestId: randomUUID() },
-    });
-    expect(invite.ok()).toBe(true);
-    await setup.clearCookies();
-    const owner = await mobileSession(await setup.newPage(), f.staff, "OWNER"),
-      ownerHeaders = { Authorization: "Bearer " + owner.accessToken };
-    const pet = await request.post(api + "/owner/pet-links/redeem", {
-      headers: ownerHeaders,
-      data: { code: (await invite.json()).code, requestId: randomUUID() },
-    });
-    expect(pet.ok()).toBe(true);
-    const ownerUrl = api + "/owner/pets/" + (await pet.json()).petId + "/clinical-records";
-    async function ownerRecords() {
-      const res = await request.get(ownerUrl, { headers: ownerHeaders });
-      expect(res.ok()).toBe(true);
-      return (await res.json()).records;
-    }
-    await page.goto("/en");
-    await page.getByRole("button", { name: "Sign in", exact: true }).click();
-    await enterCredentials(page, f.admin);
-    await expect(page.getByRole("link", { name: f.organizationName })).toBeVisible();
-    await page.goto("/en" + patient);
-    await page.getByRole("link", { name: "Clinical records", exact: true }).click();
-    await expect(page.getByRole("heading", { name: "Clinical records for Luna" })).toBeVisible();
     expect((await page.request.get(page.url())).headers()["cache-control"]).toContain("no-store");
-    const endpoint = `/clinical/${f.organizationId}/${clinicId}/${patientId}`;
     const forged = await page.request.post(endpoint + "/" + randomUUID() + "/" + randomUUID(), {
       data: {},
       headers: { Origin: new URL(page.url()).origin, "X-VetX-CSRF": "invalid" },
@@ -206,7 +153,6 @@ test("staff chart typed records, review a lab result and release only its curren
       ),
     ).toBe(true);
   } finally {
-    await setup.close();
-    await f.cleanup();
+    await cleanup();
   }
 });

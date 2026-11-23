@@ -1,7 +1,18 @@
 import { isDirectoryId } from "../directory/forms.ts";
 import type { ClinicScope } from "../patients/forms.ts";
 export const fileKinds = ["document", "radiograph", "dicom"];
-export function visibleRecordFields(data: Record<string, unknown>) {
+export function visibleRecordFields(data: Record<string, unknown>, kind?: string) {
+  if (kind === "hospitalization" || kind === "surgery") {
+    const final =
+      kind === "hospitalization"
+        ? data.status === "DISCHARGED"
+        : data.status === "COMPLETED" || data.status === "CANCELLED";
+    return final
+      ? Object.entries(data).filter(
+          ([key, v]) => (key === "status" || key === "summary") && typeof v === "string",
+        )
+      : [];
+  }
   return Object.entries(data).filter(([key, v]) => key !== "content" && v !== null && v !== "");
 }
 export function parseCommitChoice(input: unknown) {

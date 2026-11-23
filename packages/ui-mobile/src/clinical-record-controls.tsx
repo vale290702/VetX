@@ -3,6 +3,7 @@ import { Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { Action, type AccessStyles } from "./controls";
 import { usePatientAction, PatientNotice } from "./patient-controls";
+import { episodeStatus, isEpisode } from "./inpatient-forms";
 import { inventoryWrite } from "./inventory-client";
 import type { MobileAccount } from "./session";
 import {
@@ -49,6 +50,7 @@ export function SubmitClinical({
   state,
   label,
   valid,
+  disabled = false,
   submit,
   refresh,
 }: {
@@ -61,6 +63,7 @@ export function SubmitClinical({
   };
   label: string;
   valid: boolean;
+  disabled?: boolean;
   submit: () => void;
   refresh: () => void;
 }) {
@@ -79,13 +82,18 @@ export function SubmitClinical({
         </Text>
       )}
       {state.issue === "denied" || state.issue === "conflict" ? (
-        <Action styles={styles} label={t("nativeClinical.refresh")} onPress={refresh} />
+        <Action
+          styles={styles}
+          disabled={disabled}
+          label={t("nativeClinical.refresh")}
+          onPress={refresh}
+        />
       ) : (
         <Action
           styles={styles}
           primary
           busy={state.busy}
-          disabled={!valid && !state.pending}
+          disabled={disabled || (!valid && !state.pending)}
           label={state.pending ? t("nativeClinical.retry") : label}
           onPress={submit}
         />
@@ -109,16 +117,18 @@ export function ClinicalHeading({
 export function ClinicalEntry({
   record,
   styles,
+  owner = false,
   refs = false,
 }: {
   record: StaffRecord | ReleasedRecord;
   styles: AccessStyles;
+  owner?: boolean;
   refs?: boolean;
 }) {
   const { t, i18n } = useTranslation(),
     [expanded, setExpanded] = useState(false),
     data: Values = record.data,
-    status = labData(record)?.status;
+    status = labData(record)?.status ?? episodeStatus(record);
   const local = (v: string) => new Date(v).toLocaleString(i18n.language);
   return (
     <View style={styles.row}>
@@ -131,20 +141,29 @@ export function ClinicalEntry({
       {"clinicName" in record && (
         <Text style={styles.support}>{record.clinicName + " · " + record.organizationName}</Text>
       )}
-      {clinicalFields(record.kind, "show").map((k) => {
+      {(owner && isEpisode(record.kind)
+        ? (["summary"] as const)
+        : clinicalFields(record.kind, "show")
+      ).map((k) => {
         const v = data[k];
         return v ? (
           <View key={k}>
-            <Text style={styles.heading}>{t(`nativeClinical.${k}`)}</Text>
+            <Text style={styles.heading}>
+              {t(
+                `nativeClinical.${record.kind === "surgery" && k === "notes" ? "surgeryNotes" : k}`,
+              )}
+            </Text>
             <Text selectable style={styles.support}>
               {k === "nextDueDate"
                 ? new Date(v + "T12:00:00Z").toLocaleDateString(i18n.language, { timeZone: "UTC" })
-                : v}
+                : k === "scheduledAt"
+                  ? local(v)
+                  : v}
             </Text>
           </View>
         ) : null;
       })}
-      {"author" in record && (
+      {!owner && "author" in record && (
         <>
           <Text style={styles.support}>
             {t(

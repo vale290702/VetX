@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
@@ -135,4 +135,34 @@ test("signed client fixture validates offline against the pinned Hacienda XSD an
     ),
     /Invalid fiscal invoice/,
   );
+});
+
+test("schema preflight validates unsigned invoice content and distinguishes validator execution failures", async (t) => {
+  const { preflightFiscalInvoice } = await import("../dist/index.js");
+  assert.equal(await preflightFiscalInvoice(base, 5000), buildFiscalInvoice(base).key);
+  for (const variant of [
+    { ...base, issuer: { ...base.issuer, name: "ABC" } },
+    { ...base, issuer: { ...base.issuer, address: { ...base.issuer.address, details: "XYZ" } } },
+    { ...base, lines: [{ ...base.lines[0], name: "IV" }] },
+  ])
+    await assert.rejects(preflightFiscalInvoice(variant, 5000), {
+      name: "FiscalXmlValidationError",
+      kind: "invalid",
+    });
+  const dir = await mkdtemp(join(tmpdir(), "vetx-schema-runner-"));
+  t.after(() => rm(dir, { recursive: true, force: true }));
+  const originalPath = process.env.PATH;
+  t.after(() => {
+    process.env.PATH = originalPath;
+  });
+  process.env.PATH = dir;
+  const failed = { name: "FiscalXmlValidationError", kind: "unavailable" };
+  await assert.rejects(validateSignedInvoice(Buffer.from("<invoice/>"), 5000), failed);
+  const check = async (script, timeout) => {
+    await writeFile(join(dir, "xmllint"), "#!/bin/sh\n" + script + "\n", { mode: 0o700 });
+    await assert.rejects(validateSignedInvoice(Buffer.from("<invoice/>"), timeout), failed);
+  };
+  await check("exec /bin/sleep 3", 75);
+  await check('kill -TERM "$$"', 2000);
+  await check("exit 5", 2000);
 });

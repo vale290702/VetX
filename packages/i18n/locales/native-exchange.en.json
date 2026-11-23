@@ -58,7 +58,9 @@
     "radiograph": "Radiograph",
     "dicom": "DICOM image",
     "referral": "Referral",
-    "counterReferral": "Counter-referral"
+    "counterReferral": "Counter-referral",
+    "hospitalization": "Hospitalization",
+    "surgery": "Surgery"
   },
   "fields": {
     "reason": "Reason for visit",

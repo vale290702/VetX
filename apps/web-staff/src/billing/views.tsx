@@ -6,6 +6,8 @@ import { billingMessages } from "./messages.ts";
 import { billingRequest } from "./server.ts";
 import { formatAmount, type Context, type Sale, type Schema } from "./model.ts";
 import { PriceForm } from "./catalog";
+import { FiscalStatus } from "./fiscal-status";
+import type { Environment } from "./fiscal-form";
 import { Checkout } from "./checkout";
 import { DrawerForm, PaymentForm } from "./payments";
 export type View = "sales" | "checkout" | "prices" | "drawers";
@@ -15,10 +17,12 @@ export function billingPath(
   page = 1,
   q = "",
   sale?: string,
+  environment?: Environment,
 ) {
   const query = new URLSearchParams();
   if (sale) query.set("sale", sale);
   else if (view !== "sales") query.set("view", view);
+  if (sale && environment) query.set("environment", environment);
   if (q) query.set("q", q);
   if (page > 1) query.set("page", String(page));
   return (
@@ -33,6 +37,7 @@ type Props = {
   page: number;
   query: string;
   saleId?: string;
+  environment: Environment;
   admin: boolean;
   access: Access;
 };
@@ -62,13 +67,19 @@ function Paging({ props, next }: { props: Props; next: boolean }) {
   return (
     <nav className="directory-paging" aria-label={t("pages")}>
       {page > 1 && (
-        <Link className="directory-back" href={billingPath(scope, view, page - 1, query, saleId)}>
+        <Link
+          className="directory-back"
+          href={billingPath(scope, view, page - 1, query, saleId, props.environment)}
+        >
           {t("previous")}
         </Link>
       )}
       <span>{t("page", { page })}</span>
       {next && (
-        <Link className="directory-back" href={billingPath(scope, view, page + 1, query, saleId)}>
+        <Link
+          className="directory-back"
+          href={billingPath(scope, view, page + 1, query, saleId, props.environment)}
+        >
           {t("next")}
         </Link>
       )}
@@ -105,9 +116,10 @@ export async function BillingView(props: Props) {
   const { ctx, view, scope, saleId, page, query } = props,
     t = billingMessages(ctx.locale);
   if (saleId) {
-    const [result, history] = await Promise.all([
+    const [result, history, fiscal] = await Promise.all([
       read<Sale>(props, "billing/sales/" + saleId),
       read<Schema["PaymentsDto"]>(props, `billing/sales/${saleId}/payments?page=${page}`),
+      read<Schema["FiscalStatusDto"]>(props, `billing/sales/${saleId}/fiscal/${props.environment}`),
     ]);
     if (!result.data) return <Notice ctx={ctx} status={result.status} />;
     const sale = result.data;
@@ -146,6 +158,14 @@ export async function BillingView(props: Props) {
           ))}
         </ol>
         <FinancialSummary ctx={ctx} sale={sale} />
+        <FiscalStatus
+          ctx={ctx}
+          sale={sale}
+          admin={props.admin}
+          environment={props.environment}
+          status={fiscal.data}
+          href={billingPath(scope, view, page, query, saleId)}
+        />
         {!/^0(?:\.0+)?$/.test(sale.balance) && <PaymentForm ctx={ctx} sale={sale} />}
         <h3>{t("payments")}</h3>
         {history.data ? (

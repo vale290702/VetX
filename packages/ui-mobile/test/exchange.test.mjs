@@ -97,7 +97,16 @@ test("owner export reads the selected source and delivers the recipient-bound pa
   );
   await client.options("owner", "pet");
   await client.choices("owner", "pet", source, 2);
-  const body = exportBody(source, dest, [{ kind: "encounter", id: "e" }], false);
+  const body = exportBody(
+    source,
+    dest,
+    [
+      { kind: "encounter", id: "e" },
+      { kind: "clinical", id: "released-version" },
+    ],
+    false,
+  );
+  assert.deepEqual(body.clinicalRevisionIds, ["released-version"]);
   assert.deepEqual(await client.exportPackage("owner", "pet", body), bytes);
   assert.deepEqual(
     calls.map((r) => [

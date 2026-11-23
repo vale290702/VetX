@@ -55,3 +55,19 @@ export function displayTime(instant: string, locale: string, timeZone: string) {
     timeZone,
   }).format(new Date(instant));
 }
+
+export function resolveLocalInstant(
+  value: FormDataEntryValue | null,
+  zone: string,
+  original?: string,
+) {
+  if (original && typeof value === "string") {
+    try {
+      if (Temporal.PlainDateTime.from(value).equals(localInput(original, zone, true)))
+        return original;
+    } catch {
+      return null;
+    }
+  }
+  return localInstant(value, zone);
+}
