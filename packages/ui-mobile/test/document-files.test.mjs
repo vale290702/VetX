@@ -74,7 +74,7 @@ test("picker reads a private copy and removes it; source files are never deleted
     files.set(uri, bytes);
     globalThis.documentDevice.pick = async (options) => {
       assert.equal(options.copyToCacheDirectory, true);
-      assert.ok(options.type.includes("application/pdf"));
+      assert.deepEqual(options.type, ["*/*"]);
       return { canceled: false, assets: [{ uri, name: "scan.png", mimeType: "image/png" }] };
     };
     assert.deepEqual(await pickDocument(), { name: "scan.png", mediaType: "image/png", bytes });
@@ -172,4 +172,49 @@ test("an unavailable share target clears the private copy and reports a recovera
     (e) => e.issue === "openUnavailable",
   );
   assert.equal(files.has("file:///cache/vetx-handoff/VetX-random.vetpkg"), false);
+});
+
+test("DICOM originals keep the dcm file extension even when the picker reports generic data", async () => {
+  const uri = "file:///cache/DocumentPicker/source.DCM";
+  files.set(uri, bytes);
+  globalThis.documentDevice.pick = async (options) => {
+    assert.ok(options.type.includes("*/*"));
+    return {
+      canceled: false,
+      assets: [{ uri, name: "source.DCM", mimeType: "application/octet-stream" }],
+    };
+  };
+  const file = await pickDocument();
+  assert.equal(file.mediaType, "application/dicom");
+  globalThis.documentDevice.share = async (uri, options) => {
+    assert.equal(options.mimeType, "application/dicom");
+    assert.match(uri, /\.dcm$/);
+    assert.deepEqual(files.get(uri), bytes);
+  };
+  await openDocument(
+    file,
+    async () => bytes,
+    () => true,
+    "original",
+  );
+});
+test("the first-frame cache is private, released on close, and never written after scope changes", async () => {
+  const { preparePreview } = await import("../src/document-files.ts");
+  let active = true;
+  const dropped = await preparePreview(
+    async () => {
+      active = false;
+      return bytes;
+    },
+    () => active,
+  );
+  assert.equal(dropped, undefined);
+  const opened = await preparePreview(
+    async () => bytes,
+    () => true,
+  );
+  assert.match(opened.uri, /vetx-preview/);
+  assert.deepEqual(files.get(opened.uri), bytes);
+  opened.close();
+  assert.equal(files.has(opened.uri), false);
 });

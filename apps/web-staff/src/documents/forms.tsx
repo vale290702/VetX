@@ -93,7 +93,7 @@ export function DocumentUpload({ endpoint, csrf, firstPage }: Props & { firstPag
             type="file"
             name="file"
             required
-            accept="application/pdf,image/png,image/jpeg"
+            accept="application/pdf,image/png,image/jpeg,application/dicom,.dcm"
             aria-describedby="document-types"
           />
         </label>

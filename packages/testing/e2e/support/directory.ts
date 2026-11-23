@@ -19,7 +19,10 @@ export async function createDirectoryFixture(organizationId: string = randomUUID
   async function cleanup() {
     try {
       const documents = await db.query(
-        "SELECT clinic_id,patient_id,id,sha256 FROM medical_documents WHERE organization_id=$1",
+        `SELECT clinic_id,patient_id,id,sha256 FROM medical_documents WHERE organization_id=$1
+         UNION ALL
+         SELECT clinic_id,patient_id,id,imaging #>> '{preview,sha256}' AS sha256 FROM medical_documents
+         WHERE organization_id=$1 AND imaging #>> '{preview,sha256}' IS NOT NULL`,
         [organizationId],
       );
       const archives = await db.query(
