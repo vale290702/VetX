@@ -11,13 +11,19 @@ import {
   IsOptional,
   IsUUID,
   ValidateNested,
+  ValidateIf,
 } from "class-validator";
 import { PatientSummaryDto } from "../registry/contracts.js";
 
 const uuid = () => applyDecorators(ApiProperty({ format: "uuid" }), IsUUID());
-const uuids = () =>
+const uuids = (optional = false) =>
   applyDecorators(
-    ApiProperty({ type: "array", items: { type: "string", format: "uuid" }, uniqueItems: true }),
+    ApiProperty({
+      type: "array",
+      items: { type: "string", format: "uuid" },
+      uniqueItems: true,
+      required: !optional,
+    }),
     IsArray(),
     ArrayUnique((v: unknown) => (typeof v === "string" ? v.toLowerCase() : v)),
     IsUUID(undefined, { each: true }),
@@ -55,6 +61,7 @@ export class ExportRequestDto {
   readonly destination!: ExchangeClinicDto;
   @uuids() readonly encounterIds!: string[];
   @uuids() readonly documentAssetIds!: string[];
+  @uuids(true) @ValidateIf((_o, v) => v !== undefined) readonly clinicalRevisionIds?: string[];
   @ApiProperty() @IsBoolean() readonly includeOwner!: boolean;
 }
 class PageDto {
@@ -63,7 +70,8 @@ class PageDto {
 }
 class ExportChoiceDto {
   @uuid() readonly id!: string;
-  @ApiProperty({ enum: ["encounter", "document"] }) readonly kind!: "encounter" | "document";
+  @ApiProperty({ enum: ["encounter", "document", "clinical"] }) readonly kind!:
+    "encounter" | "document" | "clinical";
   @ApiProperty() readonly title!: string;
   @ApiProperty({ format: "date-time" }) readonly occurredAt!: string;
 }
@@ -114,7 +122,15 @@ class OriginalAuthorDto {
   @ApiProperty() readonly issuer!: string;
   @ApiProperty() readonly subject!: string;
 }
+class ImportedClinicalRevisionDto {
+  @uuid() readonly recordId!: string;
+  @ApiProperty({ type: "integer", minimum: 1 }) readonly revision!: number;
+  @ApiPropertyOptional({ type: OriginalAuthorDto }) readonly resultAuthor?: OriginalAuthorDto;
+  @ApiPropertyOptional({ format: "date-time" }) readonly resultRecordedAt?: string;
+}
 export class ImportedRecordDto {
+  @ApiPropertyOptional({ type: ImportedClinicalRevisionDto })
+  readonly clinicalRevision?: ImportedClinicalRevisionDto;
   @uuid() readonly id!: string;
   @uuid() readonly importedId!: string;
   @uuid() readonly packageId!: string;

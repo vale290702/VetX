@@ -19,6 +19,8 @@ A clinic identity is an object with `organizationId` and `clinicId`. Both are lo
 
 Every record has `kind`, source `id` (UUID), `occurredAt`, `recordedAt`, original `author` with `issuer` and `subject`, and a typed `data` object. Time instants carry UTC or an explicit numeric offset. Calendar dates use YYYY-MM-DD. Record IDs are unique within the manifest. The signed source organization, clinic, patient, kind and record ID form the provenance identity across exports. Importers should keep this identity and original authorship with the imported record. A new package ID or ciphertext can carry an already imported record.
 
+For a versioned diagnosis, treatment, vaccination or reviewed lab result, the record ID identifies the immutable exported revision. The optional record-level `clinicalRevision` contains the source `recordId` and positive integer `revision`. A reviewed lab also carries `resultAuthor` and `resultRecordedAt` inside that object. Its top-level author and recording time identify the reviewer. A correction gets a new revision ID and keeps the same source record ID. Deploy a receiver that supports these fields before sending versioned records to it.
+
 | Record kind       | Fields in `data`                                                                                                      |
 | ----------------- | --------------------------------------------------------------------------------------------------------------------- |
 | `encounter`       | `reason`, `subjective`, `objective`, `assessment`, `plan`                                                             |
@@ -27,7 +29,7 @@ Every record has `kind`, source `id` (UUID), `occurredAt`, `recordedAt`, origina
 | `treatment`       | `treatment`, optional `notes`                                                                                         |
 | `prescription`    | `medication`, `instructions`                                                                                          |
 | `vaccination`     | `vaccine`, optional `lotNumber`, optional `nextDueDate`                                                               |
-| `labResult`       | `test`, `result`, optional `unit` and `referenceRange`                                                                |
+| `labResult`       | `test`, `result`, optional `specimen`, `unit` and `referenceRange`                                                    |
 | `document`        | Attachment fields, media type PDF, JPEG or PNG                                                                        |
 | `radiograph`      | Attachment fields, media type JPEG or PNG                                                                             |
 | `dicom`           | Attachment fields, media type `application/dicom`, optional `studyInstanceUid`, `seriesInstanceUid`, `sopInstanceUid` |

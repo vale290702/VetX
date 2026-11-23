@@ -48,6 +48,11 @@ function record<K extends string, S extends z.ZodRawShape>(kind: K, shape: S) {
   return z.strictObject({ ...common, kind: z.literal(kind), data: z.strictObject(shape) });
 }
 
+const clinicalProvenance = z.strictObject({ recordId: uuid, revision: z.int().positive() });
+const resultProvenance = clinicalProvenance.extend({
+  resultAuthor: common.author,
+  resultRecordedAt: timestamp,
+});
 const soap = {
   reason: label(250),
   subjective: section,
@@ -68,20 +73,25 @@ const dicomUid = z
 const recordSchema = z.discriminatedUnion("kind", [
   record("encounter", soap),
   record("addendum", { ...soap, addendumTo: uuid }),
-  record("diagnosis", { diagnosis: narrative, code: label(128).optional() }),
-  record("treatment", { treatment: narrative, notes: section.optional() }),
+  record("diagnosis", { diagnosis: narrative, code: label(128).optional() }).extend({
+    clinicalRevision: clinicalProvenance.optional(),
+  }),
+  record("treatment", { treatment: narrative, notes: section.optional() }).extend({
+    clinicalRevision: clinicalProvenance.optional(),
+  }),
   record("prescription", { medication: label(250), instructions: narrative }),
   record("vaccination", {
     vaccine: label(250),
     lotNumber: label(128).optional(),
     nextDueDate: z.iso.date().optional(),
-  }),
+  }).extend({ clinicalRevision: clinicalProvenance.optional() }),
   record("labResult", {
     test: label(250),
     result: narrative,
     unit: label(128).optional(),
     referenceRange: label(250).optional(),
-  }),
+    specimen: label(250).optional(),
+  }).extend({ clinicalRevision: resultProvenance.optional() }),
   record("document", {
     ...attachment,
     mediaType: z.enum(["application/pdf", "image/jpeg", "image/png"]),

@@ -44,6 +44,7 @@ async function main(): Promise<void> {
     },
     documents: { database, ...(files && storage ? { config: files, storage } : {}) },
     care: database,
+    clinicalRecords: database,
     inventory: database,
     referrals: database,
     referralDirectory: keys,

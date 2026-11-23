@@ -9,6 +9,7 @@ import { InventoryModule, type InventoryStore } from "./inventory/module.js";
 import { ClinicalExchangeModule } from "./exchange/module.js";
 import type { ExchangeDependencies } from "./exchange/service.js";
 import { IdentityModule } from "./identity-context.js";
+import { ClinicalRecordsModule, type ClinicalStore } from "./clinical-records/module.js";
 import { CareModule, type CareStore } from "./care/module.js";
 import { ReferralModule, type ReferralStore, type ReferralDirectory } from "./referrals/module.js";
 import { RegistryModule, type RegistryStore } from "./registry/module.js";
@@ -22,6 +23,7 @@ type Dependencies = AccessDependencies & {
   exchange?: ExchangeDependencies;
   documents?: DocumentDependencies;
   care?: CareStore;
+  clinicalRecords?: ClinicalStore;
   referrals?: ReferralStore;
   referralDirectory?: ReferralDirectory;
   registry?: RegistryStore;
@@ -42,6 +44,7 @@ class AppModule {
         InventoryModule.register(access.inventory),
         ClinicalExchangeModule.register(access.exchange),
         CareModule.register(access.care),
+        ClinicalRecordsModule.register(access.clinicalRecords),
         ReferralModule.register(access.referrals, access.referralDirectory),
       ],
     };

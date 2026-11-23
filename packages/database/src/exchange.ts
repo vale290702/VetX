@@ -29,7 +29,14 @@ export type ExchangeRecordKind =
 export type ExchangeJson =
   string | number | boolean | null | ExchangeJson[] | { [key: string]: ExchangeJson };
 
+export interface ClinicalRevisionProvenance {
+  recordId: string;
+  revision: number;
+  resultAuthor?: { issuer: string; subject: string };
+  resultRecordedAt?: string;
+}
 export interface ExchangeRecord {
+  clinicalRevision?: ClinicalRevisionProvenance;
   id: string;
   kind: ExchangeRecordKind;
   occurredAt: string;
