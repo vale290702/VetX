@@ -570,3 +570,17 @@ body {
 .exchange-record dd {
   white-space: pre-wrap;
 }
+
+.billing-picker {
+  display: grid;
+  gap: var(--vetx-space-compact);
+  min-inline-size: 0;
+  border-block-end: var(--vetx-space-hairline) solid var(--vetx-color-line);
+  padding-block-end: var(--vetx-space-regular);
+}
+.billing-picker legend {
+  margin-block-end: var(--vetx-space-compact);
+}
+.billing-picker > button {
+  justify-self: start;
+}

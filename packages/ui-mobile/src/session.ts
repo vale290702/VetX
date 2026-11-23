@@ -1,4 +1,5 @@
 export type MobileAccount = {
+  issuer: string;
   subject: string;
   organizations: { id: string; name: string }[];
 };

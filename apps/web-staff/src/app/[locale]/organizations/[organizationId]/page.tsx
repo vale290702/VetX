@@ -8,6 +8,7 @@ import { loadDirectory } from "../../../../directory/api.ts";
 import { directoryNotices, isDirectoryId, readDirectoryPage } from "../../../../directory/forms.ts";
 import { TradeLink } from "../../../../trade/nav";
 import { InventoryLink } from "../../../../inventory/navigation";
+import { BillingLink } from "../../../../billing/navigation";
 import { ReferralLink } from "../../../../referrals/navigation";
 import { Link } from "../../../../i18n/routing";
 import { Masthead } from "../../masthead";
@@ -100,6 +101,11 @@ export default async function OrganizationDirectory({ params, searchParams }: Pr
                           clinic={clinic.name}
                         />
                         <InventoryLink
+                          locale={locale}
+                          scope={{ organizationId, clinicId: clinic.id }}
+                          clinic={clinic.name}
+                        />
+                        <BillingLink
                           locale={locale}
                           scope={{ organizationId, clinicId: clinic.id }}
                           clinic={clinic.name}

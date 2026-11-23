@@ -7,6 +7,7 @@ import { getTranslations } from "next-intl/server";
 
 import { TradeLink } from "../trade/nav";
 import { InventoryLink } from "../inventory/navigation";
+import { BillingLink } from "../billing/navigation";
 import { ReferralLink } from "../referrals/navigation";
 import { Link } from "../i18n/routing";
 import { MemberFields, type Clinic, type Member } from "./member-fields";
@@ -128,6 +129,11 @@ export async function AdminPanel({ csrf, locale, organizationId, directory }: Pr
                   clinic={clinic.name}
                 />
                 <InventoryLink
+                  locale={locale}
+                  scope={{ organizationId, clinicId: clinic.id }}
+                  clinic={clinic.name}
+                />
+                <BillingLink
                   locale={locale}
                   scope={{ organizationId, clinicId: clinic.id }}
                   clinic={clinic.name}
