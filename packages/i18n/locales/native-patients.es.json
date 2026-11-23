@@ -1,4 +1,5 @@
 {
+  "clinicalUnavailable": "Los registros clínicos no están disponibles temporalmente.",
   "billingUnavailable": "La facturación no está disponible. Inténtalo de nuevo más tarde.",
   "patients": "Pacientes",
   "patientsIn": "Pacientes de {clinic}",

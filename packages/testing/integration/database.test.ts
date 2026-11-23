@@ -40,6 +40,8 @@ test(
           "cash_shifts",
           "clinic_grants",
           "clinical_encounters",
+          "clinical_record_heads",
+          "clinical_record_revisions",
           "clinics",
           "directory_events",
           "document_events",

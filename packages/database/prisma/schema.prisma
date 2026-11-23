@@ -215,6 +215,7 @@ model ClinicalEncounter {
   addendumTo     String? @map("addendum_to") @db.Uuid
   patient        Patient @relation(fields: [organizationId, clinicId, patientId], references: [organizationId, clinicId, id], onUpdate: NoAction, onDelete: NoAction)
   original       ClinicalEncounter? @relation("EncounterAddenda", fields: [organizationId, clinicId, patientId, addendumTo], references: [organizationId, clinicId, patientId, id], onUpdate: NoAction, onDelete: NoAction)
+  revisions      ClinicalRecordRevision[]
   addenda        ClinicalEncounter[] @relation("EncounterAddenda")
   sharing        EncounterSharing?
 
@@ -788,12 +789,54 @@ model ExchangeExportEvent {
   destinationClinicId       String @map("destination_clinic_id") @db.Uuid
   encounterIds              String[] @map("encounter_ids") @db.Uuid
   assetIds                  String[] @map("asset_ids") @db.Uuid
+  clinicalRevisionIds       String[] @default([]) @map("clinical_revision_ids") @db.Uuid
   includeOwner              Boolean @map("include_owner")
   actorIssuer               String @map("actor_issuer")
   actorSubject              String @map("actor_subject")
   recordedAt                DateTime @default(dbgenerated("clock_timestamp()")) @map("recorded_at") @db.Timestamptz(3)
 
   @@map("exchange_export_events")
+}
+
+model ClinicalRecordRevision {
+  organizationId String @map("organization_id") @db.Uuid
+  clinicId String @map("clinic_id") @db.Uuid
+  patientId String @map("patient_id") @db.Uuid
+  recordId String @map("record_id") @db.Uuid
+  revision Int
+  encounterId String @map("encounter_id") @db.Uuid
+  revisionId String @default(dbgenerated("gen_random_uuid()")) @map("revision_id") @db.Uuid
+  requestId String @map("request_id") @db.Uuid
+  kind String
+  data Json @db.JsonB
+  occurredAt DateTime @map("occurred_at") @db.Timestamptz(3)
+  recordedAt DateTime @default(dbgenerated("clock_timestamp()")) @map("recorded_at") @db.Timestamptz(3)
+  changeReason String? @map("change_reason")
+  authorIssuer String @map("author_issuer")
+  authorSubject String @map("author_subject")
+  resultAuthorIssuer String? @map("result_author_issuer")
+  resultAuthorSubject String? @map("result_author_subject")
+  resultRecordedAt DateTime? @map("result_recorded_at") @db.Timestamptz(3)
+  encounter ClinicalEncounter @relation(fields: [organizationId,clinicId,patientId,encounterId], references:[organizationId,clinicId,patientId,id],onDelete:NoAction,onUpdate:NoAction)
+  current ClinicalRecordHead[]
+  @@id([organizationId,clinicId,patientId,recordId,revision])
+  @@unique([organizationId,clinicId,requestId])
+  @@unique([organizationId,clinicId,revisionId])
+  @@map("clinical_record_revisions")
+}
+model ClinicalRecordHead {
+  organizationId String @map("organization_id") @db.Uuid
+  clinicId String @map("clinic_id") @db.Uuid
+  patientId String @map("patient_id") @db.Uuid
+  recordId String @map("record_id") @db.Uuid
+  revision Int
+  shareRevision Int @default(0) @map("share_revision")
+  guardianIds String[] @default([]) @map("guardian_ids") @db.Uuid
+  shareIssuer String? @map("share_issuer")
+  shareSubject String? @map("share_subject")
+  current ClinicalRecordRevision @relation(fields:[organizationId,clinicId,patientId,recordId,revision], references:[organizationId,clinicId,patientId,recordId,revision],onDelete:NoAction,onUpdate:NoAction)
+  @@id([organizationId,clinicId,patientId,recordId])
+  @@map("clinical_record_heads")
 }
 
 model BillingPrice {

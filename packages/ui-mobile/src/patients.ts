@@ -8,6 +8,7 @@ import { createInventory } from "./inventory-client.ts";
 import { createReferrals } from "./referral-client.ts";
 import { createExchange } from "./exchange-client.ts";
 import { createDocuments } from "./documents.ts";
+import { createClinicalRecords } from "./clinical-record-client.ts";
 import { createCare } from "./care-client.ts";
 import {
   createPatientTransport,
@@ -28,6 +29,7 @@ type GuardianInput = paths[typeof guardian]["put"]["requestBody"]["content"]["ap
 type Redemption = paths[typeof redeemPath]["post"]["requestBody"]["content"]["application/json"];
 export function patientFailure(error: unknown, action: "read" | "write" | "redeem") {
   if (error instanceof PatientError) {
+    if (error.code === "CLINICAL_UNAVAILABLE") return "clinicalUnavailable";
     if (error.code === "BILLING_UNAVAILABLE") return "billingUnavailable";
     if (error.code === "TRADE_UNAVAILABLE") return "tradeUnavailable";
     if (error.code === "INVENTORY_UNAVAILABLE") return "inventoryUnavailable";
@@ -71,6 +73,7 @@ export function createPatients(
     referrals: createReferrals(transport),
     exchange: createExchange(transport, session, origin, fetcher),
     documents: createDocuments(transport, session, origin, fetcher),
+    clinical: createClinicalRecords(transport),
     care: createCare(transport),
     list(scope: ClinicScope, page: number, search: string) {
       return staff(scope, async (config, path) =>

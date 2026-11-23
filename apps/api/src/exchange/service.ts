@@ -267,7 +267,12 @@ export class ExchangeService {
     selection: ExportSelection,
   ) {
     const { limits } = this;
-    if (selection.encounterIds.length + selection.documentAssetIds.length > limits.maxRecords)
+    if (
+      selection.encounterIds.length +
+        selection.documentAssetIds.length +
+        (selection.clinicalRevisionIds?.length ?? 0) >
+      limits.maxRecords
+    )
       throw new PayloadTooLargeException();
     const snapshot = await this.db.ownerExportSource(owner, pet, source, selection);
     if (!this.keys.allows(source, destination)) throw new ForbiddenException();
@@ -330,7 +335,7 @@ export class ExchangeService {
           destination: { organizationId: key.organizationId, clinicId: key.clinicId },
           patient: snapshot.patient,
           ...(snapshot.owner ? { owner: snapshot.owner } : {}),
-          records: [...notes, ...files],
+          records: [...notes, ...files, ...(snapshot.clinical ?? [])],
         },
         limits,
       );

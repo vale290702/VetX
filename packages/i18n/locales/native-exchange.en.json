@@ -46,6 +46,7 @@
   "recorded": "Recorded at source · {time}",
   "imported": "Imported at this clinic · {time}",
   "kinds": {
+    "clinical": "Clinical record version",
     "encounter": "Encounter",
     "addendum": "Addendum",
     "diagnosis": "Diagnosis",
@@ -89,6 +90,7 @@
     "referredTo": "Referred to",
     "referringClinic": "Referring clinic",
     "referralId": "Referral ID",
-    "summary": "Summary"
+    "summary": "Summary",
+    "specimen": "Specimen"
   }
 }

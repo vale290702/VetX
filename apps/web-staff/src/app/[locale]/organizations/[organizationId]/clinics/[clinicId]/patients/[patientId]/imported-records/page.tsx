@@ -1,3 +1,4 @@
+import { clinicalMessages } from "../../../../../../../../../clinical/messages.ts";
 import { isLocale, messages } from "@vetx/i18n";
 import { notFound, redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
@@ -41,6 +42,7 @@ export default async function ImportedRecords({ params, searchParams }: Props) {
     getTranslations("patients"),
   ]);
   const { history } = view;
+  const clinical = clinicalMessages(locale);
   const date = new Intl.DateTimeFormat(locale, {
     dateStyle: "medium",
     timeStyle: "long",
@@ -87,7 +89,9 @@ export default async function ImportedRecords({ params, searchParams }: Props) {
                     <dl className="patient-demographics exchange-data">
                       {visibleRecordFields(record.data).map(([key, value]) => (
                         <div key={key}>
-                          <dt>{fieldNames[key] ?? key}</dt>
+                          <dt>
+                            {fieldNames[key] ?? (key === "specimen" ? clinical("specimen") : key)}
+                          </dt>
                           <dd>
                             {value !== null &&
                             typeof value === "object" &&
@@ -135,6 +139,36 @@ export default async function ImportedRecords({ params, searchParams }: Props) {
                             <dd>{v}</dd>
                           </div>
                         ))}
+                        {record.clinicalRevision && (
+                          <>
+                            <div>
+                              <dt>{clinical("sourceRecord")}</dt>
+                              <dd>{record.clinicalRevision.recordId}</dd>
+                            </div>
+                            <div>
+                              <dt>{clinical("sourceVersion")}</dt>
+                              <dd>{record.clinicalRevision.revision}</dd>
+                            </div>
+                            {record.clinicalRevision.resultAuthor && (
+                              <>
+                                <div>
+                                  <dt>{clinical("resultAuthor")}</dt>
+                                  <dd>{record.clinicalRevision.resultAuthor.subject}</dd>
+                                </div>
+                                <div>
+                                  <dt>{clinical("resultIssuer")}</dt>
+                                  <dd>{record.clinicalRevision.resultAuthor.issuer}</dd>
+                                </div>
+                              </>
+                            )}
+                            {record.clinicalRevision.resultRecordedAt && (
+                              <div>
+                                <dt>{clinical("resultRecordedAt")}</dt>
+                                <dd>{stamp(record.clinicalRevision.resultRecordedAt)}</dd>
+                              </div>
+                            )}
+                          </>
+                        )}
                         <div>
                           <dt>{t("recordedAt")}</dt>
                           <dd>{stamp(record.recordedAt)}</dd>
