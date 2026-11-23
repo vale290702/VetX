@@ -54,7 +54,7 @@ export interface ExportSnapshot {
   files: ExportFile[];
   clinical?: {
     id: string;
-    kind: "diagnosis" | "treatment" | "vaccination" | "labResult";
+    kind: "diagnosis" | "treatment" | "vaccination" | "labResult" | "hospitalization" | "surgery";
     occurredAt: string;
     recordedAt: string;
     data: Record<string, string>;

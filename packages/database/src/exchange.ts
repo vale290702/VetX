@@ -20,6 +20,8 @@ export type ExchangeRecordKind =
   | "prescription"
   | "vaccination"
   | "labResult"
+  | "hospitalization"
+  | "surgery"
   | "document"
   | "radiograph"
   | "dicom"

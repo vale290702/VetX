@@ -2174,14 +2174,42 @@ export interface components {
             unit?: string;
             referenceRange?: string;
         };
+        HospitalizationDataDto: {
+            /** @enum {string} */
+            status: "ADMITTED" | "PROGRESS" | "DISCHARGED";
+            ward: string;
+            location?: string;
+            note: string;
+            summary?: string;
+        };
+        SurgeryDataDto: {
+            /** @enum {string} */
+            status: "PLANNED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
+            procedure: string;
+            /** Format: date-time */
+            scheduledAt: string;
+            notes?: string;
+            performedProcedure?: string;
+            recoveryNotes?: string;
+            summary?: string;
+        };
+        DischargeSummaryDto: {
+            /** @enum {string} */
+            status: "DISCHARGED";
+            summary: string;
+        };
+        SurgerySummaryDto: {
+            /** @enum {string} */
+            status: "COMPLETED" | "CANCELLED";
+            summary: string;
+        };
         AuthorDto: {
             issuer: string;
             subject: string;
         };
         StaffClinicalDto: {
             /** @enum {string} */
-            kind: "diagnosis" | "treatment" | "vaccination" | "lab";
-            data: components["schemas"]["DiagnosisDataDto"] | components["schemas"]["TreatmentDataDto"] | components["schemas"]["VaccinationDataDto"] | components["schemas"]["LabDataDto"];
+            kind: "diagnosis" | "treatment" | "vaccination" | "lab" | "hospitalization" | "surgery";
             /** Format: date-time */
             occurredAt: string;
             /** Format: uuid */
@@ -2193,6 +2221,7 @@ export interface components {
             revision: number;
             /** Format: date-time */
             recordedAt: string;
+            data: components["schemas"]["DiagnosisDataDto"] | components["schemas"]["TreatmentDataDto"] | components["schemas"]["VaccinationDataDto"] | components["schemas"]["LabDataDto"] | components["schemas"]["HospitalizationDataDto"] | components["schemas"]["SurgeryDataDto"];
             /** Format: uuid */
             encounterId: string;
             changeReason: string | null;
@@ -2206,10 +2235,10 @@ export interface components {
         };
         ClinicalWriteDto: {
             /** @enum {string} */
-            kind: "diagnosis" | "treatment" | "vaccination" | "lab";
-            data: components["schemas"]["DiagnosisDataDto"] | components["schemas"]["TreatmentDataDto"] | components["schemas"]["VaccinationDataDto"] | components["schemas"]["LabDataDto"];
+            kind: "diagnosis" | "treatment" | "vaccination" | "lab" | "hospitalization" | "surgery";
             /** Format: date-time */
             occurredAt: string;
+            data: components["schemas"]["DiagnosisDataDto"] | components["schemas"]["TreatmentDataDto"] | components["schemas"]["VaccinationDataDto"] | components["schemas"]["LabDataDto"] | components["schemas"]["HospitalizationDataDto"] | components["schemas"]["SurgeryDataDto"];
             /** Format: uuid */
             encounterId: string;
             revision: number;
@@ -2222,8 +2251,7 @@ export interface components {
         };
         OwnerClinicalDto: {
             /** @enum {string} */
-            kind: "diagnosis" | "treatment" | "vaccination" | "lab";
-            data: components["schemas"]["DiagnosisDataDto"] | components["schemas"]["TreatmentDataDto"] | components["schemas"]["VaccinationDataDto"] | components["schemas"]["LabDataDto"];
+            kind: "diagnosis" | "treatment" | "vaccination" | "lab" | "hospitalization" | "surgery";
             /** Format: date-time */
             occurredAt: string;
             /** Format: uuid */
@@ -2235,6 +2263,7 @@ export interface components {
             revision: number;
             /** Format: date-time */
             recordedAt: string;
+            data: components["schemas"]["DiagnosisDataDto"] | components["schemas"]["TreatmentDataDto"] | components["schemas"]["VaccinationDataDto"] | components["schemas"]["LabDataDto"] | components["schemas"]["DischargeSummaryDto"] | components["schemas"]["SurgerySummaryDto"];
             /** Format: uuid */
             clinicId: string;
             clinicName: string;
