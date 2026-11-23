@@ -8,6 +8,7 @@ import { type AccessDependencies, AccessModule } from "./access.js";
 import { DocumentModule, type DocumentDependencies } from "./documents/module.js";
 import { ProcurementModule, type ProcurementStore } from "./procurement/module.js";
 import { InventoryModule, type InventoryStore } from "./inventory/module.js";
+import { FiscalModule, type FiscalStore } from "./fiscal/module.js";
 import { BillingModule, type BillingStore } from "./billing/module.js";
 import { ClinicalExchangeModule } from "./exchange/module.js";
 import type { ExchangeDependencies } from "./exchange/service.js";
@@ -22,6 +23,7 @@ import { createOpenApiDocument } from "./openapi.js";
 
 type Dependencies = AccessDependencies & {
   billing?: BillingStore;
+  fiscal?: FiscalStore;
   inventory?: InventoryStore;
   procurement?: ProcurementStore;
   exchange?: ExchangeDependencies;
@@ -45,6 +47,7 @@ class AppModule {
         RegistryModule.register(access.registry, access.petLinks),
         DocumentModule.register(access.documents),
         BillingModule.register(access.billing),
+        FiscalModule.register(access.fiscal),
         InventoryModule.register(access.inventory),
         ProcurementModule.register(access.procurement),
         ClinicalExchangeModule.register(access.exchange),

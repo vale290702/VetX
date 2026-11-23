@@ -101,8 +101,14 @@ export async function openDocument(
     dialogTitle,
   );
 }
+export type PrivateFileFormat = {
+  extension: string;
+  mimeType: string;
+  uti?: string;
+  name?: string;
+};
 export async function openPrivateFile(
-  format: { extension: string; mimeType: string; uti?: string },
+  format: PrivateFileFormat,
   download: () => Promise<Uint8Array>,
   active: () => boolean,
   dialogTitle: string,
@@ -113,7 +119,8 @@ export async function openPrivateFile(
   if (!active()) return;
   const dir = sharedDirectory();
   dir.create({ intermediates: true, idempotent: true });
-  const file = new File(dir, "VetX-" + globalThis.expo.uuidv4() + "." + format.extension);
+  const name = format.name && /^[A-Za-z0-9_-]{1,80}$/.test(format.name) ? format.name : "VetX";
+  const file = new File(dir, name + "-" + globalThis.expo.uuidv4() + "." + format.extension);
   let handedOff = false;
   try {
     file.create();
