@@ -403,6 +403,38 @@ test(
             revision: 0,
           });
           assert.equal(release.revision, 1);
+          const scope = { organizationId: org, clinicId: clinic, patientId: patient };
+          const select = {
+            prescriptionIds: [rx],
+            encounterIds: [],
+            documentAssetIds: [],
+            includeOwner: false,
+          };
+          const destination = { organizationId: randomUUID(), clinicId: randomUUID() };
+          const choices = await db.ownerExportChoices(owner, first.petId, scope, 1);
+          assert.ok(choices.records.some((c) => c.id === rx && c.kind === "prescription"));
+          const snapshot = await db.ownerExportSource(owner, first.petId, scope, select);
+          assert.deepEqual(snapshot.prescriptions?.[0]?.data, {
+            medication: signed.medication,
+            instructions: signed.instructions,
+            quantity: "3.000",
+            unit: "units",
+          });
+          assert.equal(snapshot.prescriptions?.[0]?.author.subject, clinician.subject);
+          assert.deepEqual(
+            await db.confirmOwnerExport(
+              owner,
+              first.petId,
+              scope,
+              select,
+              destination,
+              randomUUID(),
+            ),
+            { ok: true },
+          );
+          await assert.rejects(db.ownerExportSource(otherOwner, second.petId, scope, select), {
+            code: "not_found",
+          });
           const visible = (await list()).prescriptions;
           assert.equal(visible.length, 1);
           assert.deepEqual(visible[0], {
@@ -429,6 +461,10 @@ test(
             revision: 1,
           });
           assert.deepEqual((await list()).prescriptions, []);
+          await assert.rejects(
+            db.confirmOwnerExport(owner, first.petId, scope, select, destination, randomUUID()),
+            { code: "not_found" },
+          );
           await db.sharePrescription(clinician, org, clinic, patient, rx, {
             guardianIds: [first.guardian],
             revision: 2,

@@ -789,6 +789,7 @@ model ExchangeExportEvent {
   destinationClinicId       String @map("destination_clinic_id") @db.Uuid
   encounterIds              String[] @map("encounter_ids") @db.Uuid
   assetIds                  String[] @map("asset_ids") @db.Uuid
+  prescriptionIds           String[] @default([]) @map("prescription_ids") @db.Uuid
   clinicalRevisionIds       String[] @default([]) @map("clinical_revision_ids") @db.Uuid
   includeOwner              Boolean @map("include_owner")
   actorIssuer               String @map("actor_issuer")

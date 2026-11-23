@@ -13482,7 +13482,8 @@
             "enum": [
               "encounter",
               "document",
-              "clinical"
+              "clinical",
+              "prescription"
             ]
           },
           "title": {
@@ -13549,6 +13550,14 @@
             "uniqueItems": true
           },
           "clinicalRevisionIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "uniqueItems": true
+          },
+          "prescriptionIds": {
             "type": "array",
             "items": {
               "type": "string",

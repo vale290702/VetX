@@ -62,6 +62,7 @@ export class ExportRequestDto {
   @uuids() readonly encounterIds!: string[];
   @uuids() readonly documentAssetIds!: string[];
   @uuids(true) @ValidateIf((_o, v) => v !== undefined) readonly clinicalRevisionIds?: string[];
+  @uuids(true) @ValidateIf((_o, v) => v !== undefined) readonly prescriptionIds?: string[];
   @ApiProperty() @IsBoolean() readonly includeOwner!: boolean;
 }
 class PageDto {
@@ -70,8 +71,8 @@ class PageDto {
 }
 class ExportChoiceDto {
   @uuid() readonly id!: string;
-  @ApiProperty({ enum: ["encounter", "document", "clinical"] }) readonly kind!:
-    "encounter" | "document" | "clinical";
+  @ApiProperty({ enum: ["encounter", "document", "clinical", "prescription"] }) readonly kind!:
+    "encounter" | "document" | "clinical" | "prescription";
   @ApiProperty() readonly title!: string;
   @ApiProperty({ format: "date-time" }) readonly occurredAt!: string;
 }

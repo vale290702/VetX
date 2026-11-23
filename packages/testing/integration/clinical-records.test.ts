@@ -325,6 +325,20 @@ test(
           const winner = raced.findIndex((r) => r.status === "fulfilled"),
             rid = ids[winner]!;
           const admitted = await save(rid, creation, requests[winner]!);
+          // Even a stale guardian grant must not expose an active hospital admission in export choices.
+          await sql.query(
+            "UPDATE clinical_record_heads SET guardian_ids=ARRAY[$5::uuid] WHERE (organization_id,clinic_id,patient_id,record_id)=($1,$2,$3,$4)",
+            [org, clinic, patient, rid, guardian],
+          );
+          const duringStay = await db.ownerExportChoices(owner, petId, scope, 1);
+          assert.equal(
+            duringStay.records.some((choice) => choice.id === admitted.revisionId),
+            false,
+          );
+          await sql.query(
+            "UPDATE clinical_record_heads SET guardian_ids='{}' WHERE (organization_id,clinic_id,patient_id,record_id)=($1,$2,$3,$4)",
+            [org, clinic, patient, rid],
+          );
           // The patient identifier can also exist in another clinic. Its admission is independent.
           await db.savePatient(admin, org, other, patient, {
             name: "Other clinic patient",

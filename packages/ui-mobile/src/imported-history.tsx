@@ -40,6 +40,7 @@ const fields = [
   "treatment",
   "notes",
   "medication",
+  "quantity",
   "instructions",
   "vaccine",
   "lotNumber",

@@ -46,6 +46,8 @@ const manifest = {
     record("prescription", {
       medication: "External medication",
       instructions: "Source directions",
+      quantity: "3.000",
+      unit: "tablets",
     }),
     record("vaccination", { vaccine: "External vaccine", nextDueDate: "2027-01-01" }),
     record("labResult", { test: "Sample", result: "Reported" }),

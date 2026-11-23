@@ -333,6 +333,7 @@
       "code": "Código",
       "treatment": "Tratamiento",
       "notes": "Notas",
+      "quantity": "Cantidad prescrita",
       "medication": "Medicamento",
       "instructions": "Indicaciones",
       "vaccine": "Vacuna",

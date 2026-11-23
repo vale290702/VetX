@@ -2187,7 +2187,7 @@ export interface components {
             /** Format: uuid */
             id: string;
             /** @enum {string} */
-            kind: "encounter" | "document" | "clinical";
+            kind: "encounter" | "document" | "clinical" | "prescription";
             title: string;
             /** Format: date-time */
             occurredAt: string;
@@ -2203,6 +2203,7 @@ export interface components {
             encounterIds: string[];
             documentAssetIds: string[];
             clinicalRevisionIds?: string[];
+            prescriptionIds?: string[];
             includeOwner: boolean;
         };
         SharingDto: {

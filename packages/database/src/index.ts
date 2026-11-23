@@ -420,7 +420,7 @@ export class PrismaDatabase {
       principal,
       "",
       "",
-      Prisma.sql`SELECT public.exchange_confirm_export(${pet}::uuid,${scope.organizationId}::uuid,${scope.clinicId}::uuid,${scope.patientId}::uuid,${selection.encounterIds}::uuid[],${selection.documentAssetIds}::uuid[],${selection.includeOwner}::boolean,${destination.organizationId}::uuid,${destination.clinicId}::uuid,${packageId}::uuid,${selection.clinicalRevisionIds ?? []}::uuid[]) AS result`,
+      Prisma.sql`SELECT public.exchange_confirm_export(${pet}::uuid,${scope.organizationId}::uuid,${scope.clinicId}::uuid,${scope.patientId}::uuid,${selection.encounterIds}::uuid[],${selection.documentAssetIds}::uuid[],${selection.includeOwner}::boolean,${destination.organizationId}::uuid,${destination.clinicId}::uuid,${packageId}::uuid,${selection.clinicalRevisionIds ?? []}::uuid[],${selection.prescriptionIds ?? []}::uuid[]) AS result`,
       "",
       this.bulkClient,
     );
@@ -435,7 +435,7 @@ export class PrismaDatabase {
       principal,
       "",
       "",
-      Prisma.sql`SELECT public.exchange_owner_source(${pet}::uuid,${scope.organizationId}::uuid,${scope.clinicId}::uuid,${scope.patientId}::uuid,${selection.encounterIds}::uuid[],${selection.documentAssetIds}::uuid[],${selection.includeOwner}::boolean,${selection.clinicalRevisionIds ?? []}::uuid[]) AS result`,
+      Prisma.sql`SELECT public.exchange_owner_source(${pet}::uuid,${scope.organizationId}::uuid,${scope.clinicId}::uuid,${scope.patientId}::uuid,${selection.encounterIds}::uuid[],${selection.documentAssetIds}::uuid[],${selection.includeOwner}::boolean,${selection.clinicalRevisionIds ?? []}::uuid[],${selection.prescriptionIds ?? []}::uuid[]) AS result`,
       "",
       this.bulkClient,
     );

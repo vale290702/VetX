@@ -11,11 +11,12 @@ export interface ExportSelection {
   encounterIds: string[];
   documentAssetIds: string[];
   clinicalRevisionIds?: string[];
+  prescriptionIds?: string[];
   includeOwner: boolean;
 }
 export interface ExportChoice {
   id: string;
-  kind: "encounter" | "document" | "clinical";
+  kind: "encounter" | "document" | "clinical" | "prescription";
   title: string;
   occurredAt: string;
 }
@@ -54,6 +55,14 @@ export interface ExportSnapshot {
   owner?: { name: string; email?: string };
   notes: ExportNote[];
   files: ExportFile[];
+  prescriptions?: {
+    id: string;
+    kind: "prescription";
+    occurredAt: string;
+    recordedAt: string;
+    author: Authorship;
+    data: { medication: string; instructions: string; quantity: string; unit: string };
+  }[];
   clinical?: {
     id: string;
     kind: "diagnosis" | "treatment" | "vaccination" | "labResult" | "hospitalization" | "surgery";
