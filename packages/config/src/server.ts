@@ -167,3 +167,79 @@ export function loadPetLinkConfig(env = environment()): PetLinkConfig | undefine
     windowSeconds: positive("PET_LINK_WINDOW_SECONDS"),
   };
 }
+
+export interface DocumentConfig {
+  endpoint: string;
+  region: string;
+  bucket: string;
+  maxBytes: number;
+  credentials?: { accessKeyId: string; secretAccessKey: string };
+}
+
+export function loadDocumentConfig(env = environment()): DocumentConfig | undefined {
+  if (
+    ["S3_ENDPOINT", "S3_REGION", "S3_BUCKET", "DOCUMENT_MAX_BYTES"].every(
+      (name) => env[name] === undefined,
+    )
+  )
+    return undefined;
+  const raw = env.S3_ENDPOINT ?? "";
+  const url = URL.parse(raw);
+  if (
+    !url ||
+    (url.protocol !== "https:" &&
+      !(url.protocol === "http:" && ["127.0.0.1", "localhost", "[::1]"].includes(url.hostname))) ||
+    url.pathname !== "/" ||
+    url.username ||
+    url.password ||
+    /[?#\\\s]/.test(raw)
+  )
+    throw new ConfigurationError("S3_ENDPOINT must be an HTTPS origin or a loopback HTTP origin");
+  const region = env.S3_REGION ?? "",
+    bucket = env.S3_BUCKET ?? "";
+  if (!/^[a-z0-9][a-z0-9-]{0,62}$/.test(region))
+    throw new ConfigurationError("S3_REGION must be supplied");
+  if (!/^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$/.test(bucket) || bucket.includes("..") || isIP(bucket))
+    throw new ConfigurationError("S3_BUCKET must be a valid bucket name");
+  const limit = env.DOCUMENT_MAX_BYTES ?? "";
+  const maxBytes = Number(limit);
+  if (!/^[1-9]\d*$/.test(limit) || !Number.isSafeInteger(maxBytes) || maxBytes > 32 * 1024 * 1024)
+    throw new ConfigurationError("DOCUMENT_MAX_BYTES must be between one byte and 32 MiB");
+  const accessKeyId = env.S3_ACCESS_KEY,
+    secretAccessKey = env.S3_SECRET_KEY;
+  if (Boolean(accessKeyId) !== Boolean(secretAccessKey))
+    throw new ConfigurationError(
+      "Supply both static S3 credential settings or use the AWS credentials provider",
+    );
+  return {
+    endpoint: url.origin,
+    region,
+    bucket,
+    maxBytes,
+    ...(accessKeyId && secretAccessKey ? { credentials: { accessKeyId, secretAccessKey } } : {}),
+  };
+}
+
+export interface ExchangeConfig {
+  keyDirectoryPath: string;
+  maxPackageBytes: number;
+  maxRecords: number;
+}
+export function loadExchangeConfig(env = environment()): ExchangeConfig | undefined {
+  const path = env.VETPKG_KEYRING_FILE;
+  if (!path) return undefined;
+  if (typeof path !== "string" || !path.startsWith("/") || path.includes("\0"))
+    throw new ConfigurationError("VETPKG_KEYRING_FILE must be an absolute secret file path");
+  const positive = (key: string, ceiling: number) => {
+    const raw = env[key] ?? "",
+      value = Number(raw);
+    if (!/^[1-9]\d*$/.test(raw) || !Number.isSafeInteger(value) || value > ceiling)
+      throw new ConfigurationError(`${key} must be a positive integer within the process limit`);
+    return value;
+  };
+  return {
+    keyDirectoryPath: path,
+    maxPackageBytes: positive("VETPKG_MAX_PACKAGE_BYTES", 64 * 1024 * 1024),
+    maxRecords: positive("VETPKG_MAX_RECORDS", 10000),
+  };
+}

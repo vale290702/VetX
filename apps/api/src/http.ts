@@ -1,4 +1,11 @@
-import { CareError, DirectoryError, ReferralError, RegistryError } from "@vetx/database";
+import { StorageUnavailable } from "./documents/storage.js";
+import {
+  CareError,
+  ReferralError,
+  ExchangeError,
+  DirectoryError,
+  RegistryError,
+} from "@vetx/database";
 import { randomUUID } from "node:crypto";
 import {
   type ArgumentsHost,
@@ -17,6 +24,7 @@ import type { Request, Response, NextFunction } from "express";
 export const requestIdHeader = "x-request-id";
 
 const errors = {
+  PAYLOAD_TOO_LARGE: "File is too large",
   BAD_REQUEST: "Invalid request",
   UNAUTHORIZED: "Authentication required",
   FORBIDDEN: "Access denied",
@@ -34,6 +42,7 @@ const errors = {
 type ErrorCode = keyof typeof errors;
 
 const codesByStatus: Partial<Record<number, ErrorCode>> = {
+  [HttpStatus.PAYLOAD_TOO_LARGE]: "PAYLOAD_TOO_LARGE",
   [HttpStatus.BAD_REQUEST]: "BAD_REQUEST",
   [HttpStatus.UNAUTHORIZED]: "UNAUTHORIZED",
   [HttpStatus.FORBIDDEN]: "FORBIDDEN",
@@ -76,9 +85,14 @@ const registryStatus = {
   rate_limited: 429,
 } as const;
 function statusOf(exception: unknown): number {
+  if (exception instanceof StorageUnavailable) return HttpStatus.SERVICE_UNAVAILABLE;
   if (exception instanceof CareError)
     return exception.code === "overlap" ? HttpStatus.CONFLICT : registryStatus[exception.code];
-  if (exception instanceof ReferralError || exception instanceof RegistryError)
+  if (
+    exception instanceof ReferralError ||
+    exception instanceof ExchangeError ||
+    exception instanceof RegistryError
+  )
     return registryStatus[exception.code];
   if (exception instanceof DirectoryError) {
     if (exception.code === "forbidden") return HttpStatus.FORBIDDEN;

@@ -39,18 +39,26 @@ export function createPatientTransport(
       config: ReturnType<typeof nativeRequest>,
       path: { organizationId: string; clinicId: string },
     ) => Promise<T>,
+    timeoutMs?: number,
   ) {
     const { subject, organizationId, clinicId } = scope;
-    return session.forOrganization(subject, organizationId, (token, signal) =>
-      operation(nativeRequest(token, signal, fetcher), { organizationId, clinicId }),
+    return session.forOrganization(
+      subject,
+      organizationId,
+      (token, signal) =>
+        operation(nativeRequest(token, signal, fetcher), { organizationId, clinicId }),
+      timeoutMs,
     );
   }
   function owner<T>(
     subject: string,
     operation: (config: ReturnType<typeof nativeRequest>) => Promise<T>,
+    timeoutMs?: number,
   ) {
-    return session.forAccount(subject, (token, signal) =>
-      operation(nativeRequest(token, signal, fetcher)),
+    return session.forAccount(
+      subject,
+      (token, signal) => operation(nativeRequest(token, signal, fetcher)),
+      timeoutMs,
     );
   }
   return { api, staff, owner };

@@ -67,6 +67,8 @@ export default async function Patients({ params, searchParams }: Props) {
     getTranslations("directory"),
     getTranslations("care"),
   ]);
+  const documents = await getTranslations("webDocuments");
+  const exchange = await getTranslations("webExchange");
   const notice = patientNotices.find((key) => key === query.notice);
   const context = {
     csrf: access.session.csrf,
@@ -119,6 +121,12 @@ export default async function Patients({ params, searchParams }: Props) {
               <section className="directory-section" aria-label={t("clinicRegistry")}>
                 <Link className="directory-back" href={carePath(scope, undefined, { timeZone })}>
                   {care("calendar")}
+                </Link>
+                <Link
+                  className="directory-back"
+                  href={`/organizations/${organizationId}/clinics/${clinicId}/exchange/import`}
+                >
+                  {exchange("importTitle")}
                 </Link>
                 <PatientForm context={context} />
                 <form
@@ -200,6 +208,18 @@ export default async function Patients({ params, searchParams }: Props) {
                         </dd>
                       </div>
                     </dl>
+                    <Link
+                      className="directory-back"
+                      href={`${registryPath(scope)}/${detail.patient.id}/documents`}
+                    >
+                      {documents("title")}
+                    </Link>
+                    <Link
+                      className="directory-back"
+                      href={`${registryPath(scope)}/${detail.patient.id}/imported-records`}
+                    >
+                      {exchange("history")}
+                    </Link>
                     <PatientForm context={context} patient={detail.patient} />
                   </section>
                   <Guardians context={context} record={detail} />

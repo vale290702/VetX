@@ -9,6 +9,7 @@ import type { createExpoAuth } from "./expo-session";
 import type { MobileAccount, SessionState } from "./session";
 
 import { Action, createStyles, type AccessStyles } from "./controls";
+import { clearOldDocumentFiles } from "./document-files";
 import { OwnerPets } from "./owner-pets";
 import { StaffDirectory } from "./staff-directory";
 
@@ -229,6 +230,9 @@ export function AccessPanel({
   audience: EntryAudience;
   palette: Palette;
 }) {
+  useEffect(() => {
+    clearOldDocumentFiles();
+  }, []);
   const styles = useMemo(() => createStyles(palette), [palette]);
   const { t } = useTranslation();
   return auth ? (

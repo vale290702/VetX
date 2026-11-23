@@ -24,10 +24,11 @@ function HiddenFields({ csrf, locale, revision, page }: CommonFields) {
 }
 
 export async function AdminPanel({ csrf, locale, organizationId, directory }: Props) {
-  const [t, patients, care] = await Promise.all([
+  const [t, patients, care, exchange] = await Promise.all([
     getTranslations("directory"),
     getTranslations("patients"),
     getTranslations("care"),
+    getTranslations("webExchange"),
   ]);
   const { clinics, members, page, hasNextPage, revision } = directory;
   const action = `/directory/${organizationId}`;
@@ -110,6 +111,13 @@ export async function AdminPanel({ csrf, locale, organizationId, directory }: Pr
                   href={`/organizations/${organizationId}/clinics/${clinic.id}/appointments`}
                 >
                   {care("calendar")}
+                </Link>
+                <Link
+                  className="clinic-registry-link"
+                  aria-label={exchange("importAt", { clinic: clinic.name })}
+                  href={`/organizations/${organizationId}/clinics/${clinic.id}/exchange/import`}
+                >
+                  {exchange("importTitle")}
                 </Link>
                 <details className="directory-disclosure">
                   <summary>{t("rename")}</summary>

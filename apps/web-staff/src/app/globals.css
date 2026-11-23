@@ -274,7 +274,7 @@ body {
   font-weight: 600;
 }
 .staff-id input,
-.directory-form input:not([type="hidden"], [type="checkbox"]),
+.directory-form input:not([type="hidden"], [type="checkbox"], [type="radio"]),
 .directory-form select {
   width: 100%;
   min-block-size: var(--vetx-size-touch);
@@ -425,7 +425,7 @@ body {
   gap: var(--vetx-space-inline);
 }
 .registry-trail .directory-back + .directory-back::before {
-  content: "/";
+  content: "/" / "";
   margin-inline-end: var(--vetx-space-inline);
   color: var(--vetx-color-muted);
 }
@@ -532,4 +532,41 @@ body {
   display: grid;
   min-inline-size: 0;
   gap: var(--vetx-space-regular);
+}
+
+.medical-document h3 {
+  font-weight: 650;
+}
+.medical-document .directory-form {
+  margin-block-end: 0;
+}
+.medical-document .clinic-check small {
+  display: block;
+}
+.medical-document .directory-notice[role="alert"] {
+  color: var(--vetx-color-warning);
+}
+.directory-form input[type="file"] {
+  padding-block: var(--vetx-space-compact);
+}
+.directory-form input[type="file"]::file-selector-button {
+  margin-inline-end: var(--vetx-space-inline);
+  padding-inline: var(--vetx-space-inline);
+  border-radius: var(--vetx-radius-control);
+  background: var(--vetx-color-control);
+  color: var(--vetx-color-ink);
+}
+
+.exchange-form {
+  max-inline-size: 48rem;
+}
+.exchange-choice small {
+  display: block;
+  font-weight: 400;
+}
+.exchange-data {
+  margin-block: var(--vetx-space-regular);
+}
+.exchange-record dd {
+  white-space: pre-wrap;
 }

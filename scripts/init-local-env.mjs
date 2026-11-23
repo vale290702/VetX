@@ -28,8 +28,18 @@ try {
   }
   const original = text;
   const current = parseEnv(text);
-  for (const [key, value] of Object.entries(parseEnv(template))) {
-    if (!key.startsWith("PET_LINK_") || key in current || key === "PET_LINK_HMAC_KEY_HEX") continue;
+  const storageSettings = new Set(["S3_ENDPOINT", "S3_REGION", "S3_BUCKET", "DOCUMENT_MAX_BYTES"]);
+  for (const [key, defaultValue] of Object.entries(parseEnv(template))) {
+    const value =
+      key === "S3_ENDPOINT" && current.S3_PORT
+        ? new URL("http://127.0.0.1:" + current.S3_PORT).origin
+        : defaultValue;
+    if (
+      (!key.startsWith("PET_LINK_") && !storageSettings.has(key)) ||
+      key in current ||
+      key === "PET_LINK_HMAC_KEY_HEX"
+    )
+      continue;
     text += `\n${key}=${value}\n`;
   }
   if (!current.PET_LINK_HMAC_KEY_HEX) {

@@ -1,6 +1,8 @@
 import type { paths } from "@vetx/api-client";
 import type { fetch as expoFetch } from "expo/fetch";
 
+import { createExchange } from "./exchange-client.ts";
+import { createDocuments } from "./documents.ts";
 import { createCare } from "./care-client.ts";
 import {
   createPatientTransport,
@@ -21,10 +23,15 @@ type GuardianInput = paths[typeof guardian]["put"]["requestBody"]["content"]["ap
 type Redemption = paths[typeof redeemPath]["post"]["requestBody"]["content"]["application/json"];
 export function patientFailure(error: unknown, action: "read" | "write" | "redeem") {
   if (error instanceof PatientError) {
+    if (error.code === "HANDOFF_UNAVAILABLE") return "handoffUnavailable";
+    if (error.code === "EXCHANGE_UNAVAILABLE") return "exchangeUnavailable";
+    if (error.code === "INVALID_PACKAGE") return "invalidPackage";
+    if (error.code === "EXCHANGE_SIZE") return "exchangeSize";
     if (error.code === "EMAIL_VERIFICATION_REQUIRED") return "verifyEmail";
     if (action === "redeem" && error.status === 404) return "unavailableCode";
     if (error.status === 429) return "tooManyAttempts";
     if (error.status === 400) return "invalid";
+    if (error.status === 413) return "documentTooLarge";
     if (error.code === "APPOINTMENT_OVERLAP") return "overlap";
     if (error.status === 409) return "conflict";
     if (error.status === 403 || error.status === 404) return "denied";
@@ -48,6 +55,8 @@ export function createPatients(
   const transport = createPatientTransport(session, origin, fetcher);
   const { api, staff, owner } = transport;
   return {
+    exchange: createExchange(transport, session, origin, fetcher),
+    documents: createDocuments(transport, session, origin, fetcher),
     care: createCare(transport),
     list(scope: ClinicScope, page: number, search: string) {
       return staff(scope, async (config, path) =>

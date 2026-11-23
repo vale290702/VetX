@@ -69,6 +69,7 @@ export class MobileSession {
     subject: string,
     organizationId: string,
     operation: (token: string, signal: AbortSignal) => Promise<Result>,
+    timeoutMs = 10_000,
   ): Promise<Result> {
     const verified = this.state;
     if (
@@ -77,12 +78,13 @@ export class MobileSession {
     ) {
       throw new Error("Organization session unavailable");
     }
-    return this.forAccount(subject, operation);
+    return this.forAccount(subject, operation, timeoutMs);
   }
 
   async forAccount<Result>(
     subject: string,
     operation: (token: string, signal: AbortSignal) => Promise<Result>,
+    timeoutMs = 10_000,
   ): Promise<Result> {
     const verified = this.state;
     const access = this.access;
@@ -96,7 +98,7 @@ export class MobileSession {
     }
     const controller = new AbortController();
     const unsubscribe = this.subscribe(() => controller.abort());
-    const deadline = Math.min(10_000, verified.checkAt - this.dependencies.now());
+    const deadline = Math.min(timeoutMs, verified.checkAt - this.dependencies.now());
     const timer = setTimeout(() => controller.abort(), deadline);
     try {
       const result = await operation(access.value, controller.signal);

@@ -592,3 +592,29 @@ test("sign-out aborts owner reads and discards results produced after cancellati
   pending.resolve("previous owner's pets");
   await assert.rejects(request);
 });
+
+test("document transfers can outlast a metadata timeout but cannot outlast the verified session", async (t) => {
+  t.mock.timers.enable({ apis: ["setTimeout"] });
+  const { session, advanceTime } = fixture();
+  await session.restore();
+  await session.signIn("en");
+  const pending = Promise.withResolvers();
+  let signal;
+  const transfer = session.forOrganization(
+    account.subject,
+    "clinic",
+    (_token, current) => {
+      signal = current;
+      return pending.promise;
+    },
+    60_000,
+  );
+  t.mock.timers.tick(10_001);
+  advanceTime(10_001);
+  assert.equal(signal.aborted, false);
+  t.mock.timers.tick(49_999);
+  advanceTime(49_999);
+  assert.equal(signal.aborted, true);
+  pending.resolve("expired file");
+  await assert.rejects(transfer);
+});
