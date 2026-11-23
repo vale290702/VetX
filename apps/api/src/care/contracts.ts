@@ -18,7 +18,7 @@ import {
 
 const timestampPattern =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,3})?)?(?:Z|[+-]\d{2}:\d{2})$/;
-const instant = () =>
+export const instant = () =>
   applyDecorators(
     ApiProperty({ format: "date-time" }),
     IsDateString({ strict: true, strictSeparator: true }),
@@ -38,7 +38,7 @@ const reason = () =>
     MaxLength(250),
     Matches(/^(?=.*\S)[^\p{Cc}]+$/u),
   );
-const revision = () =>
+export const revision = () =>
   applyDecorators(ApiProperty({ type: "integer", minimum: 0 }), IsInt(), Min(0), Max(2147483647));
 const statuses = ["BOOKED", "CANCELLED", "COMPLETED"] as const;
 

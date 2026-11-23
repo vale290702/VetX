@@ -1,4 +1,4 @@
-import type { ExchangeClinic, ExchangePatient } from "./exchange.js";
+import type { ExchangeClinic, ExchangePatient, ClinicalRevisionProvenance } from "./exchange.js";
 export interface ExportLocation extends ExchangeClinic {
   patientId: string;
 }
@@ -9,11 +9,12 @@ export interface ExportSource extends ExportLocation {
 export interface ExportSelection {
   encounterIds: string[];
   documentAssetIds: string[];
+  clinicalRevisionIds?: string[];
   includeOwner: boolean;
 }
 export interface ExportChoice {
   id: string;
-  kind: "encounter" | "document";
+  kind: "encounter" | "document" | "clinical";
   title: string;
   occurredAt: string;
 }
@@ -51,4 +52,13 @@ export interface ExportSnapshot {
   owner?: { name: string; email?: string };
   notes: ExportNote[];
   files: ExportFile[];
+  clinical?: {
+    id: string;
+    kind: "diagnosis" | "treatment" | "vaccination" | "labResult";
+    occurredAt: string;
+    recordedAt: string;
+    data: Record<string, string>;
+    author: Authorship;
+    clinicalRevision: ClinicalRevisionProvenance;
+  }[];
 }

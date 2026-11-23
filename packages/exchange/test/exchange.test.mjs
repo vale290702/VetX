@@ -326,3 +326,32 @@ test("reads a bounded, untrusted recipient key hint for key rotation", async () 
     exchange.openVetpkg(misleading, { ...open, recipient: second.encryption.privateKey }),
   );
 });
+
+test("versioned records require complete lab provenance and keep legacy clinical records readable", () => {
+  const lab = record("labResult", {
+    test: "Named test",
+    result: "Entered result",
+    specimen: "Reported sample",
+  });
+  const provenance = {
+    recordId: randomUUID(),
+    revision: 3,
+    resultAuthor: { issuer: "https://id.example", subject: "result-author" },
+    resultRecordedAt: now,
+  };
+  const read = (r) => exchange.validateVetpkgManifest({ ...manifest, records: [r] }).records[0];
+  assert.deepEqual(read({ ...lab, clinicalRevision: provenance }).clinicalRevision, provenance);
+  assert.equal(read(lab).clinicalRevision, undefined);
+  for (const bad of [
+    { ...provenance, revision: 0 },
+    { ...provenance, resultAuthor: undefined },
+    { ...provenance, resultRecordedAt: undefined },
+  ])
+    assert.throws(() => read({ ...lab, clinicalRevision: bad }));
+  assert.throws(() =>
+    read({
+      ...record("diagnosis", { diagnosis: "Entered diagnosis" }),
+      clinicalRevision: provenance,
+    }),
+  );
+});

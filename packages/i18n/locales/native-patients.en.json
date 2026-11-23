@@ -1,4 +1,5 @@
 {
+  "clinicalUnavailable": "Clinical records are temporarily unavailable.",
   "billingUnavailable": "Billing is unavailable. Try again later.",
   "patients": "Patients",
   "patientsIn": "Patients at {clinic}",

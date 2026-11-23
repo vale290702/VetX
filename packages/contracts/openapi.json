@@ -8574,6 +8574,639 @@
         ]
       }
     },
+    "/organizations/{organizationId}/clinics/{clinicId}/patients/{patientId}/clinical-records": {
+      "get": {
+        "operationId": "listClinicalRecords",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "clinicId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "patientId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffClinicalPageDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "clinical records"
+        ]
+      }
+    },
+    "/organizations/{organizationId}/clinics/{clinicId}/patients/{patientId}/clinical-records/{recordId}/revisions": {
+      "get": {
+        "operationId": "clinicalHistory",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "clinicId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "patientId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "recordId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffClinicalPageDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "clinical records"
+        ]
+      }
+    },
+    "/organizations/{organizationId}/clinics/{clinicId}/patients/{patientId}/clinical-records/{recordId}/revisions/{requestId}": {
+      "put": {
+        "operationId": "saveClinicalRevision",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "clinicId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "patientId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "recordId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "requestId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClinicalWriteDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffClinicalDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "clinical records"
+        ]
+      }
+    },
+    "/organizations/{organizationId}/clinics/{clinicId}/patients/{patientId}/clinical-records/{recordId}/sharing": {
+      "put": {
+        "operationId": "shareClinicalRecord",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "clinicId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "patientId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "recordId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClinicalSharingDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SharingDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "clinical records"
+        ]
+      }
+    },
+    "/owner/pets/{petId}/clinical-records": {
+      "get": {
+        "operationId": "listOwnerClinicalRecords",
+        "parameters": [
+          {
+            "name": "petId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OwnerClinicalPageDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "owner clinical records"
+        ]
+      }
+    },
     "/organizations/{organizationId}/clinics/{clinicId}/referrals/destinations": {
       "get": {
         "operationId": "listReferralDestinations",
@@ -12352,6 +12985,45 @@
           "skipped"
         ]
       },
+      "OriginalAuthorDto": {
+        "type": "object",
+        "properties": {
+          "issuer": {
+            "type": "string"
+          },
+          "subject": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "issuer",
+          "subject"
+        ]
+      },
+      "ImportedClinicalRevisionDto": {
+        "type": "object",
+        "properties": {
+          "recordId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "resultAuthor": {
+            "$ref": "#/components/schemas/OriginalAuthorDto"
+          },
+          "resultRecordedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "recordId",
+          "revision"
+        ]
+      },
       "ExchangeLocationDto": {
         "type": "object",
         "properties": {
@@ -12374,24 +13046,12 @@
           "patientId"
         ]
       },
-      "OriginalAuthorDto": {
-        "type": "object",
-        "properties": {
-          "issuer": {
-            "type": "string"
-          },
-          "subject": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "issuer",
-          "subject"
-        ]
-      },
       "ImportedRecordDto": {
         "type": "object",
         "properties": {
+          "clinicalRevision": {
+            "$ref": "#/components/schemas/ImportedClinicalRevisionDto"
+          },
           "id": {
             "type": "string",
             "format": "uuid"
@@ -12549,7 +13209,8 @@
             "type": "string",
             "enum": [
               "encounter",
-              "document"
+              "document",
+              "clinical"
             ]
           },
           "title": {
@@ -12608,6 +13269,14 @@
             "uniqueItems": true
           },
           "documentAssetIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "uniqueItems": true
+          },
+          "clinicalRevisionIds": {
             "type": "array",
             "items": {
               "type": "string",
@@ -12984,6 +13653,392 @@
           "page",
           "hasNextPage",
           "encounters"
+        ]
+      },
+      "DiagnosisDataDto": {
+        "type": "object",
+        "properties": {
+          "diagnosis": {
+            "type": "string",
+            "maxLength": 8000
+          },
+          "code": {
+            "type": "string",
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "diagnosis"
+        ]
+      },
+      "TreatmentDataDto": {
+        "type": "object",
+        "properties": {
+          "treatment": {
+            "type": "string",
+            "maxLength": 8000
+          },
+          "notes": {
+            "type": "string",
+            "maxLength": 8000
+          }
+        },
+        "required": [
+          "treatment"
+        ]
+      },
+      "VaccinationDataDto": {
+        "type": "object",
+        "properties": {
+          "vaccine": {
+            "type": "string",
+            "maxLength": 250
+          },
+          "lotNumber": {
+            "type": "string",
+            "maxLength": 128
+          },
+          "nextDueDate": {
+            "type": "string",
+            "format": "date"
+          }
+        },
+        "required": [
+          "vaccine"
+        ]
+      },
+      "LabDataDto": {
+        "type": "object",
+        "properties": {
+          "test": {
+            "type": "string",
+            "maxLength": 250
+          },
+          "specimen": {
+            "type": "string",
+            "maxLength": 250
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ORDERED",
+              "RESULTED",
+              "REVIEWED"
+            ]
+          },
+          "result": {
+            "type": "string",
+            "maxLength": 8000
+          },
+          "unit": {
+            "type": "string",
+            "maxLength": 128
+          },
+          "referenceRange": {
+            "type": "string",
+            "maxLength": 250
+          }
+        },
+        "required": [
+          "test",
+          "status"
+        ]
+      },
+      "AuthorDto": {
+        "type": "object",
+        "properties": {
+          "issuer": {
+            "type": "string"
+          },
+          "subject": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "issuer",
+          "subject"
+        ]
+      },
+      "StaffClinicalDto": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "diagnosis",
+              "treatment",
+              "vaccination",
+              "lab"
+            ]
+          },
+          "data": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/DiagnosisDataDto"
+              },
+              {
+                "$ref": "#/components/schemas/TreatmentDataDto"
+              },
+              {
+                "$ref": "#/components/schemas/VaccinationDataDto"
+              },
+              {
+                "$ref": "#/components/schemas/LabDataDto"
+              }
+            ]
+          },
+          "occurredAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "revisionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "patientId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "revision": {
+            "type": "integer"
+          },
+          "recordedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "encounterId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "changeReason": {
+            "type": "string",
+            "nullable": true
+          },
+          "author": {
+            "$ref": "#/components/schemas/AuthorDto"
+          },
+          "sharing": {
+            "$ref": "#/components/schemas/SharingDto"
+          }
+        },
+        "required": [
+          "kind",
+          "data",
+          "occurredAt",
+          "id",
+          "revisionId",
+          "patientId",
+          "revision",
+          "recordedAt",
+          "encounterId",
+          "changeReason",
+          "author",
+          "sharing"
+        ]
+      },
+      "StaffClinicalPageDto": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "hasNextPage": {
+            "type": "boolean"
+          },
+          "records": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StaffClinicalDto"
+            }
+          }
+        },
+        "required": [
+          "page",
+          "hasNextPage",
+          "records"
+        ]
+      },
+      "ClinicalWriteDto": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "diagnosis",
+              "treatment",
+              "vaccination",
+              "lab"
+            ]
+          },
+          "data": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/DiagnosisDataDto"
+              },
+              {
+                "$ref": "#/components/schemas/TreatmentDataDto"
+              },
+              {
+                "$ref": "#/components/schemas/VaccinationDataDto"
+              },
+              {
+                "$ref": "#/components/schemas/LabDataDto"
+              }
+            ]
+          },
+          "occurredAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "encounterId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "changeReason": {
+            "type": "string",
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "kind",
+          "data",
+          "occurredAt",
+          "encounterId",
+          "revision"
+        ]
+      },
+      "ClinicalSharingDto": {
+        "type": "object",
+        "properties": {
+          "guardianIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "uniqueItems": true
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "recordRevision": {
+            "type": "integer",
+            "minimum": 1
+          }
+        },
+        "required": [
+          "guardianIds",
+          "revision",
+          "recordRevision"
+        ]
+      },
+      "OwnerClinicalDto": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "diagnosis",
+              "treatment",
+              "vaccination",
+              "lab"
+            ]
+          },
+          "data": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/DiagnosisDataDto"
+              },
+              {
+                "$ref": "#/components/schemas/TreatmentDataDto"
+              },
+              {
+                "$ref": "#/components/schemas/VaccinationDataDto"
+              },
+              {
+                "$ref": "#/components/schemas/LabDataDto"
+              }
+            ]
+          },
+          "occurredAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "revisionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "patientId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "revision": {
+            "type": "integer"
+          },
+          "recordedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "clinicId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "clinicName": {
+            "type": "string"
+          },
+          "organizationName": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "data",
+          "occurredAt",
+          "id",
+          "revisionId",
+          "patientId",
+          "revision",
+          "recordedAt",
+          "clinicId",
+          "clinicName",
+          "organizationName"
+        ]
+      },
+      "OwnerClinicalPageDto": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "hasNextPage": {
+            "type": "boolean"
+          },
+          "records": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OwnerClinicalDto"
+            }
+          }
+        },
+        "required": [
+          "page",
+          "hasNextPage",
+          "records"
         ]
       },
       "ReferralDestinationDto": {

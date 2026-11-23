@@ -1116,6 +1116,86 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/organizations/{organizationId}/clinics/{clinicId}/patients/{patientId}/clinical-records": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listClinicalRecords"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/organizations/{organizationId}/clinics/{clinicId}/patients/{patientId}/clinical-records/{recordId}/revisions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["clinicalHistory"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/organizations/{organizationId}/clinics/{clinicId}/patients/{patientId}/clinical-records/{recordId}/revisions/{requestId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["saveClinicalRevision"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/organizations/{organizationId}/clinics/{clinicId}/patients/{patientId}/clinical-records/{recordId}/sharing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["shareClinicalRecord"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/owner/pets/{petId}/clinical-records": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listOwnerClinicalRecords"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/organizations/{organizationId}/clinics/{clinicId}/referrals/destinations": {
         parameters: {
             query?: never;
@@ -1990,6 +2070,18 @@ export interface components {
             inserted: number;
             skipped: number;
         };
+        OriginalAuthorDto: {
+            issuer: string;
+            subject: string;
+        };
+        ImportedClinicalRevisionDto: {
+            /** Format: uuid */
+            recordId: string;
+            revision: number;
+            resultAuthor?: components["schemas"]["OriginalAuthorDto"];
+            /** Format: date-time */
+            resultRecordedAt?: string;
+        };
         ExchangeLocationDto: {
             /** Format: uuid */
             organizationId: string;
@@ -1998,11 +2090,8 @@ export interface components {
             /** Format: uuid */
             patientId: string;
         };
-        OriginalAuthorDto: {
-            issuer: string;
-            subject: string;
-        };
         ImportedRecordDto: {
+            clinicalRevision?: components["schemas"]["ImportedClinicalRevisionDto"];
             /** Format: uuid */
             id: string;
             /** Format: uuid */
@@ -2052,7 +2141,7 @@ export interface components {
             /** Format: uuid */
             id: string;
             /** @enum {string} */
-            kind: "encounter" | "document";
+            kind: "encounter" | "document" | "clinical";
             title: string;
             /** Format: date-time */
             occurredAt: string;
@@ -2067,6 +2156,7 @@ export interface components {
             destination: components["schemas"]["ExchangeClinicDto"];
             encounterIds: string[];
             documentAssetIds: string[];
+            clinicalRevisionIds?: string[];
             includeOwner: boolean;
         };
         SharingDto: {
@@ -2164,6 +2254,100 @@ export interface components {
             page: number;
             hasNextPage: boolean;
             encounters: components["schemas"]["OwnerEncounterDto"][];
+        };
+        DiagnosisDataDto: {
+            diagnosis: string;
+            code?: string;
+        };
+        TreatmentDataDto: {
+            treatment: string;
+            notes?: string;
+        };
+        VaccinationDataDto: {
+            vaccine: string;
+            lotNumber?: string;
+            /** Format: date */
+            nextDueDate?: string;
+        };
+        LabDataDto: {
+            test: string;
+            specimen?: string;
+            /** @enum {string} */
+            status: "ORDERED" | "RESULTED" | "REVIEWED";
+            result?: string;
+            unit?: string;
+            referenceRange?: string;
+        };
+        AuthorDto: {
+            issuer: string;
+            subject: string;
+        };
+        StaffClinicalDto: {
+            /** @enum {string} */
+            kind: "diagnosis" | "treatment" | "vaccination" | "lab";
+            data: components["schemas"]["DiagnosisDataDto"] | components["schemas"]["TreatmentDataDto"] | components["schemas"]["VaccinationDataDto"] | components["schemas"]["LabDataDto"];
+            /** Format: date-time */
+            occurredAt: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            revisionId: string;
+            /** Format: uuid */
+            patientId: string;
+            revision: number;
+            /** Format: date-time */
+            recordedAt: string;
+            /** Format: uuid */
+            encounterId: string;
+            changeReason: string | null;
+            author: components["schemas"]["AuthorDto"];
+            sharing: components["schemas"]["SharingDto"];
+        };
+        StaffClinicalPageDto: {
+            page: number;
+            hasNextPage: boolean;
+            records: components["schemas"]["StaffClinicalDto"][];
+        };
+        ClinicalWriteDto: {
+            /** @enum {string} */
+            kind: "diagnosis" | "treatment" | "vaccination" | "lab";
+            data: components["schemas"]["DiagnosisDataDto"] | components["schemas"]["TreatmentDataDto"] | components["schemas"]["VaccinationDataDto"] | components["schemas"]["LabDataDto"];
+            /** Format: date-time */
+            occurredAt: string;
+            /** Format: uuid */
+            encounterId: string;
+            revision: number;
+            changeReason?: string;
+        };
+        ClinicalSharingDto: {
+            guardianIds: string[];
+            revision: number;
+            recordRevision: number;
+        };
+        OwnerClinicalDto: {
+            /** @enum {string} */
+            kind: "diagnosis" | "treatment" | "vaccination" | "lab";
+            data: components["schemas"]["DiagnosisDataDto"] | components["schemas"]["TreatmentDataDto"] | components["schemas"]["VaccinationDataDto"] | components["schemas"]["LabDataDto"];
+            /** Format: date-time */
+            occurredAt: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            revisionId: string;
+            /** Format: uuid */
+            patientId: string;
+            revision: number;
+            /** Format: date-time */
+            recordedAt: string;
+            /** Format: uuid */
+            clinicId: string;
+            clinicName: string;
+            organizationName: string;
+        };
+        OwnerClinicalPageDto: {
+            page: number;
+            hasNextPage: boolean;
+            records: components["schemas"]["OwnerClinicalDto"][];
         };
         ReferralDestinationDto: {
             /** Format: uuid */
@@ -7347,6 +7531,369 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OwnerEncountersDto"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+        };
+    };
+    listClinicalRecords: {
+        parameters: {
+            query?: {
+                page?: number;
+            };
+            header?: never;
+            path: {
+                organizationId: string;
+                clinicId: string;
+                patientId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffClinicalPageDto"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+        };
+    };
+    clinicalHistory: {
+        parameters: {
+            query?: {
+                page?: number;
+            };
+            header?: never;
+            path: {
+                organizationId: string;
+                clinicId: string;
+                patientId: string;
+                recordId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffClinicalPageDto"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+        };
+    };
+    saveClinicalRevision: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationId: string;
+                clinicId: string;
+                patientId: string;
+                recordId: string;
+                requestId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClinicalWriteDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffClinicalDto"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+        };
+    };
+    shareClinicalRecord: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationId: string;
+                clinicId: string;
+                patientId: string;
+                recordId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClinicalSharingDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SharingDto"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+        };
+    };
+    listOwnerClinicalRecords: {
+        parameters: {
+            query?: {
+                page?: number;
+            };
+            header?: never;
+            path: {
+                petId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OwnerClinicalPageDto"];
                 };
             };
             400: {

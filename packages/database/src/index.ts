@@ -108,6 +108,13 @@ export {
 
 export * from "./registry.js";
 export * from "./care.js";
+export * from "./clinical-records.js";
+import type {
+  ClinicalWrite,
+  StaffClinical,
+  OwnerClinical,
+  ClinicalPage,
+} from "./clinical-records.js";
 export * from "./inventory.js";
 export * from "./procurement.js";
 export * from "./referrals.js";
@@ -168,7 +175,7 @@ export class PrismaDatabase {
                     public.organization_memberships, public.clinic_grants
       LIMIT 0
     `;
-    await transaction.$queryRaw`SELECT public.registry_lock_tables() AS registry_locked, public.care_lock_tables() AS care_locked, public.document_lock_tables() AS documents_locked, public.exchange_lock_tables() AS exchange_locked, public.export_lock_tables() AS exports_locked, public.referral_lock_tables() AS referrals_locked, public.stock_lock_tables() AS stock_locked, public.trade_lock_tables() AS trade_locked,public.billing_lock_tables() AS billing_locked, public.fiscal_lock_tables() AS fiscal_locked`;
+    await transaction.$queryRaw`SELECT public.registry_lock_tables() AS registry_locked, public.care_lock_tables() AS care_locked, public.document_lock_tables() AS documents_locked, public.exchange_lock_tables() AS exchange_locked, public.export_lock_tables() AS exports_locked, public.referral_lock_tables() AS referrals_locked, public.stock_lock_tables() AS stock_locked, public.trade_lock_tables() AS trade_locked,public.billing_lock_tables() AS billing_locked, public.fiscal_lock_tables() AS fiscal_locked, public.clinical_lock_tables() AS clinical_locked`;
     const [result] = await transaction.$queryRaw<{ active: boolean }[]>`
       SELECT current_setting('row_security') = 'on'
         AND NOT EXISTS (
@@ -184,7 +191,7 @@ export class PrismaDatabase {
                         'public.encounter_sharing', 'public.encounter_recipients', 'public.appointments', 'public.care_events',
                         'public.referral_states','public.referral_requests','public.referral_responses','public.referral_events',
                         'public.exchange_packages','public.exchange_receipts','public.exchange_patients',
-                        'public.exchange_imports','public.exchange_records','public.medical_documents','public.document_events','public.exchange_export_events','public.inventory_warehouses','public.inventory_items','public.stock_balances','public.stock_movements','public.trade_suppliers','public.purchase_orders','public.purchase_lines','public.purchase_receipts','public.purchase_receipt_lines','public.supplier_returns','public.pharmacy_capabilities','public.patient_prescriptions','public.prescription_dispensings','public.prescription_sharing','public.pharmacy_events','public.billing_prices','public.billing_price_events','public.billing_sales','public.cash_shifts','public.billing_payments','public.fiscal_events','public.fiscal_profiles','public.fiscal_invoices']::regclass[]) AS tables(relation)
+                        'public.exchange_imports','public.exchange_records','public.medical_documents','public.document_events','public.exchange_export_events','public.inventory_warehouses','public.inventory_items','public.stock_balances','public.stock_movements','public.trade_suppliers','public.purchase_orders','public.purchase_lines','public.purchase_receipts','public.purchase_receipt_lines','public.supplier_returns','public.pharmacy_capabilities','public.patient_prescriptions','public.prescription_dispensings','public.prescription_sharing','public.pharmacy_events','public.billing_prices','public.billing_price_events','public.billing_sales','public.cash_shifts','public.billing_payments','public.fiscal_events','public.fiscal_profiles','public.fiscal_invoices','public.clinical_record_heads','public.clinical_record_revisions']::regclass[]) AS tables(relation)
       JOIN pg_catalog.pg_class ON pg_class.oid = relation
     `;
     if (!result?.active) throw new Error("Database row security is inactive");
@@ -412,7 +419,7 @@ export class PrismaDatabase {
       principal,
       "",
       "",
-      Prisma.sql`SELECT public.exchange_confirm_export(${pet}::uuid,${scope.organizationId}::uuid,${scope.clinicId}::uuid,${scope.patientId}::uuid,${selection.encounterIds}::uuid[],${selection.documentAssetIds}::uuid[],${selection.includeOwner}::boolean,${destination.organizationId}::uuid,${destination.clinicId}::uuid,${packageId}::uuid) AS result`,
+      Prisma.sql`SELECT public.exchange_confirm_export(${pet}::uuid,${scope.organizationId}::uuid,${scope.clinicId}::uuid,${scope.patientId}::uuid,${selection.encounterIds}::uuid[],${selection.documentAssetIds}::uuid[],${selection.includeOwner}::boolean,${destination.organizationId}::uuid,${destination.clinicId}::uuid,${packageId}::uuid,${selection.clinicalRevisionIds ?? []}::uuid[]) AS result`,
       "",
       this.bulkClient,
     );
@@ -427,7 +434,7 @@ export class PrismaDatabase {
       principal,
       "",
       "",
-      Prisma.sql`SELECT public.exchange_owner_source(${pet}::uuid,${scope.organizationId}::uuid,${scope.clinicId}::uuid,${scope.patientId}::uuid,${selection.encounterIds}::uuid[],${selection.documentAssetIds}::uuid[],${selection.includeOwner}::boolean) AS result`,
+      Prisma.sql`SELECT public.exchange_owner_source(${pet}::uuid,${scope.organizationId}::uuid,${scope.clinicId}::uuid,${scope.patientId}::uuid,${selection.encounterIds}::uuid[],${selection.documentAssetIds}::uuid[],${selection.includeOwner}::boolean,${selection.clinicalRevisionIds ?? []}::uuid[]) AS result`,
       "",
       this.bulkClient,
     );
@@ -439,6 +446,79 @@ export class PrismaDatabase {
       "",
       "",
       Prisma.sql`SELECT public.registry_owner_pets() AS result`,
+    );
+  }
+
+  saveClinicalRevision(
+    staff: StaffPrincipal,
+    org: string,
+    clinic: string,
+    patient: string,
+    id: string,
+    request: string,
+    input: ClinicalWrite,
+  ): Promise<StaffClinical> {
+    return this.registryQuery(
+      staff,
+      org,
+      clinic,
+      Prisma.sql`SELECT public.clinical_write(${patient}::uuid,${id}::uuid,${request}::uuid,${input.encounterId}::uuid,${input.kind},${input.occurredAt},${input.revision}::int,${input.changeReason ?? null}::text,${JSON.stringify(input.data)}::jsonb) AS result`,
+    );
+  }
+  listClinicalRecords(
+    staff: StaffPrincipal,
+    org: string,
+    clinic: string,
+    patient: string,
+    page: number,
+  ): Promise<ClinicalPage<StaffClinical>> {
+    return this.registryQuery(
+      staff,
+      org,
+      clinic,
+      Prisma.sql`SELECT public.clinical_list(${patient}::uuid,NULL,${page}::int) AS result`,
+    );
+  }
+  clinicalHistory(
+    staff: StaffPrincipal,
+    org: string,
+    clinic: string,
+    patient: string,
+    id: string,
+    page: number,
+  ): Promise<ClinicalPage<StaffClinical>> {
+    return this.registryQuery(
+      staff,
+      org,
+      clinic,
+      Prisma.sql`SELECT public.clinical_list(${patient}::uuid,${id}::uuid,${page}::int) AS result`,
+    );
+  }
+  shareClinicalRecord(
+    staff: StaffPrincipal,
+    org: string,
+    clinic: string,
+    patient: string,
+    id: string,
+    input: EncounterSharing & { recordRevision: number },
+  ): Promise<EncounterSharing> {
+    return this.registryQuery(
+      staff,
+      org,
+      clinic,
+      Prisma.sql`SELECT public.clinical_share(${patient}::uuid,${id}::uuid,${input.recordRevision}::int,${input.revision}::int,${input.guardianIds}::uuid[]) AS result`,
+    );
+  }
+  listOwnerClinicalRecords(
+    owner: OwnerPrincipal,
+    pet: string,
+    page: number,
+  ): Promise<ClinicalPage<OwnerClinical>> {
+    return this.registryQuery(
+      owner,
+      "",
+      "",
+      Prisma.sql`SELECT public.clinical_owner_list(${pet}::uuid,${page}::int) AS result`,
     );
   }
 

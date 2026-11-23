@@ -1,6 +1,8 @@
 import { createInstance } from "i18next";
 import ICU from "i18next-icu";
 
+import enClinical from "../locales/native-clinical.en.json";
+import esClinical from "../locales/native-clinical.es.json";
 import enFiscal from "../locales/native-fiscal.en.json";
 import esFiscal from "../locales/native-fiscal.es.json";
 import enBilling from "../locales/native-billing.en.json";
@@ -55,6 +57,7 @@ declare module "i18next" {
   interface CustomTypeOptions {
     resources: {
       translation: Messages & {
+        nativeClinical: typeof esClinical;
         nativeFiscal: typeof esFiscal;
         nativeBilling: typeof esBilling;
         nativeTrade: typeof esTrade;
@@ -82,6 +85,7 @@ export async function createNativeI18n(locale: Locale) {
         translation: {
           ...messages.es,
           nativeAuth: nativeAuth.es,
+          nativeClinical: esClinical,
           nativeFiscal: esFiscal,
           nativeBilling: esBilling,
           nativeTrade: nativeTrade.es,
@@ -98,6 +102,7 @@ export async function createNativeI18n(locale: Locale) {
         translation: {
           ...messages.en,
           nativeAuth: nativeAuth.en,
+          nativeClinical: enClinical,
           nativeFiscal: enFiscal,
           nativeBilling: enBilling,
           nativeTrade: nativeTrade.en,
