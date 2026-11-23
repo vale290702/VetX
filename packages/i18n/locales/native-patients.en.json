@@ -1,4 +1,5 @@
 {
+  "clinicalUnavailable": "Clinical records are temporarily unavailable.",
   "patients": "Patients",
   "patientsIn": "Patients at {clinic}",
   "backClinics": "Back to clinics",

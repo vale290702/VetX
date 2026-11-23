@@ -42,6 +42,7 @@ const fields = [
   "lotNumber",
   "nextDueDate",
   "test",
+  "specimen",
   "result",
   "unit",
   "referenceRange",
@@ -125,6 +126,32 @@ function ImportedDetail({
           time: new Date(record.importedAt).toLocaleString(i18n.language),
         })}
       </Text>
+      {record.clinicalRevision && (
+        <View style={styles.section}>
+          <Text selectable style={styles.support}>
+            {t("nativeClinical.sourceRecord") + " · " + record.clinicalRevision.recordId}
+          </Text>
+          <Text style={styles.support}>
+            {t("nativeClinical.sourceVersion") + " · " + record.clinicalRevision.revision}
+          </Text>
+          {record.clinicalRevision.resultAuthor && (
+            <Text selectable style={styles.support}>
+              {t("nativeClinical.resultAuthor") +
+                " · " +
+                record.clinicalRevision.resultAuthor.subject +
+                " · " +
+                record.clinicalRevision.resultAuthor.issuer}
+            </Text>
+          )}
+          {record.clinicalRevision.resultRecordedAt && (
+            <Text style={styles.support}>
+              {t("nativeClinical.resultRecordedAt") +
+                " · " +
+                new Date(record.clinicalRevision.resultRecordedAt).toLocaleString(i18n.language)}
+            </Text>
+          )}
+        </View>
+      )}
       {fields.map((key) => {
         const value = fieldValue(record.data[key]);
         return value ? (

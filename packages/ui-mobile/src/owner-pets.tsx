@@ -2,6 +2,7 @@ import { Activity, useCallback, useState } from "react";
 import { Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
+import { ReleasedClinical } from "./clinical-records";
 import { OwnerReferrals } from "./referrals";
 import { OwnerExchange } from "./owner-exchange";
 import { OwnerDocuments } from "./medical-documents";
@@ -32,7 +33,7 @@ export function OwnerPets({
   const { t } = useTranslation();
   const [selected, setSelected] = useState<{
     petId: string;
-    kind: "notes" | "documents" | "export" | "referrals";
+    kind: "notes" | "documents" | "export" | "referrals" | "clinical";
   }>();
   const [draft, setDraft] = useState<LinkDraft>();
   const [linked, setLinked] = useState(false);
@@ -45,6 +46,7 @@ export function OwnerPets({
       : undefined;
   if (selected && (!result || pet)) {
     const Records = {
+      clinical: ReleasedClinical,
       notes: ReleasedEncounters,
       documents: OwnerDocuments,
       export: OwnerExchange,
@@ -132,6 +134,12 @@ export function OwnerPets({
                   setSelected({ petId: pet.id, kind: "referrals" });
                   setLinked(false);
                 }}
+              />
+              <Action
+                styles={styles}
+                label={t("nativeClinical.title")}
+                accessibilityLabel={t("nativeClinical.patientHeading", { patient: pet.name })}
+                onPress={() => setSelected({ petId: pet.id, kind: "clinical" })}
               />
               <Action
                 styles={styles}

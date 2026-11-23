@@ -1,6 +1,8 @@
 import { createInstance } from "i18next";
 import ICU from "i18next-icu";
 
+import enClinical from "../locales/native-clinical.en.json";
+import esClinical from "../locales/native-clinical.es.json";
 import enInventory from "../locales/native-inventory.en.json";
 import esInventory from "../locales/native-inventory.es.json";
 import enReferrals from "../locales/native-referrals.en.json";
@@ -48,6 +50,7 @@ declare module "i18next" {
   interface CustomTypeOptions {
     resources: {
       translation: Messages & {
+        nativeClinical: typeof esClinical;
         nativeInventory: typeof esInventory;
         nativeReferrals: typeof esReferrals;
         nativeExchange: typeof esExchange;
@@ -72,6 +75,7 @@ export async function createNativeI18n(locale: Locale) {
         translation: {
           ...messages.es,
           nativeAuth: nativeAuth.es,
+          nativeClinical: esClinical,
           nativeInventory: nativeInventory.es,
           nativeReferrals: nativeReferrals.es,
           nativeExchange: nativeExchange.es,
@@ -85,6 +89,7 @@ export async function createNativeI18n(locale: Locale) {
         translation: {
           ...messages.en,
           nativeAuth: nativeAuth.en,
+          nativeClinical: enClinical,
           nativeInventory: nativeInventory.en,
           nativeReferrals: nativeReferrals.en,
           nativeExchange: nativeExchange.en,

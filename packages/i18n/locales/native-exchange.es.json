@@ -46,6 +46,7 @@
   "recorded": "Registrado en origen · {time}",
   "imported": "Importado en esta clínica · {time}",
   "kinds": {
+    "clinical": "Versión de registro clínico",
     "encounter": "Consulta",
     "addendum": "Adenda",
     "diagnosis": "Diagnóstico",
@@ -89,6 +90,7 @@
     "referredTo": "Centro de destino",
     "referringClinic": "Clínica de origen",
     "referralId": "Identificador de la referencia",
-    "summary": "Resumen"
+    "summary": "Resumen",
+    "specimen": "Muestra"
   }
 }

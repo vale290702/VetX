@@ -38,6 +38,9 @@ export function exportBody(
     destination: { organizationId: dest.organizationId, clinicId: dest.clinicId },
     encounterIds: records.filter((r) => r.kind === "encounter").map((r) => r.id),
     documentAssetIds: records.filter((r) => r.kind === "document").map((r) => r.id),
+    ...(records.some((r) => r.kind === "clinical")
+      ? { clinicalRevisionIds: records.filter((r) => r.kind === "clinical").map((r) => r.id) }
+      : {}),
     includeOwner,
   };
 }
