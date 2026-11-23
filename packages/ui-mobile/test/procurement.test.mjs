@@ -86,6 +86,17 @@ test("only verified current account and clinic grants enable each pharmacy actio
     canDispense: true,
     revision: 3,
   });
+  const dormant = { ...g, clinicAccess: false, canPrescribe: true, canDispense: true };
+  assert.deepEqual(capabilityBody(dormant, false, true), {
+    revision: g.revision,
+    canPrescribe: false,
+    canDispense: true,
+  });
+  assert.deepEqual(capabilityBody(dormant, true, false), {
+    revision: g.revision,
+    canPrescribe: true,
+    canDispense: false,
+  });
   assert.equal(capabilityBody({ ...g, clinicAccess: false }, true, false), undefined);
   assert.deepEqual(capabilityBody({ ...g, clinicAccess: false }, false, false), {
     canPrescribe: false,

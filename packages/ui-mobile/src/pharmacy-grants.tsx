@@ -100,7 +100,7 @@ function GrantForm({
         role="checkbox"
         selected={sign}
         label={t("nativeTrade.signPrivilege")}
-        disabled={save.locked || (!grant.clinicAccess && !sign)}
+        disabled={save.locked || (!grant.clinicAccess && !grant.canPrescribe)}
         onPress={() => setSign(!sign)}
       />
       <Action
@@ -108,7 +108,7 @@ function GrantForm({
         role="checkbox"
         selected={disp}
         label={t("nativeTrade.dispensePrivilege")}
-        disabled={save.locked || (!grant.clinicAccess && !disp)}
+        disabled={save.locked || (!grant.clinicAccess && !grant.canDispense)}
         onPress={() => setDisp(!disp)}
       />
       <ConfirmWrite

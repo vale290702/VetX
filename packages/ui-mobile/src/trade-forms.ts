@@ -133,7 +133,7 @@ export function capabilityBody(
   canDispense: boolean,
 ): GrantBody | undefined {
   if (
-    (!g.clinicAccess && (canPrescribe || canDispense)) ||
+    (!g.clinicAccess && ((canPrescribe && !g.canPrescribe) || (canDispense && !g.canDispense))) ||
     (g.canPrescribe === canPrescribe && g.canDispense === canDispense)
   )
     return;
