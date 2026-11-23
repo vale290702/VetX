@@ -7,7 +7,9 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
-    }
+    },
+    "./vat-tariffs": "./src/vat-tariffs.v4.4.json",
+    "./unit-codes": "./src/unit-codes.v4.4.json"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",

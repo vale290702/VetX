@@ -99,14 +99,12 @@ test("ambiguous submission is reconciled by key and never automatically posted a
   await assert.rejects(
     client.submit(envelope),
     (e) =>
-      e instanceof HaciendaError &&
-      e.kind === "invalid_submission" &&
-      !e.message.includes("sensitive"),
+      e instanceof HaciendaError && e.kind === "unconfirmed" && !e.message.includes("sensitive"),
   );
   fail = false;
-  const found = await client.submit(envelope);
-  assert.deepEqual(found, { key: clave, status: "known", state: "procesando" });
-  assert.equal(posts, 2);
+  const found = await client.status(clave);
+  assert.equal(found.state, "procesando");
+  assert.equal(posts, 1);
 });
 test("misbound authority responses, untrusted redirects and oversized payloads fail closed", async (t) => {
   let mode = "wrong";

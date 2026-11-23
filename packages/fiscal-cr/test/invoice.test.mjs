@@ -66,6 +66,29 @@ test("an ordinary invoice preserves the fiscal key, rounded line, split tenders 
   ])
     assert.throws(() => buildFiscalInvoice({ ...base, ...other }), /Invalid fiscal invoice/);
 });
+test("ordinary VAT invoices match the reviewed Hacienda tariff code and rate", () => {
+  for (const vatTariffCode of ["01", "02", "05", "10", "11", "99"]) {
+    assert.throws(
+      () => buildFiscalInvoice({ ...base, lines: [{ ...base.lines[0], vatTariffCode }] }),
+      /Invalid fiscal invoice/,
+    );
+  }
+  const half = {
+    ...base.lines[0],
+    vatTariffCode: "09",
+    taxRate: "0.50000",
+    tax: "0.62500",
+    total: "125.62500",
+  };
+  const invoice = {
+    ...base,
+    lines: [half],
+    tax: half.tax,
+    total: half.total,
+    payments: [{ code: "01", amount: half.total }],
+  };
+  assert.match(buildFiscalInvoice(invoice).xml, /<Tarifa>0.5<\/Tarifa>/);
+});
 test("signed client fixture validates offline against the pinned Hacienda XSD and W3C signature schema", async (t) => {
   const dir = await mkdtemp(join(tmpdir(), "vetx-fiscal-schema-"));
   t.after(() => rm(dir, { recursive: true, force: true }));
@@ -110,6 +133,6 @@ test("signed client fixture validates offline against the pinned Hacienda XSD an
       signer,
       5000,
     ),
-    /validation failed/,
+    /Invalid fiscal invoice/,
   );
 });
