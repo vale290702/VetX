@@ -55,6 +55,26 @@ export function billingTarget(method: string, parts: string[], params: URLSearch
   const [resource, id, sub, other] = parts;
   const validId = isDirectoryId(id);
   let path: string | undefined;
+  if (
+    resource === "sales" &&
+    validId &&
+    sub === "fiscal" &&
+    (other === "sandbox" || other === "production")
+  ) {
+    if (
+      (parts.length === 4 && (method === "GET" || method === "POST")) ||
+      (parts.length === 5 && parts[4] === "retry" && method === "POST")
+    )
+      return "billing/" + parts.join("/");
+    if (
+      method === "GET" &&
+      parts.length === 6 &&
+      parts[4] === "artifacts" &&
+      (parts[5] === "invoice" || parts[5] === "receipt")
+    )
+      return "billing/" + parts.join("/");
+    return null;
+  }
   if (method === "POST") {
     if (parts.length === 2 && validId && ["prices", "sales", "shifts"].includes(resource!))
       path = parts.join("/");

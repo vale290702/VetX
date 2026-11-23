@@ -6,6 +6,7 @@ import { SwaggerModule } from "@nestjs/swagger";
 import { type AccessDependencies, AccessModule } from "./access.js";
 import { DocumentModule, type DocumentDependencies } from "./documents/module.js";
 import { InventoryModule, type InventoryStore } from "./inventory/module.js";
+import { FiscalModule, type FiscalStore } from "./fiscal/module.js";
 import { BillingModule, type BillingStore } from "./billing/module.js";
 import { ClinicalExchangeModule } from "./exchange/module.js";
 import type { ExchangeDependencies } from "./exchange/service.js";
@@ -20,6 +21,7 @@ import { createOpenApiDocument } from "./openapi.js";
 
 type Dependencies = AccessDependencies & {
   billing?: BillingStore;
+  fiscal?: FiscalStore;
   inventory?: InventoryStore;
   exchange?: ExchangeDependencies;
   documents?: DocumentDependencies;
@@ -42,6 +44,7 @@ class AppModule {
         RegistryModule.register(access.registry, access.petLinks),
         DocumentModule.register(access.documents),
         BillingModule.register(access.billing),
+        FiscalModule.register(access.fiscal),
         InventoryModule.register(access.inventory),
         ClinicalExchangeModule.register(access.exchange),
         CareModule.register(access.care),
