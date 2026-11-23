@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { Action, Field } from "./controls";
 import { PatientReadState, usePatientRead } from "./patient-controls";
 import { PatientForm, type ClinicPatientProps } from "./patient-form";
+import { ClinicReferrals } from "./referrals";
 import { StaffExchange } from "./staff-exchange";
 import { Appointments } from "./appointments";
 import { PatientDetail } from "./patient-detail";
@@ -25,7 +26,7 @@ export function ClinicPatients({
   const [filter, setFilter] = useState("");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
-  const [clinicScreen, setClinicScreen] = useState<"calendar" | "import">();
+  const [clinicScreen, setClinicScreen] = useState<"calendar" | "import" | "referrals">();
   const [selected, setSelected] = useState<{ id: string; create?: boolean }>();
   const scope = useMemo(
     () => ({ subject: account.subject, organizationId, clinicId: clinic.id }),
@@ -38,6 +39,15 @@ export function ClinicPatients({
     setSelected(undefined);
     reload();
   }
+  if (clinicScreen === "referrals")
+    return (
+      <View style={styles.section}>
+        <Text accessibilityRole="header" style={styles.heading}>
+          {clinic.name}
+        </Text>
+        <ClinicReferrals {...props} back={() => setClinicScreen(undefined)} />
+      </View>
+    );
   if (clinicScreen === "import")
     return (
       <View style={styles.section}>
@@ -83,6 +93,11 @@ export function ClinicPatients({
     <View style={styles.section}>
       <View style={styles.actions}>
         <Action styles={styles} label={t("nativePatients.backClinics")} onPress={back} />
+        <Action
+          styles={styles}
+          label={t("nativeReferrals.inbox")}
+          onPress={() => setClinicScreen("referrals")}
+        />
         <Action
           styles={styles}
           label={t("nativeExchange.import")}

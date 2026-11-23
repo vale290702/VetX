@@ -2,6 +2,7 @@ import { Activity, useCallback, useState } from "react";
 import { Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
+import { OwnerReferrals } from "./referrals";
 import { OwnerExchange } from "./owner-exchange";
 import { OwnerDocuments } from "./medical-documents";
 import { ReleasedEncounters } from "./clinical-notes";
@@ -31,7 +32,7 @@ export function OwnerPets({
   const { t } = useTranslation();
   const [selected, setSelected] = useState<{
     petId: string;
-    kind: "notes" | "documents" | "export";
+    kind: "notes" | "documents" | "export" | "referrals";
   }>();
   const [draft, setDraft] = useState<LinkDraft>();
   const [linked, setLinked] = useState(false);
@@ -43,12 +44,12 @@ export function OwnerPets({
       ? result.value.pets.find((p) => p.id === selected?.petId)
       : undefined;
   if (selected && (!result || pet)) {
-    const Records =
-      selected.kind === "export"
-        ? OwnerExchange
-        : selected.kind === "notes"
-          ? ReleasedEncounters
-          : OwnerDocuments;
+    const Records = {
+      notes: ReleasedEncounters,
+      documents: OwnerDocuments,
+      export: OwnerExchange,
+      referrals: OwnerReferrals,
+    }[selected.kind];
     return (
       <>
         {!pet && <PatientReadState styles={styles} retry={reload} />}
@@ -120,6 +121,15 @@ export function OwnerPets({
                 accessibilityLabel={t("nativeCare.releasedFor", { name: pet.name })}
                 onPress={() => {
                   setSelected({ petId: pet.id, kind: "notes" });
+                  setLinked(false);
+                }}
+              />
+              <Action
+                styles={styles}
+                label={t("nativeReferrals.petLink")}
+                accessibilityLabel={t("nativeReferrals.forPet", { name: pet.name })}
+                onPress={() => {
+                  setSelected({ petId: pet.id, kind: "referrals" });
                   setLinked(false);
                 }}
               />

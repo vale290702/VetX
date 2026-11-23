@@ -2,6 +2,7 @@ import { Activity, useCallback, useEffect, useState } from "react";
 import { AppState, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
+import { PatientReferrals } from "./referrals";
 import { ImportedHistory } from "./imported-history";
 import { PatientDocuments } from "./medical-documents";
 import { Appointments } from "./appointments";
@@ -33,7 +34,9 @@ export function PatientDetail({
   const load = useCallback(() => client.detail(scope, patientId), [client, scope, patientId]);
   const { result, reload } = usePatientRead(load);
   const action = usePatientAction(account);
-  const [care, setCare] = useState<"notes" | "appointments" | "documents" | "imports">();
+  const [care, setCare] = useState<
+    "notes" | "appointments" | "documents" | "imports" | "referrals"
+  >();
   const [edit, setEdit] = useState<Editor>();
   const [issued, setIssued] = useState<{
     guardianId: string;
@@ -100,7 +103,9 @@ export function PatientDetail({
             <Text accessibilityRole="header" style={styles.heading}>
               {record?.patient.name}
             </Text>
-            {care === "imports" ? (
+            {care === "referrals" ? (
+              <PatientReferrals {...props} patientId={patientId} back={backToPatient} />
+            ) : care === "imports" ? (
               <ImportedHistory {...props} patientId={patientId} back={backToPatient} />
             ) : care === "documents" ? (
               <PatientDocuments {...props} patientId={patientId} back={backToPatient} />
@@ -196,6 +201,14 @@ export function PatientDetail({
                   onPress={() => {
                     setIssued(undefined);
                     setCare("appointments");
+                  }}
+                />
+                <Action
+                  styles={styles}
+                  label={t("nativeReferrals.outbox")}
+                  onPress={() => {
+                    setIssued(undefined);
+                    setCare("referrals");
                   }}
                 />
                 <Action
